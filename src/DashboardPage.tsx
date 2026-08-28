@@ -143,11 +143,8 @@ const flexibleUltraInterest = (
   return promoValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) +
     excessValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) - principal;
 };
-const hasCompletedMonth = (startDate: Date, calculationDate: Date) => {
-  const oneMonthLater = new Date(startDate);
-  oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-  return calculationDate >= oneMonthLater;
-};
+const daysInMonth = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 const completedMonthsBetween = (startDate: Date, calculationDate: Date) => {
   let months =
     (calculationDate.getFullYear() - startDate.getFullYear()) * 12 +
@@ -197,6 +194,7 @@ const calculateInvestment = (
       (calculationDate.getTime() - startDate.getTime()) / 86400000,
     ) - (isKubo ? 1 : 0),
   );
+  const monthlyDays = daysInMonth(calculationDate);
   const promoBalance = calculate(formulas.promotionalBalance, { availableBalance, promoCap }, Math.min(availableBalance, promoCap));
   const excessBalance = calculate(formulas.excessBalance, { availableBalance, promoCap }, Math.max(0, availableBalance - promoCap));
   const configuredSimpleInterest = (principal: number, rate: number, days: number) =>
@@ -216,17 +214,14 @@ const calculateInvestment = (
       ? openbankInterest(availableBalance, annualRate, excessRate, openbankPostingDaysForDate, daysBase)
     : configuredCompoundInterest(promoBalance, annualRate, 1) +
       configuredCompoundInterest(excessBalance, excessRate, 1);
-  const monthlyYield =
-    hasCompletedMonth(startDate, calculationDate)
-      ? isFlexibleUltra
-        ? flexibleUltraInterest(availableBalance, promoCap, 30.28, annualRate, excessRate, promotionDays)
-        : calculationMethod === "mifel360"
-          ? mifelInterest(availableBalance, annualRate, 30.28)
-        : calculationMethod === "openbank"
-          ? openbankInterest(availableBalance, annualRate, excessRate, 30.28, daysBase)
-        : configuredCompoundInterest(promoBalance, annualRate, 30.28) +
-          configuredCompoundInterest(excessBalance, excessRate, 30.28)
-      : 0;
+  const monthlyYield = isFlexibleUltra
+    ? flexibleUltraInterest(availableBalance, promoCap, monthlyDays, annualRate, excessRate, promotionDays)
+    : calculationMethod === "mifel360"
+      ? mifelInterest(availableBalance, annualRate, monthlyDays)
+    : calculationMethod === "openbank"
+      ? openbankInterest(availableBalance, annualRate, excessRate, monthlyDays, daysBase)
+    : configuredCompoundInterest(promoBalance, annualRate, monthlyDays) +
+      configuredCompoundInterest(excessBalance, excessRate, monthlyDays);
   const totalAccumulated = Math.max(
     calculationMethod === "simple"
       ? configuredSimpleInterest(availableBalance, annualRate, daysElapsed)

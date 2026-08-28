@@ -81,8 +81,11 @@ const compoundInterest = (
 ) => principal * (Math.pow(1 + annualRate / 100 / 365, days) - 1);
 const simpleInterest = (principal: number, annualRate: number, days: number) =>
   principal * (annualRate / 100) * (days / 365);
-const officialMonthlyInterest = (principal: number, annualRate: number) =>
-  compoundInterest(principal, annualRate, 30.28);
+const officialMonthlyInterest = (
+  principal: number,
+  annualRate: number,
+  days: number,
+) => compoundInterest(principal, annualRate, days);
 const mifelInterest = (principal: number, annualRate: number, days: number) =>
   principal * (annualRate / 100) * (days / 360);
 const openbankInterest = (
@@ -129,11 +132,8 @@ const flexibleUltraInterest = (
     principal
   );
 };
-const hasCompletedMonth = (startDate: Date, calculationDate: Date) => {
-  const oneMonthLater = new Date(startDate);
-  oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-  return calculationDate >= oneMonthLater;
-};
+const daysInMonth = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 const completedMonthsBetween = (startDate: Date, calculationDate: Date) => {
   let months =
     (calculationDate.getFullYear() - startDate.getFullYear()) * 12 +
@@ -237,6 +237,7 @@ export default function InvestmentPage({
         86400000,
     ) - (isKubo ? 1 : 0),
   );
+  const monthlyDays = daysInMonth(calculationDate);
   const promoBalance = Math.min(availableBalance, promoCap);
   const excessBalance = Math.max(0, availableBalance - promoCap);
   const openbankPostingDaysForDate = isOpenbank
@@ -263,22 +264,20 @@ export default function InvestmentPage({
             )
           : compoundInterest(promoBalance, annualRate, 1) +
             compoundInterest(excessBalance, excessRate, 1);
-  const monthlyYield = hasCompletedMonth(parseDate(startDate), calculationDate)
-    ? isFlexibleUltra
-      ? flexibleUltraInterest(
-          availableBalance,
-          promoCap,
-          30.28,
-          annualRate,
-          excessRate,
-        )
-      : isMifel
-        ? mifelInterest(availableBalance, annualRate, 30.28)
-        : isOpenbank
-          ? openbankInterest(availableBalance, annualRate, excessRate, 30.28)
-          : officialMonthlyInterest(promoBalance, annualRate) +
-            officialMonthlyInterest(excessBalance, excessRate)
-    : 0;
+  const monthlyYield = isFlexibleUltra
+    ? flexibleUltraInterest(
+        availableBalance,
+        promoCap,
+        monthlyDays,
+        annualRate,
+        excessRate,
+      )
+    : isMifel
+      ? mifelInterest(availableBalance, annualRate, monthlyDays)
+      : isOpenbank
+        ? openbankInterest(availableBalance, annualRate, excessRate, monthlyDays)
+        : officialMonthlyInterest(promoBalance, annualRate, monthlyDays) +
+          officialMonthlyInterest(excessBalance, excessRate, monthlyDays);
   const totalAccumulated = Math.max(
     0,
     activeTab === "plazo"
