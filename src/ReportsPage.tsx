@@ -29,7 +29,8 @@ const current = (item: Investment, institutions: Institution[] = []) => {
   const product = institutions
     .find((institution) => institution.id === item.institutionId)
     ?.products?.find((entry) => entry.id === item.productId);
-  if (item.type === "plazo" && product?.calculationMethod === "simple360") {
+  const isBancoPlataFixed = item.institutionId === "banco-plata" && item.productId === "ahorro-fijo";
+  if (item.type === "plazo" && (product?.calculationMethod === "simple360" || isBancoPlataFixed)) {
     const days = item.termDays ?? (item.endDate && item.startDate
       ? Math.max(0, (new Date(`${item.endDate}T00:00:00`).getTime() - new Date(`${item.startDate}T00:00:00`).getTime()) / 86400000)
       : 0);
