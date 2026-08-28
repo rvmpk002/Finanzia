@@ -314,3 +314,50 @@ body, button, input, textarea, select { font-family: 'Plus Jakarta Sans', sans-s
 	.dashboard-table-section > .table-scroll { display: none; }
 	.dashboard-mobile-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.profile-security-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; margin-top: 42px; }
+.profile-security-panel { min-height: 470px; padding: 48px; background: #101729; border-color: #26334d; border-radius: 22px; }
+.profile-heading { display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; align-items: center; gap: 17px; }
+.profile-heading-icon { display: grid; place-items: center; width: 60px; height: 60px; border: 1px solid; border-radius: 18px; }
+.passkey-icon { color: #00d69b; border-color: #075f50; background: #06242a; }
+.two-factor-icon { color: #8587ff; border-color: #3c3790; background: #17193c; }
+.profile-heading h2 { margin: 0; color: var(--paper); font-size: 21px; letter-spacing: -.035em; }
+.profile-heading .eyebrow { margin: 0 0 5px; font-weight: 700; }
+.profile-accent-green { color: #00d69b; }
+.profile-accent-violet { color: #8587ff; }
+.profile-chip { align-self: center; padding: 7px 15px; border: 1px solid #26334d; border-radius: 18px; color: #96a5bf; font-size: 12px; white-space: nowrap; }
+.profile-chip-active { border-color: #00674f; color: #00d69b; background: #092523; }
+.profile-divider { height: 1px; margin: 24px 0; background: #26334d; }
+.profile-divider-spaced { margin-top: 35px; }
+.profile-lead { margin: 0; color: #91a0ba; font-size: 16px; line-height: 1.7; }
+.device-row { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 17px; margin-top: 30px; padding: 17px 18px; border: 1px solid #26334d; border-radius: 18px; }
+.device-icon { display: grid; place-items: center; width: 48px; height: 48px; color: #d5e0f4; background: #1d2b43; border: 1px solid #334565; border-radius: 13px; }
+.device-copy { display: grid; gap: 4px; min-width: 0; }
+.device-copy strong { color: var(--paper); font-size: 16px; }
+.device-copy span { overflow: hidden; color: #61708b; font: 13px var(--mono); text-overflow: ellipsis; white-space: nowrap; }
+.device-row .danger-button { min-height: 38px; color: #ff5c67; border-color: #63243b; background: #211729; }
+.profile-full-button { width: 100%; min-height: 61px; justify-content: center; border-radius: 17px; background: #00a875; border-color: #00a875; color: #f3fffb; font-size: 16px; }
+.profile-full-button:hover { background: #00bc87; border-color: #00bc87; }
+.profile-alert { display: flex; align-items: center; gap: 17px; margin-top: 30px; padding: 23px 26px; border: 1px solid; border-radius: 18px; font-size: 16px; line-height: 1.45; }
+.profile-alert-success { color: #00d69b; border-color: #07634f; background: #092029; }
+.profile-alert-success span { color: #48e0b2; }
+.profile-disable-button { margin-top: 20px; }
+.profile-personal-panel { margin-top: 24px; }
+
+@media (max-width: 900px) {
+	.profile-security-grid { gap: 20px; }
+	.profile-security-panel { padding: 28px; }
+}
+
+@media (max-width: 700px) {
+	.profile-security-grid { grid-template-columns: 1fr; margin-top: 30px; }
+	.profile-security-panel { min-height: auto; padding: 22px; border-radius: 16px; }
+	.profile-heading { grid-template-columns: 48px minmax(0, 1fr); gap: 12px; }
+	.profile-heading-icon { width: 48px; height: 48px; border-radius: 14px; }
+	.profile-chip { grid-column: 2; justify-self: start; margin-top: -4px; }
+	.profile-lead { font-size: 14px; }
+	.device-row { grid-template-columns: 42px minmax(0, 1fr); gap: 12px; padding: 14px; }
+	.device-icon { width: 42px; height: 42px; }
+	.device-row .danger-button { grid-column: 1 / -1; justify-content: center; }
+	.profile-alert { align-items: flex-start; padding: 18px; font-size: 14px; }
+}
