@@ -224,6 +224,19 @@ app.post('/api/auth/passkey/register/verify', async (request, response) => {
   return response.json({ registered: true })
 })
 
+app.get('/api/auth/passkeys', async (request, response) => {
+  const user = await currentUser(request); if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
+  const result = await pool.query('SELECT id, transports FROM passkeys WHERE user_id = $1 ORDER BY id', [user.id])
+  return response.json(result.rows.map((passkey) => ({ id: passkey.id, transports: passkey.transports ?? [] })))
+})
+
+app.delete('/api/auth/passkey/:id', async (request, response) => {
+  const user = await currentUser(request); if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
+  const result = await pool.query('DELETE FROM passkeys WHERE id = $1 AND user_id = $2 RETURNING id', [request.params.id, user.id])
+  if (!result.rows[0]) return response.status(404).json({ error: 'La Passkey no existe o no pertenece a tu cuenta.' })
+  return response.json({ revoked: true, id: result.rows[0].id })
+})
+
 app.get('/api/formulas', async (_request, response) => {
   if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
   try {
