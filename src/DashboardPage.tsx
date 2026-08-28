@@ -145,6 +145,13 @@ const flexibleUltraInterest = (
 };
 const daysInMonth = (date: Date) =>
   new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+const kuboAvailabilityDate = (date: Date) => {
+  const availability = new Date(date);
+  availability.setDate(availability.getDate() + 1);
+  if (availability.getDay() === 6) availability.setDate(availability.getDate() + 2);
+  if (availability.getDay() === 0) availability.setDate(availability.getDate() + 1);
+  return availability.toISOString().slice(0, 10);
+};
 const completedMonthsBetween = (startDate: Date, calculationDate: Date) => {
   let months =
     (calculationDate.getFullYear() - startDate.getFullYear()) * 12 +
@@ -308,6 +315,34 @@ export default function DashboardPage({
   const [formulaStore, setFormulaStore] = useState<FormulaStore>({});
   const formulasFor = (investment: Investment) =>
     formulaStore[formulaKey(investment.institutionId, investment.productId)] ?? defaultFormulaConfig;
+  const isKuboLiquidity = (investment: Investment) =>
+    investment.institutionId === "kubo" && investment.type === "vista";
+  const rolloverKuboLiquidity = (
+    investment: Investment,
+    calculatedInvestment: Investment,
+  ) => {
+    if (!isKuboLiquidity(investment) || !investment.calculatedAt) {
+      return calculatedInvestment;
+    }
+    const availability = kuboAvailabilityDate(
+      new Date(`${investment.calculatedAt}T00:00:00`),
+    );
+    const today = new Date().toISOString().slice(0, 10);
+    if (today < availability) return calculatedInvestment;
+    const reinvestedInvestment = {
+      ...calculatedInvestment,
+      balance: calculatedInvestment.updatedBalance,
+      withdrawn: 0,
+      startDate: availability,
+      updatedBalanceOverride: undefined,
+      updatedAt: new Date().toISOString(),
+    };
+    return calculateInvestment(
+      reinvestedInvestment,
+      institutions,
+      formulasFor(reinvestedInvestment),
+    );
+  };
   useEffect(() => {
     fetch("/api/formulas")
       .then((response) => response.ok ? response.json() : Promise.reject())
@@ -332,24 +367,44 @@ export default function DashboardPage({
             : databaseInvestment;
         });
         const recalculatedInvestments = latestInvestments.map((investment) =>
-          calculateInvestment(investment, institutions, formulaStore[formulaKey(investment.institutionId, investment.productId)] ?? defaultFormulaConfig),
+          rolloverKuboLiquidity(
+            investment,
+            calculateInvestment(investment, institutions, formulaStore[formulaKey(investment.institutionId, investment.productId)] ?? defaultFormulaConfig),
+          ),
+        );
+        await Promise.all(
+          recalculatedInvestments.map(async (investment, index) => {
+            if (investment.updatedAt === latestInvestments[index].updatedAt && !isKuboLiquidity(investment)) return;
+            if (investment.id && isKuboLiquidity(investment) && investment.startDate !== latestInvestments[index].startDate) {
+              await fetch(`/api/investments/${investment.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(investment),
+              });
+            }
+          }),
         );
         setInvestments(recalculatedInvestments);
         localStorage.setItem("finanzia-investments", JSON.stringify(recalculatedInvestments));
       } catch {
-        setInvestments(
-          readLocalInvestments().map((investment) =>
+        const localInvestments = readLocalInvestments().map((investment) =>
+          rolloverKuboLiquidity(
+            investment,
             calculateInvestment(investment, institutions, formulaStore[formulaKey(investment.institutionId, investment.productId)] ?? defaultFormulaConfig),
           ),
         );
+        setInvestments(localInvestments);
+        localStorage.setItem("finanzia-investments", JSON.stringify(localInvestments));
       }
     };
     window.addEventListener("finanzia-investment-saved", refreshInvestments);
     window.addEventListener("storage", refreshInvestments);
     refreshInvestments();
+    const refreshTimer = window.setInterval(refreshInvestments, 60000);
     return () => {
       window.removeEventListener("finanzia-investment-saved", refreshInvestments);
       window.removeEventListener("storage", refreshInvestments);
+      window.clearInterval(refreshTimer);
     };
   }, [institutions, formulaStore]);
   const investmentKey = (investment: Investment) =>
@@ -609,7 +664,7 @@ export default function DashboardPage({
                         <td>{percentage(investment.annualRate)}</td>
                         <td>Diario</td>
                         <td>{investment.startDate}</td>
-                        <td>{investment.calculatedAt}</td>
+                        <td>{kuboAvailabilityDate(new Date(`${investment.calculatedAt}T00:00:00`))}</td>
                       </tr>
                     ))}
                   </tbody>
