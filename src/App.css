@@ -432,9 +432,9 @@ input:focus, textarea:focus, select:focus, .search-box:focus-within { border-col
 	animation: report-bar-rise .7s cubic-bezier(.2,.8,.2,1) both;
 }
 .reports-type-bar.capital, .report-bar.capital { background: linear-gradient(90deg, #ff9f68, #ffd166); box-shadow: inset 0 1px 0 #fff6, 0 0 16px #ffc86b55; }
-.reports-type-bar.current, .report-bar.current { background: linear-gradient(90deg, #38bfa7, #8affda); box-shadow: inset 0 1px 0 #fff6, 0 0 16px #62f5c555; }
+.reports-type-bar.current, .report-bar.current { background: linear-gradient(90deg, #1687d9, #69d8ff); box-shadow: inset 0 1px 0 #fff6, 0 0 16px #36bdf466; }
 .reports-type-bar.profit, .report-bar.profit { background: linear-gradient(90deg, #e85d82, #ff9fb4); box-shadow: inset 0 1px 0 #fff6, 0 0 16px #ff7b9c55; }
-.reports-type-bar.monthlyYield { background: linear-gradient(90deg, #00c9a7, #7fffd4); box-shadow: inset 0 1px 0 #fff6, 0 0 16px #00e0b055; }
+.reports-type-bar.monthlyYield { background: linear-gradient(90deg, #c1121f, #ff4d5a); box-shadow: inset 0 1px 0 #fff6, 0 0 16px #e6394666; }
 .reports-type-bar.withdrawn { background: linear-gradient(90deg, #f97316, #ffd166); box-shadow: inset 0 1px 0 #fff6, 0 0 16px #f59e0b66; }
 .reports-type-bar.progress { background: linear-gradient(90deg, #6f91ff, #a9b9ff); box-shadow: inset 0 1px 0 #fff6, 0 0 16px #7f9cff55; }
 .reports-type-bar.rate { background: linear-gradient(90deg, #d58b2f, #ffe08a); box-shadow: inset 0 1px 0 #fff6, 0 0 16px #ffc86b55; }
