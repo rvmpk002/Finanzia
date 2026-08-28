@@ -426,6 +426,14 @@ export default function DashboardPage({
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
+  const isKuboInvestment = (investment: Investment) =>
+    investment.institutionId === "kubo";
+  const kuboVistaInvestments = paginatedInvestments.filter(
+    (investment) => isKuboInvestment(investment),
+  );
+  const standardInvestments = paginatedInvestments.filter(
+    (investment) => !isKuboInvestment(investment),
+  );
   const investmentRowClass = (investment: Investment) => {
     if (investment.type === "etf") {
       return etfMetrics(investment, formulasFor(investment)).gain >= 0 ? "mifel-limit-green" : "mifel-limit-red";
@@ -524,6 +532,7 @@ export default function DashboardPage({
                 const isEtf = investment.type === "etf";
                 const etf = isEtf ? etfMetrics(investment, formulasFor(investment)) : null;
                 const title = isEtf ? investment.etfName ?? investment.productId : productName(investment);
+                const isKubo = isKuboInvestment(investment);
                 const current = isEtf ? etf?.currentValue ?? 0 : investment.updatedBalance;
                 const gain = isEtf ? etf?.gain ?? 0 : investment.totalAccumulated;
                 return <article className="dashboard-mobile-card" key={key}>
@@ -532,16 +541,82 @@ export default function DashboardPage({
                     <span className={gain < 0 ? "mobile-value negative" : "mobile-value positive"}>{amount(gain)}</span>
                   </div>
                   <div className="dashboard-mobile-metrics">
-                    <div><span>{isEtf ? "Capital invertido" : "Saldo actual"}</span><strong>{amount(isEtf ? etf?.capitalInvested : investment.balance)}</strong></div>
-                    <div><span>{isEtf ? "Valor actual" : "Saldo actualizado"}</span><strong>{amount(current)}</strong></div>
-                    <div><span>{isEtf ? "Rendimiento" : "Retirado"}</span><strong>{isEtf ? percentage(etf?.returnRate ?? 0) : amount(investment.withdrawn)}</strong></div>
+                    <div><span>{isEtf || isKubo ? "Monto invertido" : "Saldo actual"}</span><strong>{amount(isEtf ? etf?.capitalInvested : investment.balance)}</strong></div>
+                    <div><span>{isEtf ? "Valor actual" : isKubo ? "Monto a recibir" : "Saldo actualizado"}</span><strong>{amount(current)}</strong></div>
+                    <div><span>{isEtf ? "Rendimiento" : isKubo ? "Intereses a recibir" : "Retirado"}</span><strong>{isEtf ? percentage(etf?.returnRate ?? 0) : isKubo ? amount(investment.totalAccumulated) : amount(investment.withdrawn)}</strong></div>
                   </div>
+                  {isKubo && <div className="dashboard-mobile-term"><span>Tasa {percentage(investment.annualRate)} · Plazo diario</span><strong>{investment.startDate}</strong></div>}
                   {investment.type === "plazo" && <div className="dashboard-mobile-term"><span>{investment.startDate} → {investment.endDate ?? "Sin vencimiento"}</span><strong>{investment.endDate && investment.endDate <= new Date().toISOString().slice(0, 10) ? "Finalizada" : "En curso"}</strong></div>}
                   {!isEtf && investment.type !== "plazo" && <label className="dashboard-mobile-edit">Saldo actualizado<input type="number" min="0" step="0.01" value={editingBalances[key] ?? Number(investment.updatedBalance).toFixed(2)} onChange={(event) => setEditingBalances((currentBalances) => ({ ...currentBalances, [key]: event.target.value }))} onFocus={() => setActiveBalanceId(key)} onBlur={(event) => { void saveUpdatedBalance(investment, event.currentTarget.value); }} /></label>}
                 </article>;
               })}
             </div>
-            <div className="table-scroll">
+            {kuboVistaInvestments.length > 0 && activeTab === "vista" && (
+              <div className="table-scroll">
+                <table className="kubo-dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Institución</th>
+                      <th>Producto</th>
+                      <th>Monto invertido</th>
+                      <th>Monto a recibir</th>
+                      <th>Intereses a recibir</th>
+                      <th>Tasa</th>
+                      <th>Plazo</th>
+                      <th>Fecha inicio</th>
+                      <th>Fecha disponibilidad</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {kuboVistaInvestments.map((investment) => (
+                      <tr key={investmentKey(investment)}>
+                        <td><strong>{institutionName(investment.institutionId)}</strong></td>
+                        <td>{productName(investment)}</td>
+                        <td>{amount(investment.balance)}</td>
+                        <td className="editable-dashboard-cell">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            readOnly={activeBalanceId !== investmentKey(investment)}
+                            value={editingBalances[investmentKey(investment)] ?? Number(investment.updatedBalance).toFixed(2)}
+                            onClick={() => {
+                              const key = investmentKey(investment);
+                              setActiveBalanceId(key);
+                              setEditingBalances((current) => ({
+                                ...current,
+                                [key]: current[key] ?? Number(investment.updatedBalance).toFixed(2),
+                              }));
+                            }}
+                            onChange={(event) => {
+                              const key = investmentKey(investment);
+                              setEditingBalances((current) => ({
+                                ...current,
+                                [key]: event.target.value,
+                              }));
+                            }}
+                            onBlur={(event) => {
+                              const key = investmentKey(investment);
+                              setEditingBalances((current) => ({
+                                ...current,
+                                [key]: Number(event.currentTarget.value).toFixed(2),
+                              }));
+                              void saveUpdatedBalance(investment, event.currentTarget.value);
+                            }}
+                          />
+                        </td>
+                        <td>{amount(investment.totalAccumulated)}</td>
+                        <td>{percentage(investment.annualRate)}</td>
+                        <td>Diario</td>
+                        <td>{investment.startDate}</td>
+                        <td>{investment.calculatedAt}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {standardInvestments.length > 0 && <div className="table-scroll">
               <table>
                 <thead>
                   <tr>
@@ -593,7 +668,7 @@ export default function DashboardPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedInvestments.map((investment) => (
+                  {standardInvestments.map((investment) => (
                     (() => {
                       const key = investmentKey(investment);
                       return (
@@ -744,7 +819,7 @@ export default function DashboardPage({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </div>}
             <div className="dashboard-pagination">
               <label>
                 Registros por página
