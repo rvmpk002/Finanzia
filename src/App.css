@@ -285,6 +285,82 @@ body, button, input, textarea, select { font-family: 'Plus Jakarta Sans', sans-s
 @media (max-width: 600px) {
 	.reports-chart-scroll { gap: 20px; }
 	.reports-bar-row { grid-template-columns: 1fr; gap: 8px; }
+}
+
+/* Premium dark visual layer */
+:root {
+	--ink: #080d12;
+	--panel: #101820;
+	--panel-raised: #14212a;
+	--line: #22333c;
+	--muted: #8296a0;
+	--paper: #edf8f6;
+	--orange: #62f5c5;
+	--pink: #ff7b9c;
+	--cyan: #64c9ff;
+	--gold: #ffc86b;
+	--shadow: 0 24px 70px #0009;
+}
+
+body { background: #080d12; color: var(--paper); }
+.app-shell, .investment-page {
+	background: radial-gradient(circle at 88% -10%, #164653aa 0, transparent 34%), radial-gradient(circle at 8% 75%, #18342e66 0, transparent 28%), var(--ink);
+}
+.topbar, .investment-topbar {
+	position: relative;
+	background: #0b1319dd;
+	border-color: #29434c;
+	box-shadow: 0 12px 35px #0004;
+	backdrop-filter: blur(18px);
+}
+.topbar::after, .investment-topbar::after {
+	content: "";
+	position: absolute;
+	inset: auto 0 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, var(--orange), var(--cyan), transparent);
+	opacity: .65;
+}
+.brand { font-family: 'Space Grotesk', sans-serif; letter-spacing: .2em; }
+.brand-mark { background: var(--orange); color: #07110f; box-shadow: 0 0 24px #62f5c577; }
+.investment-nav a, .directory-nav a { color: #a8c6ca; transition: color .2s ease, text-shadow .2s ease; }
+.investment-nav a:hover, .directory-nav a:hover, .investment-nav a.active, .directory-nav a.active { color: var(--orange); text-shadow: 0 0 16px #62f5c599; }
+.investment-nav button, .directory-nav button { color: #ffb2c4; transition: color .2s ease, text-shadow .2s ease; }
+.investment-nav button:hover, .directory-nav button:hover { color: #ffb2c4; text-shadow: 0 0 16px #ff7b9c88; }
+.page-kicker { color: #607982; }
+.workspace { position: relative; }
+.sidebar { background: #0b141add; border-color: var(--line); }
+.sidebar h1, .investment-intro h1, .auth-card h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+.institution-row { transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+.institution-row:hover { background: #14242b; border-color: #2c5660; transform: translateX(3px); }
+.institution-row.active { background: linear-gradient(100deg, #153c3b, #13252d); border-color: #3ccbb0; box-shadow: inset 3px 0 var(--orange), 0 10px 25px #0003; }
+.institution-logo { background: #17323a; color: var(--orange); box-shadow: 0 0 18px #62f5c522; }
+.detail-panel, .investment-content { position: relative; }
+.institution-hero { border-color: var(--line); }
+.plata-logo { background: linear-gradient(135deg, var(--orange), var(--cyan)); color: #07110f; box-shadow: 0 0 35px #62f5c555; }
+.institution-hero h2, .investment-intro h1 { text-shadow: 0 8px 35px #0008; }
+.dashboard-table-section, .saved-investments-section, .investment-form-panel, .formula-panel, .configuration-institution, .profile-panel {
+	background: linear-gradient(145deg, #14212aee, #0e171eee);
+	border-color: #29424b;
+	box-shadow: var(--shadow);
+}
+.investment-form-panel::before { background: linear-gradient(90deg, var(--orange), var(--cyan), transparent); box-shadow: 0 0 16px var(--orange); }
+.secondary-button, .danger-button, .primary-button { border-radius: 8px; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+.secondary-button:hover, .danger-button:hover { background: #19303a; border-color: var(--cyan); transform: translateY(-2px); box-shadow: 0 8px 22px #0004; }
+.primary-button { background: linear-gradient(120deg, var(--orange), #3ed8c7); border-color: var(--orange); color: #07110f; box-shadow: 0 8px 22px #62f5c433; }
+.primary-button:hover { background: linear-gradient(120deg, #8affda, var(--cyan)); border-color: #8affda; transform: translateY(-2px); box-shadow: 0 12px 30px #62f5c555; }
+input, textarea, select, .search-box { border-color: #29424b !important; background-color: #0b151c !important; }
+input:focus, textarea:focus, select:focus, .search-box:focus-within { border-color: var(--orange) !important; box-shadow: 0 0 0 3px #62f5c51c, 0 0 20px #62f5c522; }
+.profile-heading-icon, .device-icon { background: #14343a; color: var(--orange); box-shadow: 0 0 22px #62f5c522; }
+.profile-chip, .count-badge, .saved-count { border-color: #35616a; background: #102a31; color: #9ee8d4; }
+.profile-alert-success { color: var(--orange); border-color: #1c806e; background: #0b302e; box-shadow: 0 0 28px #62f5c51c; }
+.auth-page { background: radial-gradient(circle at 75% 15%, #164653aa 0, transparent 34%), #080d12; }
+.auth-card { background: linear-gradient(145deg, #14212a, #0b141a); border-color: #31515b; box-shadow: 0 30px 90px #000b, 0 0 45px #62f5c512; }
+.auth-brand .brand-mark { width: 36px; height: 36px; }
+@media (max-width: 850px) {
+	.topbar, .investment-topbar { background: #0b1319f5; }
+	.directory-nav, .investment-nav { gap: 8px 14px; }
+}
 	.reports-bar-row > strong { font-size: 13px; }
 	.report-bar em { right: 7px; }
 	.reports-type-chart { padding: 14px; }
@@ -294,7 +370,6 @@ body, button, input, textarea, select { font-family: 'Plus Jakarta Sans', sans-s
 	.reports-type-bar { grid-column: 1 / -1; grid-row: 2; }
 	.reports-type-metric span { grid-column: 1; grid-row: 1; }
 	.reports-type-metric strong { grid-column: 2; grid-row: 1; }
-}
 .saved-investment-row { background: #1b1f2b; border-color: var(--line); }
 .saved-investment-row:hover { background: #242039; border-color: #51437e; }
 
