@@ -364,6 +364,42 @@ input:focus, textarea:focus, select:focus, .search-box:focus-within { border-col
 	.topbar, .investment-topbar { background: #0b1319f5; }
 	.directory-nav, .investment-nav { gap: 8px 14px; }
 }
+
+.dashboard-table-section tr.mifel-limit-red {
+	box-shadow: inset 4px 0 #ff766e, 0 8px 28px #ff55451a;
+}
+.dashboard-table-section tr.mifel-limit-red td {
+	background: linear-gradient(105deg, #572c2b, #3c2229 58%, #321f2a);
+	border-bottom-color: #713c3d;
+}
+.dashboard-table-section tr.mifel-limit-red:hover td {
+	background: linear-gradient(105deg, #713733, #51282f 58%, #432632);
+}
+.dashboard-table-section tr.mifel-limit-yellow {
+	box-shadow: inset 4px 0 #ffd166, 0 8px 28px #f2b84a18;
+}
+.dashboard-table-section tr.mifel-limit-yellow td {
+	background: linear-gradient(105deg, #554321, #3d3221 58%, #302b24);
+	border-bottom-color: #76602f;
+}
+.dashboard-table-section tr.mifel-limit-yellow:hover td {
+	background: linear-gradient(105deg, #6a5328, #4d4025 58%, #3c3529);
+}
+.dashboard-table-section tr.mifel-limit-green {
+	box-shadow: inset 4px 0 #62f5c5, 0 8px 28px #30d29d1c;
+}
+.dashboard-table-section tr.mifel-limit-green td {
+	background: linear-gradient(105deg, #1d4d3a, #173c39 58%, #16333a);
+	border-bottom-color: #286c58;
+}
+.dashboard-table-section tr.mifel-limit-green:hover td {
+	background: linear-gradient(105deg, #286746, #205044 58%, #1d4248);
+}
+.dashboard-table-section tr.mifel-limit-red .etf-current-value input,
+.dashboard-table-section tr.mifel-limit-yellow .etf-current-value input,
+.dashboard-table-section tr.mifel-limit-green .etf-current-value input {
+	box-shadow: inset 0 1px 0 #ffffff12, 0 4px 14px #0003;
+}
 	.reports-bar-row > strong { font-size: 13px; }
 	.report-bar em { right: 7px; }
 	.reports-type-chart { padding: 14px; }
