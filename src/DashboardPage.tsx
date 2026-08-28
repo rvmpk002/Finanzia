@@ -192,7 +192,7 @@ const calculateInvestment = (
     0,
     Math.floor(
       (calculationDate.getTime() - startDate.getTime()) / 86400000,
-    ) - (isKubo ? 1 : 0),
+    ),
   );
   const monthlyDays = daysInMonth(calculationDate);
   const promoBalance = calculate(formulas.promotionalBalance, { availableBalance, promoCap }, Math.min(availableBalance, promoCap));

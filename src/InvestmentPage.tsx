@@ -235,7 +235,7 @@ export default function InvestmentPage({
       ((isKubo ? parseDate(endDate) : calculationDate).getTime() -
         parseDate(startDate).getTime()) /
         86400000,
-    ) - (isKubo ? 1 : 0),
+    ),
   );
   const monthlyDays = daysInMonth(calculationDate);
   const promoBalance = Math.min(availableBalance, promoCap);
