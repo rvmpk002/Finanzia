@@ -535,8 +535,12 @@ function App() {
     .sort((first, second) => first.name.localeCompare(second.name, "es"));
   if (!authToken)
     return <AuthPage onAuthenticated={setAuthToken} />;
-  if (window.location.pathname === "/perfil")
+  if (window.location.pathname === "/proteccion")
     return <ProfilePage />;
+  if (window.location.pathname === "/perfil") {
+    window.location.replace("/proteccion");
+    return null;
+  }
   if (window.location.pathname === "/inversiones")
     return <InvestmentPage institutions={institutions} />;
   if (window.location.pathname === "/dashboard")
@@ -573,7 +577,7 @@ function App() {
           <span className="brand-mark">F</span>
           <span>FINANZIA</span>
         </a>
-        <nav className="directory-nav"><a href="/instituciones">Instituciones</a><a href="/inversiones">Nueva inversión</a><a href="/dashboard">Dashboard</a><a href="/reportes">Reportes</a><a href="/configuracion">Configuración</a><a href="/perfil">Perfil</a><button onClick={() => { localStorage.removeItem("finanzia-auth-token"); window.location.href = "/login"; }}>Cerrar sesión</button></nav>
+        <nav className="directory-nav"><a href="/instituciones">Instituciones</a><a href="/inversiones">Nueva inversión</a><a href="/dashboard">Dashboard</a><a href="/reportes">Reportes</a><a href="/configuracion">Configuración</a><a href="/proteccion">Protección</a><button onClick={() => { localStorage.removeItem("finanzia-auth-token"); window.location.href = "/login"; }}>Cerrar sesión</button></nav>
         <div className="topbar-meta">
           <span className="status-dot" /> Base de conocimiento{" "}
           <span className="topbar-divider" /> 25 AGO 2026
