@@ -17,7 +17,10 @@ const isSelectableProduct = (
   tab: Tab = "vista",
 ) =>
   (institutionId !== "didi-cuenta" || product.id === "didi-15") &&
-  (institutionId !== "kubo" || product.id === "kubo-liquidez") &&
+  (institutionId !== "kubo" ||
+    (tab === "plazo"
+      ? product.id !== "kubo-liquidez"
+      : product.id === "kubo-liquidez")) &&
   (institutionId !== "openbank" || product.id === "openbank-13") &&
   (tab !== "plazo" ||
     ["cetesdirecto-cetes", "cetesdirecto-udibonos", "ahorro-fijo"].includes(
@@ -31,7 +34,7 @@ const isSelectableProduct = (
   );
 const isSelectableInstitution = (institutionId: string, tab: Tab = "vista") =>
   tab === "plazo"
-    ? ["cetesdirecto", "banco-plata"].includes(institutionId)
+    ? ["cetesdirecto", "banco-plata", "kubo"].includes(institutionId)
     : institutionId !== "cetesdirecto";
 type SavedInvestment = {
   id?: number;
@@ -223,6 +226,7 @@ export default function InvestmentPage({
     selectedProduct?.id === "ahorro-flexible";
   const isDidi = institutionId === "didi-cuenta";
   const isKubo = institutionId === "kubo";
+  const isKuboTerm = isKubo && activeTab === "plazo";
   const isMifel = institutionId === "mifel";
   const isNu = institutionId === "nu";
   const isOpenbank = institutionId === "openbank";
@@ -232,7 +236,7 @@ export default function InvestmentPage({
   const daysElapsed = Math.max(
     0,
     Math.floor(
-      ((isKubo ? parseDate(endDate) : calculationDate).getTime() -
+      ((isKuboTerm ? parseDate(endDate) : calculationDate).getTime() -
         parseDate(startDate).getTime()) /
         86400000,
     ),
@@ -507,7 +511,7 @@ export default function InvestmentPage({
       startDate,
       calculatedAt: dateValue(calculationDate),
       daysElapsed,
-      endDate: activeTab === "plazo" || isKubo ? endDate : undefined,
+      endDate: activeTab === "plazo" ? endDate : undefined,
       estimatedToday,
       promotionalYield: isFlexibleUltra
         ? compoundInterest(

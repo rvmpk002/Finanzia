@@ -183,8 +183,9 @@ const calculateInvestment = (
     : Math.max(0, balance - withdrawn);
   const startDate = new Date(`${investment.startDate}T00:00:00`);
   const isKubo = calculationMethod === "kubo";
+  const isKuboTerm = isKubo && investment.type === "plazo";
   const calculationDate = new Date(
-    `${(isKubo
+    `${(isKuboTerm
       ? investment.endDate ?? new Date().toISOString().slice(0, 10)
       : new Date().toISOString().slice(0, 10))}T00:00:00`,
   );
