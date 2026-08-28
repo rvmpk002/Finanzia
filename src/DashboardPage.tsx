@@ -180,7 +180,10 @@ const calculateInvestment = (
   const excessRate = investment.excessRate ?? catalogExcessRate;
   const balance = Math.max(0, Number(investment.balance) || 0);
   const withdrawn = Math.max(0, Number(investment.withdrawn) || 0);
-  const availableBalance = Math.max(0, balance - withdrawn);
+  const manualUpdatedBalance = Number(investment.updatedBalanceOverride);
+  const availableBalance = Number.isFinite(manualUpdatedBalance)
+    ? Math.max(0, manualUpdatedBalance)
+    : Math.max(0, balance - withdrawn);
   const startDate = new Date(`${investment.startDate}T00:00:00`);
   const isKubo = calculationMethod === "kubo";
   const calculationDate = new Date(
@@ -275,7 +278,7 @@ const calculateInvestment = (
     nextMonthExcess: Math.max(0, nextMonthBalance - promoCap),
     calculatedAt: calculationDate.toISOString().slice(0, 10),
     daysElapsed,
-    estimatedToday: Math.max(0, balance + dailyYield - withdrawn),
+    estimatedToday: Math.max(0, availableBalance + dailyYield),
     promotionalYield: calculationMethod === "flexible"
       ? flexibleUltraInterest(promoBalance, promoCap, daysElapsed, annualRate, excessRate, promotionDays)
       : calculationMethod === "mifel360"
