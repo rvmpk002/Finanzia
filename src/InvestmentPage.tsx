@@ -558,6 +558,16 @@ export default function InvestmentPage({
                   />
                 </label>
                 <label>
+                  Total retirado
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={withdrawn}
+                    onChange={(event) => setWithdrawn(event.target.value)}
+                  />
+                </label>
+                <label>
                   Dividendo Anual %
                   <input
                     type="number"
@@ -629,6 +639,16 @@ export default function InvestmentPage({
                   max={isMifel ? promoCap : undefined}
                   value={balance}
                   onChange={(event) => setBalance(event.target.value)}
+                />
+              </label>
+              <label>
+                Total retirado
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={withdrawn}
+                  onChange={(event) => setWithdrawn(event.target.value)}
                 />
               </label>
               {activeTab === "plazo" && (
