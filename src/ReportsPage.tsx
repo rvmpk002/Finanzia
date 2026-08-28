@@ -18,6 +18,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 const value = (amount: number | undefined) => Number(amount) || 0;
 const bancoPlataInterest = (principal: number, annualRate: number, days: number) =>
   principal * (annualRate / 100) * (days / 360);
+const simpleInterest = (principal: number, annualRate: number, days: number) =>
+  principal * (annualRate / 100) * (days / 365);
 const compactMoney = (amount: number) => {
   const absolute = Math.abs(amount);
   const formatted = absolute >= 1000000 ? `$${(absolute / 1000000).toFixed(1)}M` : absolute >= 1000 ? `$${(absolute / 1000).toFixed(1)}k` : money.format(absolute).replace(" ", "");
@@ -30,11 +32,15 @@ const current = (item: Investment, institutions: Institution[] = []) => {
     .find((institution) => institution.id === item.institutionId)
     ?.products?.find((entry) => entry.id === item.productId);
   const isBancoPlataFixed = item.institutionId === "banco-plata" && item.productId === "ahorro-fijo";
-  if (item.type === "plazo" && (product?.calculationMethod === "simple360" || isBancoPlataFixed)) {
+  const isCetes = item.institutionId === "cetesdirecto" && item.productId === "cetesdirecto-cetes";
+  if (item.type === "plazo" && (product?.calculationMethod === "simple" || product?.calculationMethod === "simple360" || isBancoPlataFixed || isCetes)) {
     const days = item.termDays ?? (item.endDate && item.startDate
       ? Math.max(0, (new Date(`${item.endDate}T00:00:00`).getTime() - new Date(`${item.startDate}T00:00:00`).getTime()) / 86400000)
       : 0);
-    return value(item.balance) + bancoPlataInterest(value(item.balance), value(item.annualRate), days);
+    const interest = product?.calculationMethod === "simple360" || isBancoPlataFixed
+      ? bancoPlataInterest(value(item.balance), value(item.annualRate), days)
+      : simpleInterest(value(item.balance), value(item.annualRate), days);
+    return value(item.balance) + interest;
   }
   return value(item.updatedBalance ?? item.balance);
 };

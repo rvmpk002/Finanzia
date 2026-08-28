@@ -674,12 +674,12 @@ export default function DashboardPage({
                           return <>
                         <td>{termDaysFor(investment)}</td>
                         <td>{amount(investment.balance)}</td>
-                        <td>{amount(product?.calculationMethod === "simple360" ? finalAmount : investment.updatedBalance)}</td>
+                        <td>{amount(finalAmount)}</td>
                         <td>{investment.annualRate.toFixed(2)}%</td>
                         <td>{investment.startDate}</td>
                         <td>{investment.endDate ?? "-"}</td>
                         <td>{daysUntilMaturity(investment)}</td>
-                        <td>{amount(product?.calculationMethod === "simple360" ? maturityInterest : investment.totalAccumulated)}</td>
+                        <td>{amount(maturityInterest)}</td>
                         <td>{protectionName(investment)}</td>
                         <td>{amount(maturityInterest)}</td>
                         <td>{amount(finalAmount)}</td>
