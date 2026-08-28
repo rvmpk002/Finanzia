@@ -342,7 +342,7 @@ body, button, input, textarea, select { font-family: 'Plus Jakarta Sans', sans-s
 .profile-alert-success { color: #00d69b; border-color: #07634f; background: #092029; }
 .profile-alert-success span { color: #48e0b2; }
 .profile-disable-button { margin-top: 20px; }
-.profile-personal-panel { margin-top: 24px; }
+.profile-personal-panel { display: none; }
 
 @media (max-width: 900px) {
 	.profile-security-grid { gap: 20px; }
