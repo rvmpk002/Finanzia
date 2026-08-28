@@ -17,6 +17,7 @@ type Investment = {
   endDate?: string;
   termDays?: number;
   annualRate?: number;
+  monthlyYield?: number;
   updatedBalance?: number;
   totalAccumulated?: number;
   etfName?: string;
@@ -360,12 +361,15 @@ function TypeChart({
     }
     return [
       { key: "current", label: "Saldo actual", amount: current(item) },
-      { key: "profit", label: "Ganancia acumulada", amount: profit(item) },
+        {
+          key: "monthlyYield",
+          label: "Rend. mensual",
+          amount: value(item.monthlyYield),
+        },
       {
-        key: "rate",
-        label: "Tasa anual",
-        amount: value(item.annualRate),
-        display: `${value(item.annualRate).toFixed(2)}%`,
+          key: "withdrawn",
+          label: "Total retirado",
+          amount: value(item.withdrawn),
       },
     ];
   };
@@ -380,7 +384,7 @@ function TypeChart({
         ? "Capital y avance hasta vencimiento"
         : rows.some((item) => item.institutionId === "kubo")
           ? "Montos e intereses de Kubo Financiero"
-          : "Saldo y rendimiento de cada inversión";
+          : "Saldo, rendimiento mensual y retiros";
   return (
     <div className="reports-type-chart" aria-label={title}>
       <div className="reports-chart-legend">
