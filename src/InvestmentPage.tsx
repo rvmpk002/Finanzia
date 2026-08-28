@@ -567,16 +567,6 @@ export default function InvestmentPage({
                     onChange={(event) => setWithdrawn(event.target.value)}
                   />
                 </label>
-                <label>
-                  Dividendo Anual %
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={etfDividendRate}
-                    onChange={(event) => setEtfDividendRate(event.target.value)}
-                  />
-                </label>
               </div>
             ) : (
             <div className="form-grid investment-fields vista-fields">
