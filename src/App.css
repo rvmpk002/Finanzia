@@ -351,6 +351,9 @@ body { background: #080d12; color: var(--paper); }
 .primary-button:hover { background: linear-gradient(120deg, #8affda, var(--cyan)); border-color: #8affda; transform: translateY(-2px); box-shadow: 0 12px 30px #62f5c555; }
 input, textarea, select, .search-box { border-color: #29424b !important; background-color: #0b151c !important; }
 input:focus, textarea:focus, select:focus, .search-box:focus-within { border-color: var(--orange) !important; box-shadow: 0 0 0 3px #62f5c51c, 0 0 20px #62f5c522; }
+.dashboard-table-section tr.mifel-limit-red .etf-current-value input { color: #ffd7d2; background: #71362f99 !important; border-color: #a84d43; }
+.dashboard-table-section tr.mifel-limit-green .etf-current-value input { color: #c9f4d7; background: #28684699 !important; border-color: #3d9d66; }
+.dashboard-table-section .etf-current-value input:focus { color: var(--paper); background: #102a31 !important; border-color: var(--orange); }
 .profile-heading-icon, .device-icon { background: #14343a; color: var(--orange); box-shadow: 0 0 22px #62f5c522; }
 .profile-chip, .count-badge, .saved-count { border-color: #35616a; background: #102a31; color: #9ee8d4; }
 .profile-alert-success { color: var(--orange); border-color: #1c806e; background: #0b302e; box-shadow: 0 0 28px #62f5c51c; }
