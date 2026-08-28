@@ -1,10 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Clock3,
-  FilePlus2,
-  LineChart,
-  WalletCards,
-} from "lucide-react";
+import { Clock3, FilePlus2, LineChart, WalletCards } from "lucide-react";
 import NavigationHeader from "./NavigationHeader";
 
 type RateProduct = {
@@ -25,9 +20,15 @@ const isSelectableProduct = (
   (institutionId !== "kubo" || product.id === "kubo-liquidez") &&
   (institutionId !== "openbank" || product.id === "openbank-13") &&
   (tab !== "plazo" ||
-    ["cetesdirecto-cetes", "cetesdirecto-udibonos", "ahorro-fijo"].includes(product.id)) &&
+    ["cetesdirecto-cetes", "cetesdirecto-udibonos", "ahorro-fijo"].includes(
+      product.id,
+    )) &&
   product.id !== "didi-beneficios" &&
-  !(institutionId === "banco-plata" && product.id === "ahorro-fijo" && tab !== "plazo");
+  !(
+    institutionId === "banco-plata" &&
+    product.id === "ahorro-fijo" &&
+    tab !== "plazo"
+  );
 const isSelectableInstitution = (institutionId: string, tab: Tab = "vista") =>
   tab === "plazo"
     ? ["cetesdirecto", "banco-plata"].includes(institutionId)
@@ -37,6 +38,7 @@ type SavedInvestment = {
   type: Tab;
   institutionId: string;
   productId: string;
+  investmentName?: string;
   balance: number;
   promoCap?: number;
   withdrawn: number;
@@ -72,14 +74,15 @@ const dateAfterDays = (date: Date, days: number) => {
 };
 const parseDate = (value: string) =>
   value ? new Date(`${value}T00:00:00`) : new Date();
-const compoundInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (Math.pow(1 + annualRate / 100 / 365, days) - 1);
-const simpleInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (annualRate / 100) * (days / 365);
-const officialMonthlyInterest = (
+const compoundInterest = (
   principal: number,
   annualRate: number,
-) => compoundInterest(principal, annualRate, 30.28);
+  days: number,
+) => principal * (Math.pow(1 + annualRate / 100 / 365, days) - 1);
+const simpleInterest = (principal: number, annualRate: number, days: number) =>
+  principal * (annualRate / 100) * (days / 365);
+const officialMonthlyInterest = (principal: number, annualRate: number) =>
+  compoundInterest(principal, annualRate, 30.28);
 const mifelInterest = (principal: number, annualRate: number, days: number) =>
   principal * (annualRate / 100) * (days / 360);
 const openbankInterest = (
@@ -92,7 +95,8 @@ const openbankInterest = (
   const secondTier = Math.min(Math.max(0, principal - 30000), 970000);
   const thirdTier = Math.max(0, principal - 1000000);
   return (
-    (firstTier * annualRate / 100 + (secondTier + thirdTier) * excessRate / 100) *
+    ((firstTier * annualRate) / 100 +
+      ((secondTier + thirdTier) * excessRate) / 100) *
     (days / 360)
   );
 };
@@ -115,10 +119,15 @@ const flexibleUltraInterest = (
   const remainingDays = Math.max(0, days - 60);
   const promoAmount = Math.min(principal, promoCap);
   const excessAmount = Math.max(0, principal - promoCap);
-  const promoValue = promoAmount * Math.pow(1 + promoRate / 100 / 365, promoDays);
-  const excessValue = excessAmount * Math.pow(1 + excessRate / 100 / 365, promoDays);
-  return promoValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) +
-    excessValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) - principal;
+  const promoValue =
+    promoAmount * Math.pow(1 + promoRate / 100 / 365, promoDays);
+  const excessValue =
+    excessAmount * Math.pow(1 + excessRate / 100 / 365, promoDays);
+  return (
+    promoValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) +
+    excessValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) -
+    principal
+  );
 };
 const hasCompletedMonth = (startDate: Date, calculationDate: Date) => {
   const oneMonthLater = new Date(startDate);
@@ -133,14 +142,19 @@ const completedMonthsBetween = (startDate: Date, calculationDate: Date) => {
   if (calculationDate.getDate() < startDate.getDate()) months -= 1;
   return Math.max(0, months);
 };
-const sameInvestment = (first: SavedInvestment, second: SavedInvestment) => first.institutionId === second.institutionId && first.productId === second.productId && first.startDate === second.startDate && first.balance === second.balance;
+const sameInvestment = (first: SavedInvestment, second: SavedInvestment) =>
+  first.institutionId === second.institutionId &&
+  first.productId === second.productId &&
+  first.startDate === second.startDate &&
+  first.balance === second.balance;
 
 const defaultRateFor = (
   institutionId: string,
   product: RateProduct | undefined,
   plataPlus: boolean,
 ) => {
-  if (institutionId !== "banco-plata" || !product) return product?.annualRate ?? 0;
+  if (institutionId !== "banco-plata" || !product)
+    return product?.annualRate ?? 0;
   if (product.id === "plata-cuenta") return plataPlus ? 7 : 0;
   if (product.id === "ahorro-flexible") return plataPlus ? 15 : 7;
   return plataPlus ? 9 : 7;
@@ -154,6 +168,7 @@ export default function InvestmentPage({
   const [activeTab, setActiveTab] = useState<Tab>("vista");
   const [institutionId, setInstitutionId] = useState("");
   const [productId, setProductId] = useState("");
+  const [investmentName, setInvestmentName] = useState("");
   const [plataPlus, setPlataPlus] = useState(false);
   const [fixedRate, setFixedRate] = useState("7");
   const [promoCapInput, setPromoCapInput] = useState("0");
@@ -171,9 +186,14 @@ export default function InvestmentPage({
   const [calculationDate] = useState(() => parseDate(dateValue(new Date())));
   const [savedMessage, setSavedMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [savedInvestments, setSavedInvestments] = useState<SavedInvestment[]>([]);
-  const [editingInvestmentId, setEditingInvestmentId] = useState<number | null>(null);
-  const [editingLocalInvestment, setEditingLocalInvestment] = useState<SavedInvestment | null>(null);
+  const [savedInvestments, setSavedInvestments] = useState<SavedInvestment[]>(
+    [],
+  );
+  const [editingInvestmentId, setEditingInvestmentId] = useState<number | null>(
+    null,
+  );
+  const [editingLocalInvestment, setEditingLocalInvestment] =
+    useState<SavedInvestment | null>(null);
   const [savedPageSize, setSavedPageSize] = useState(5);
   const [savedPage, setSavedPage] = useState(1);
   const tabs: { id: Tab; label: string; icon: typeof WalletCards }[] = [
@@ -188,17 +208,19 @@ export default function InvestmentPage({
     (item) => item.id === institutionId,
   );
   const products = selectedInstitution?.products ?? [];
-  const productsWithRate = products.filter(
-    (product) => isSelectableProduct(institutionId, product, activeTab),
+  const productsWithRate = products.filter((product) =>
+    isSelectableProduct(institutionId, product, activeTab),
   );
   const selectedProduct =
-    productsWithRate.find((item) => item.id === productId) ?? productsWithRate[0];
+    productsWithRate.find((item) => item.id === productId) ??
+    productsWithRate[0];
   const currentBalance = Math.max(0, Number(balance) || 0);
   const currentEtfValue = Math.max(0, Number(etfCurrentValue) || 0);
   const totalWithdrawn = Math.max(0, Number(withdrawn) || 0);
   const availableBalance = Math.max(0, currentBalance - totalWithdrawn);
   const isFlexibleUltra =
-    institutionId === "banco-plata" && selectedProduct?.id === "ahorro-flexible";
+    institutionId === "banco-plata" &&
+    selectedProduct?.id === "ahorro-flexible";
   const isDidi = institutionId === "didi-cuenta";
   const isKubo = institutionId === "kubo";
   const isMifel = institutionId === "mifel";
@@ -221,46 +243,74 @@ export default function InvestmentPage({
     ? openbankPostingDays(calculationDate)
     : 0;
   const dailyYield = isFlexibleUltra
-    ? flexibleUltraInterest(availableBalance, promoCap, 1, annualRate, excessRate)
+    ? flexibleUltraInterest(
+        availableBalance,
+        promoCap,
+        1,
+        annualRate,
+        excessRate,
+      )
     : isKubo
       ? kuboInterest(availableBalance, annualRate, 1)
-    : isMifel
-      ? mifelInterest(availableBalance, annualRate, 1)
-    : isOpenbank
-      ? openbankInterest(availableBalance, annualRate, excessRate, openbankPostingDaysForDate)
-    : compoundInterest(promoBalance, annualRate, 1) +
-      compoundInterest(excessBalance, excessRate, 1);
-  const monthlyYield =
-    hasCompletedMonth(parseDate(startDate), calculationDate)
-      ? isFlexibleUltra
-        ? flexibleUltraInterest(availableBalance, promoCap, 30.28, annualRate, excessRate)
-        : isMifel
-          ? mifelInterest(availableBalance, annualRate, 30.28)
+      : isMifel
+        ? mifelInterest(availableBalance, annualRate, 1)
+        : isOpenbank
+          ? openbankInterest(
+              availableBalance,
+              annualRate,
+              excessRate,
+              openbankPostingDaysForDate,
+            )
+          : compoundInterest(promoBalance, annualRate, 1) +
+            compoundInterest(excessBalance, excessRate, 1);
+  const monthlyYield = hasCompletedMonth(parseDate(startDate), calculationDate)
+    ? isFlexibleUltra
+      ? flexibleUltraInterest(
+          availableBalance,
+          promoCap,
+          30.28,
+          annualRate,
+          excessRate,
+        )
+      : isMifel
+        ? mifelInterest(availableBalance, annualRate, 30.28)
         : isOpenbank
           ? openbankInterest(availableBalance, annualRate, excessRate, 30.28)
-        : officialMonthlyInterest(promoBalance, annualRate) +
-          officialMonthlyInterest(excessBalance, excessRate)
-      : 0;
+          : officialMonthlyInterest(promoBalance, annualRate) +
+            officialMonthlyInterest(excessBalance, excessRate)
+    : 0;
   const totalAccumulated = Math.max(
     0,
     activeTab === "plazo"
       ? simpleInterest(availableBalance, annualRate, daysElapsed)
       : isDidi || isNu
-      ? compoundInterest(promoBalance, annualRate, daysElapsed) +
-        compoundInterest(excessBalance, excessRate, daysElapsed)
-      : isKubo
-        ? kuboInterest(availableBalance, annualRate, daysElapsed)
-      : isMifel
-        ? mifelInterest(availableBalance, annualRate, daysElapsed)
-      : isOpenbank
-        ? openbankInterest(availableBalance, annualRate, excessRate, daysElapsed)
-      : completedMonthsBetween(parseDate(startDate), calculationDate) > 0
-        ? monthlyYield *
-          completedMonthsBetween(parseDate(startDate), calculationDate)
-        : isFlexibleUltra
-          ? flexibleUltraInterest(availableBalance, promoCap, daysElapsed, annualRate, excessRate)
-          : compoundInterest(promoBalance, annualRate, daysElapsed) +
-            compoundInterest(excessBalance, excessRate, daysElapsed),
+        ? compoundInterest(promoBalance, annualRate, daysElapsed) +
+          compoundInterest(excessBalance, excessRate, daysElapsed)
+        : isKubo
+          ? kuboInterest(availableBalance, annualRate, daysElapsed)
+          : isMifel
+            ? mifelInterest(availableBalance, annualRate, daysElapsed)
+            : isOpenbank
+              ? openbankInterest(
+                  availableBalance,
+                  annualRate,
+                  excessRate,
+                  daysElapsed,
+                )
+              : completedMonthsBetween(parseDate(startDate), calculationDate) >
+                  0
+                ? monthlyYield *
+                  completedMonthsBetween(parseDate(startDate), calculationDate)
+                : isFlexibleUltra
+                  ? flexibleUltraInterest(
+                      availableBalance,
+                      promoCap,
+                      daysElapsed,
+                      annualRate,
+                      excessRate,
+                    )
+                  : compoundInterest(promoBalance, annualRate, daysElapsed) +
+                    compoundInterest(excessBalance, excessRate, daysElapsed),
   );
   const completedMonths = completedMonthsBetween(
     parseDate(startDate),
@@ -278,32 +328,33 @@ export default function InvestmentPage({
     0,
     availableBalance + (isKubo ? totalAccumulated : monthlyYield),
   );
-  const estimatedToday = Math.max(
-    0,
-    availableBalance + dailyYield,
-  );
+  const estimatedToday = Math.max(0, availableBalance + dailyYield);
   const taxWithheld = isMifel
     ? dailyYield * 0.09
     : isNu
       ? dailyYield * 0.009
       : 0;
   const netDailyYield = dailyYield - taxWithheld;
-  const canSave = activeTab === "etf"
-    ? Boolean(etfName.trim() && Number(etfTitles) > 0 && currentEtfValue > 0)
-    : Boolean(
-        institutionId &&
+  const canSave =
+    activeTab === "etf"
+      ? Boolean(etfName.trim() && Number(etfTitles) > 0 && currentEtfValue > 0)
+      : Boolean(
+          investmentName.trim() &&
+          institutionId &&
           productId &&
           currentBalance > 0 &&
           startDate &&
           (!isMifel || currentBalance <= promoCap),
-      );
+        );
   const exceedsMifelLimit = isMifel && currentBalance > promoCap;
   const setInstitution = (value: string) => {
     setInstitutionId(value);
     setPlataPlus(false);
     const nextProduct = institutions
-        .find((item) => item.id === value)
-        ?.products.find((product) => isSelectableProduct(value, product, activeTab));
+      .find((item) => item.id === value)
+      ?.products.find((product) =>
+        isSelectableProduct(value, product, activeTab),
+      );
     setProductId(nextProduct?.id ?? "");
     setFixedRate(String(defaultRateFor(value, nextProduct, plataPlus)));
     setPromoCapInput(String(nextProduct?.promoCap ?? 0));
@@ -314,9 +365,15 @@ export default function InvestmentPage({
     const loadInvestments = async () => {
       try {
         const response = await fetch("/api/investments");
-        setSavedInvestments(response.ok ? await response.json() : JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]"));
+        setSavedInvestments(
+          response.ok
+            ? await response.json()
+            : JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]"),
+        );
       } catch {
-        setSavedInvestments(JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]"));
+        setSavedInvestments(
+          JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]"),
+        );
       }
     };
     loadInvestments();
@@ -325,7 +382,9 @@ export default function InvestmentPage({
     try {
       const response = await fetch("/api/investments");
       if (response.ok) setSavedInvestments(await response.json());
-    } catch { /* local fallback remains available */ }
+    } catch {
+      /* local fallback remains available */
+    }
   };
   const editInvestment = (investment: SavedInvestment) => {
     setEditingInvestmentId(investment.id ?? null);
@@ -333,8 +392,11 @@ export default function InvestmentPage({
     setActiveTab(investment.type);
     setInstitutionId(investment.institutionId);
     setProductId(investment.productId);
+    setInvestmentName(investment.investmentName ?? "");
     setPlataPlus(investment.plataPlus ?? false);
-    setFixedRate(String(investment.annualRate ?? (investment.plataPlus ? 9 : 7)));
+    setFixedRate(
+      String(investment.annualRate ?? (investment.plataPlus ? 9 : 7)),
+    );
     setPromoCapInput(String(investment.promoCap ?? 0));
     setExcessRateInput(String(investment.excessRate ?? 0));
     setBalance(String(investment.balance));
@@ -342,36 +404,65 @@ export default function InvestmentPage({
     setStartDate(investment.startDate);
     setEndDate(investment.endDate ?? dateValue(new Date()));
     setTermDays(String(investment.termDays ?? 30));
-    setEtfName(investment.etfName ?? (investment.type === "etf" ? investment.productId : ""));
+    setEtfName(
+      investment.etfName ??
+        (investment.type === "etf" ? investment.productId : ""),
+    );
     setEtfTitles(String(investment.etfTitles ?? 0));
     setEtfPurchasePrice(String(investment.etfPurchasePrice ?? 0));
-    setEtfCurrentValue(String(investment.etfCurrentValue ?? investment.balance ?? 0));
+    setEtfCurrentValue(
+      String(investment.etfCurrentValue ?? investment.balance ?? 0),
+    );
     setEtfDividendRate(String(investment.etfDividendRate ?? 0));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const deleteInvestment = async (investment: SavedInvestment) => {
     if (!window.confirm("¿Eliminar esta inversión?")) return;
     if (investment.id) {
-      let response = await fetch(`/api/investments/${investment.id}`, { method: "DELETE" });
+      let response = await fetch(`/api/investments/${investment.id}`, {
+        method: "DELETE",
+      });
       if (!response.ok) {
         if (response.status === 404) {
-          const local = JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]").filter((item: SavedInvestment) => !sameInvestment(item, investment));
+          const local = JSON.parse(
+            localStorage.getItem("finanzia-investments") ?? "[]",
+          ).filter(
+            (item: SavedInvestment) => !sameInvestment(item, investment),
+          );
           localStorage.setItem("finanzia-investments", JSON.stringify(local));
-          setSavedInvestments((current) => current.filter((item) => item.id !== investment.id));
+          setSavedInvestments((current) =>
+            current.filter((item) => item.id !== investment.id),
+          );
           window.dispatchEvent(new Event("finanzia-investment-saved"));
-          setSavedMessage("Registro huérfano eliminado del listado; no existía en PostgreSQL.");
+          setSavedMessage(
+            "Registro huérfano eliminado del listado; no existía en PostgreSQL.",
+          );
           return;
         }
         const error = await response.json().catch(() => null);
-        setSavedMessage(error?.error ?? `PostgreSQL respondió con error ${response.status}.`);
+        setSavedMessage(
+          error?.error ?? `PostgreSQL respondió con error ${response.status}.`,
+        );
         return;
       }
-      setSavedInvestments((current) => current.filter((item) => item.id !== investment.id));
+      setSavedInvestments((current) =>
+        current.filter((item) => item.id !== investment.id),
+      );
       window.dispatchEvent(new Event("finanzia-investment-saved"));
       setSavedMessage("Inversión eliminada correctamente.");
       return;
     } else {
-      const local = JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]").filter((item: SavedInvestment) => !(item.institutionId === investment.institutionId && item.productId === investment.productId && item.startDate === investment.startDate && item.balance === investment.balance));
+      const local = JSON.parse(
+        localStorage.getItem("finanzia-investments") ?? "[]",
+      ).filter(
+        (item: SavedInvestment) =>
+          !(
+            item.institutionId === investment.institutionId &&
+            item.productId === investment.productId &&
+            item.startDate === investment.startDate &&
+            item.balance === investment.balance
+          ),
+      );
       localStorage.setItem("finanzia-investments", JSON.stringify(local));
       setSavedInvestments(local);
       window.dispatchEvent(new Event("finanzia-investment-saved"));
@@ -397,12 +488,15 @@ export default function InvestmentPage({
       type: activeTab,
       institutionId: activeTab === "etf" ? "etf" : institutionId,
       productId: activeTab === "etf" ? etfName.trim() : productId,
+      investmentName: activeTab === "etf" ? undefined : investmentName.trim(),
       balance: activeTab === "etf" ? currentEtfValue : currentBalance,
       etfName: activeTab === "etf" ? etfName.trim() : undefined,
       etfTitles: activeTab === "etf" ? Number(etfTitles) : undefined,
-      etfPurchasePrice: activeTab === "etf" ? Number(etfPurchasePrice) : undefined,
+      etfPurchasePrice:
+        activeTab === "etf" ? Number(etfPurchasePrice) : undefined,
       etfCurrentValue: activeTab === "etf" ? currentEtfValue : undefined,
-      etfDividendRate: activeTab === "etf" ? Number(etfDividendRate) : undefined,
+      etfDividendRate:
+        activeTab === "etf" ? Number(etfDividendRate) : undefined,
       promoCap,
       annualRate,
       excessRate,
@@ -417,18 +511,23 @@ export default function InvestmentPage({
       endDate: activeTab === "plazo" || isKubo ? endDate : undefined,
       estimatedToday,
       promotionalYield: isFlexibleUltra
-        ? compoundInterest(promoBalance, plataPlus ? 15 : 7, Math.min(daysElapsed, 60))
+        ? compoundInterest(
+            promoBalance,
+            plataPlus ? 15 : 7,
+            Math.min(daysElapsed, 60),
+          )
         : isMifel
           ? mifelInterest(promoBalance, annualRate, daysElapsed)
-        : isOpenbank
-          ? openbankInterest(promoBalance, annualRate, excessRate, daysElapsed)
-        : compoundInterest(promoBalance, annualRate, daysElapsed),
+          : isOpenbank
+            ? openbankInterest(
+                promoBalance,
+                annualRate,
+                excessRate,
+                daysElapsed,
+              )
+            : compoundInterest(promoBalance, annualRate, daysElapsed),
       excessYield: isFlexibleUltra
-        ? compoundInterest(
-            excessBalance,
-            plataPlus ? 9 : 7,
-            daysElapsed,
-          )
+        ? compoundInterest(excessBalance, plataPlus ? 9 : 7, daysElapsed)
         : compoundInterest(excessBalance, excessRate, daysElapsed),
       dailyYield,
       taxWithheld,
@@ -439,30 +538,50 @@ export default function InvestmentPage({
       updatedAt: new Date().toISOString(),
     };
     try {
-      const endpoint = editingInvestmentId ? `/api/investments/${editingInvestmentId}` : "/api/investments";
-      const response = await fetch(endpoint, { method: editingInvestmentId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(investment) });
+      const endpoint = editingInvestmentId
+        ? `/api/investments/${editingInvestmentId}`
+        : "/api/investments";
+      const response = await fetch(endpoint, {
+        method: editingInvestmentId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(investment),
+      });
       if (!response.ok) throw new Error("API unavailable");
       const savedInvestment = await response.json();
-      const localInvestments = JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]");
+      const localInvestments = JSON.parse(
+        localStorage.getItem("finanzia-investments") ?? "[]",
+      );
       const localIndex = localInvestments.findIndex((item: SavedInvestment) =>
-        savedInvestment.id ? item.id === savedInvestment.id : sameInvestment(item, investment),
+        savedInvestment.id
+          ? item.id === savedInvestment.id
+          : sameInvestment(item, investment),
       );
       if (localIndex >= 0) localInvestments[localIndex] = savedInvestment;
       else localInvestments.push(savedInvestment);
-      localStorage.setItem("finanzia-investments", JSON.stringify(localInvestments));
+      localStorage.setItem(
+        "finanzia-investments",
+        JSON.stringify(localInvestments),
+      );
       setSavedMessage("Inversión guardada en PostgreSQL.");
       setEditingInvestmentId(null);
       setEditingLocalInvestment(null);
       await refreshInvestments();
       window.dispatchEvent(new Event("finanzia-investment-saved"));
     } catch {
-      const investments = JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]");
+      const investments = JSON.parse(
+        localStorage.getItem("finanzia-investments") ?? "[]",
+      );
       if (editingInvestmentId) {
-        const index = investments.findIndex((item: SavedInvestment) => item.id === editingInvestmentId);
-        if (index >= 0) investments[index] = { ...investment, id: editingInvestmentId };
+        const index = investments.findIndex(
+          (item: SavedInvestment) => item.id === editingInvestmentId,
+        );
+        if (index >= 0)
+          investments[index] = { ...investment, id: editingInvestmentId };
         else investments.push({ ...investment, id: editingInvestmentId });
       } else if (editingLocalInvestment) {
-        const index = investments.findIndex((item: SavedInvestment) => sameInvestment(item, editingLocalInvestment));
+        const index = investments.findIndex((item: SavedInvestment) =>
+          sameInvestment(item, editingLocalInvestment),
+        );
         if (index >= 0) investments[index] = investment;
         else investments.push(investment);
       } else investments.push(investment);
@@ -493,26 +612,34 @@ export default function InvestmentPage({
             <button
               key={id}
               className={activeTab === id ? "active" : ""}
-                onClick={() => {
-                  setActiveTab(id);
-                  if (id === "plazo") {
-                    setInstitutionId("cetesdirecto");
-                    setProductId("cetesdirecto-cetes");
-                    setFixedRate("6.15");
-                  }
-                }}
+              onClick={() => {
+                setActiveTab(id);
+                if (id === "plazo") {
+                  setInstitutionId("cetesdirecto");
+                  setProductId("cetesdirecto-cetes");
+                  setFixedRate("6.15");
+                }
+              }}
             >
               <Icon size={18} />
               {label}
             </button>
           ))}
         </nav>
-        {activeTab === "vista" || activeTab === "plazo" || activeTab === "etf" ? (
+        {activeTab === "vista" ||
+        activeTab === "plazo" ||
+        activeTab === "etf" ? (
           <section className="investment-form-panel">
             <div className="form-panel-heading">
               <div>
                 <span className="eyebrow">Alta de inversión</span>
-                <h2>{activeTab === "plazo" ? "Inversión a plazo" : activeTab === "etf" ? "Inversión ETF" : "Inversión a la vista"}</h2>
+                <h2>
+                  {activeTab === "plazo"
+                    ? "Inversión a plazo"
+                    : activeTab === "etf"
+                      ? "Inversión ETF"
+                      : "Inversión a la vista"}
+                </h2>
               </div>
               <FilePlus2 size={24} />
             </div>
@@ -544,7 +671,9 @@ export default function InvestmentPage({
                     min="0"
                     step="0.01"
                     value={etfPurchasePrice}
-                    onChange={(event) => setEtfPurchasePrice(event.target.value)}
+                    onChange={(event) =>
+                      setEtfPurchasePrice(event.target.value)
+                    }
                   />
                 </label>
                 <label>
@@ -569,179 +698,195 @@ export default function InvestmentPage({
                 </label>
               </div>
             ) : (
-            <div className="form-grid investment-fields vista-fields">
-              <label>
-                Institución
-                <select
-                  value={institutionId}
-                  onChange={(event) => setInstitution(event.target.value)}
-                >
-                  <option value="">Selecciona una institución</option>
-                  {sortedInstitutions
-                    .filter((institution) =>
-                      isSelectableInstitution(institution.id, activeTab),
-                    )
-                    .map((institution) => (
-                    <option value={institution.id} key={institution.id}>
-                      {institution.name}
-                    </option>
-                    ))}
-                </select>
-              </label>
-              <label>
-                {activeTab === "plazo" ? "Instrumento" : "Producto"}
-                <select
-                  value={productId}
-                  onChange={(event) => {
-                    setProductId(event.target.value);
-                    const nextProduct = productsWithRate.find(
-                      (product) => product.id === event.target.value,
-                    );
-                    setFixedRate(
-                      String(
-                        defaultRateFor(
-                          institutionId,
-                          nextProduct,
-                          plataPlus,
-                        ),
-                      ),
-                    );
-                    setPromoCapInput(String(nextProduct?.promoCap ?? 0));
-                    setExcessRateInput(String(nextProduct?.excessRate ?? 0));
-                    setSavedMessage("");
-                  }}
-                  disabled={!products.length}
-                >
-                  <option value="">Selecciona un producto</option>
-                  {productsWithRate.map((product) => (
-                    <option value={product.id} key={product.id}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                {activeTab === "plazo" ? "Monto invertido" : "Saldo invertido"}
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  max={isMifel ? promoCap : undefined}
-                  value={balance}
-                  onChange={(event) => setBalance(event.target.value)}
-                />
-              </label>
-              <label>
-                Total retirado
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={withdrawn}
-                  onChange={(event) => setWithdrawn(event.target.value)}
-                />
-              </label>
-              {activeTab === "plazo" && (
+              <div className="form-grid investment-fields vista-fields">
                 <label>
-                  Plazo días
+                  Nombre de la inversión
                   <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={termDays}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      setTermDays(value);
-                    }}
-                  />
-                </label>
-              )}
-              {activeTab === "vista" && (
-                <label>
-                  Tope Promo
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={promoCapInput}
-                    onChange={(event) => setPromoCapInput(event.target.value)}
-                  />
-                </label>
-              )}
-              <label>
-                {activeTab === "plazo" ? "Tasa" : "Tasa Anual"}
-                {selectedProduct ? (
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={fixedRate}
-                    onChange={(event) => setFixedRate(event.target.value)}
-                  />
-                ) : (
-                  <input
-                    readOnly
-                    value={
-                      annualRate
-                        ? `${percent.format(annualRate)}%`
-                        : "Selecciona producto"
+                    type="text"
+                    placeholder={
+                      activeTab === "plazo"
+                        ? "Ej. CETES 2026"
+                        : "Ej. Fondo de emergencia"
                     }
+                    value={investmentName}
+                    onChange={(event) => setInvestmentName(event.target.value)}
+                    maxLength={120}
                   />
-                )}
-              </label>
-              {activeTab === "vista" && (
+                </label>
                 <label>
-                  Tasa excedente
+                  Institución
+                  <select
+                    value={institutionId}
+                    onChange={(event) => setInstitution(event.target.value)}
+                  >
+                    <option value="">Selecciona una institución</option>
+                    {sortedInstitutions
+                      .filter((institution) =>
+                        isSelectableInstitution(institution.id, activeTab),
+                      )
+                      .map((institution) => (
+                        <option value={institution.id} key={institution.id}>
+                          {institution.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label>
+                  {activeTab === "plazo" ? "Instrumento" : "Producto"}
+                  <select
+                    value={productId}
+                    onChange={(event) => {
+                      setProductId(event.target.value);
+                      const nextProduct = productsWithRate.find(
+                        (product) => product.id === event.target.value,
+                      );
+                      setFixedRate(
+                        String(
+                          defaultRateFor(institutionId, nextProduct, plataPlus),
+                        ),
+                      );
+                      setPromoCapInput(String(nextProduct?.promoCap ?? 0));
+                      setExcessRateInput(String(nextProduct?.excessRate ?? 0));
+                      setSavedMessage("");
+                    }}
+                    disabled={!products.length}
+                  >
+                    <option value="">Selecciona un producto</option>
+                    {productsWithRate.map((product) => (
+                      <option value={product.id} key={product.id}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  {activeTab === "plazo"
+                    ? "Monto invertido"
+                    : "Saldo invertido"}
                   <input
                     type="number"
                     min="0"
                     step="0.01"
-                    value={excessRateInput}
-                    onChange={(event) => setExcessRateInput(event.target.value)}
+                    max={isMifel ? promoCap : undefined}
+                    value={balance}
+                    onChange={(event) => setBalance(event.target.value)}
                   />
                 </label>
-              )}
-              <div className="form-inline-fields">
                 <label>
-                  {activeTab === "plazo" ? "Fecha Inversión" : "Fecha Inicio"}
+                  Total retirado
                   <input
-                    type="date"
-                    value={startDate}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      setStartDate(value);
-                    }}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={withdrawn}
+                    onChange={(event) => setWithdrawn(event.target.value)}
                   />
                 </label>
-                {(isKubo || activeTab === "plazo") && (
+                {activeTab === "plazo" && (
                   <label>
-                    Fecha Vencimiento
+                    Plazo días
                     <input
-                      type="date"
-                      min={startDate}
-                      value={endDate}
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={termDays}
                       onChange={(event) => {
                         const value = event.target.value;
-                        setEndDate(value);
+                        setTermDays(value);
                       }}
                     />
                   </label>
                 )}
+                {activeTab === "vista" && (
+                  <label>
+                    Tope Promo
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={promoCapInput}
+                      onChange={(event) => setPromoCapInput(event.target.value)}
+                    />
+                  </label>
+                )}
+                <label>
+                  {activeTab === "plazo" ? "Tasa" : "Tasa Anual"}
+                  {selectedProduct ? (
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={fixedRate}
+                      onChange={(event) => setFixedRate(event.target.value)}
+                    />
+                  ) : (
+                    <input
+                      readOnly
+                      value={
+                        annualRate
+                          ? `${percent.format(annualRate)}%`
+                          : "Selecciona producto"
+                      }
+                    />
+                  )}
+                </label>
+                {activeTab === "vista" && (
+                  <label>
+                    Tasa excedente
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={excessRateInput}
+                      onChange={(event) =>
+                        setExcessRateInput(event.target.value)
+                      }
+                    />
+                  </label>
+                )}
+                <div className="form-inline-fields">
+                  <label>
+                    {activeTab === "plazo" ? "Fecha Inversión" : "Fecha Inicio"}
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setStartDate(value);
+                      }}
+                    />
+                  </label>
+                  {(isKubo || activeTab === "plazo") && (
+                    <label>
+                      Fecha Vencimiento
+                      <input
+                        type="date"
+                        min={startDate}
+                        value={endDate}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setEndDate(value);
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
-            </div>
             )}
-            {activeTab !== "etf" && <div className="calculation-note">
-              <strong>
-                {isMifel
-                  ? `El saldo máximo de este producto es ${money.format(promoCap)}.`
-                  : `Excedente calculado al ${excessRate}% anual.`}
-              </strong>
-              <span>
-                {isMifel
-                  ? "Los rendimientos aplican únicamente sobre el saldo dentro del tope."
-                  : "La promoción se aplica hasta el tope definido por el producto seleccionado."}
-              </span>
-            </div>}
+            {activeTab !== "etf" && (
+              <div className="calculation-note">
+                <strong>
+                  {isMifel
+                    ? `El saldo máximo de este producto es ${money.format(promoCap)}.`
+                    : `Excedente calculado al ${excessRate}% anual.`}
+                </strong>
+                <span>
+                  {isMifel
+                    ? "Los rendimientos aplican únicamente sobre el saldo dentro del tope."
+                    : "La promoción se aplica hasta el tope definido por el producto seleccionado."}
+                </span>
+              </div>
+            )}
             {exceedsMifelLimit && (
               <p className="save-message">
                 Reduce el saldo a {money.format(promoCap)} o menos para guardar
@@ -776,26 +921,120 @@ export default function InvestmentPage({
           </section>
         )}
         <section className="saved-investments-section">
-          <div className="saved-investments-heading"><div><span className="eyebrow">Registros existentes</span><h2>{tabs.find((tab) => tab.id === activeTab)?.label}</h2></div><span className="saved-count">{savedByActiveTab.length}</span></div>
-          {savedByActiveTab.length ? <>
-            <div className="saved-investments-list">
-              {paginatedSavedInvestments.map((investment, index) => <article className="saved-investment-row" key={`${investment.id ?? "local"}-${index}`}><div><strong>{investment.type === "etf" ? "ETF" : institutions.find((item) => item.id === investment.institutionId)?.name ?? "Institución eliminada"}</strong><span>{investment.type === "etf" ? investment.etfName ?? investment.productId : institutions.find((item) => item.id === investment.institutionId)?.products.find((product) => product.id === investment.productId)?.name ?? "Producto eliminado"}</span></div><div><small>{investment.type === "etf" ? "Valor actual" : "Saldo actualizado"}</small><b>{money.format(investment.type === "etf" ? investment.etfCurrentValue ?? 0 : investment.updatedBalance ?? investment.balance)}</b></div><div><small>Rendimiento acumulado</small><b>{money.format(investment.totalAccumulated ?? 0)}</b></div><div className="saved-row-actions"><button className="secondary-button" onClick={() => editInvestment(investment)}>Editar</button><button className="danger-button" onClick={() => deleteInvestment(investment)}>Eliminar</button></div></article>)}
+          <div className="saved-investments-heading">
+            <div>
+              <span className="eyebrow">Registros existentes</span>
+              <h2>{tabs.find((tab) => tab.id === activeTab)?.label}</h2>
             </div>
-            <div className="saved-pagination">
-              <label>
-                Registros por página
-                <select value={savedPageSize} onChange={(event) => { setSavedPageSize(Number(event.target.value)); setSavedPage(1); }}>
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                </select>
-              </label>
-                <span>Página {effectiveSavedPage} de {savedTotalPages}</span>
-              <div className="saved-pagination-actions">
-                <button className="secondary-button" disabled={effectiveSavedPage <= 1} onClick={() => setSavedPage((page) => Math.max(1, page - 1))}>Anterior</button>
-                <button className="secondary-button" disabled={effectiveSavedPage >= savedTotalPages} onClick={() => setSavedPage((page) => Math.min(savedTotalPages, page + 1))}>Siguiente</button>
+            <span className="saved-count">{savedByActiveTab.length}</span>
+          </div>
+          {savedByActiveTab.length ? (
+            <>
+              <div className="saved-investments-list">
+                {paginatedSavedInvestments.map((investment, index) => (
+                  <article
+                    className="saved-investment-row"
+                    key={`${investment.id ?? "local"}-${index}`}
+                  >
+                    <div>
+                      <strong>
+                        {investment.type === "etf"
+                          ? "ETF"
+                          : (investment.investmentName ??
+                            institutions.find(
+                              (item) => item.id === investment.institutionId,
+                            )?.name ??
+                            "Institución eliminada")}
+                      </strong>
+                      <span>
+                        {investment.type === "etf"
+                          ? (investment.etfName ?? investment.productId)
+                          : (institutions.find(
+                              (item) => item.id === investment.institutionId,
+                            )?.name ?? "Institución eliminada")}
+                      </span>
+                    </div>
+                    <div>
+                      <small>
+                        {investment.type === "etf"
+                          ? "Valor actual"
+                          : "Saldo actualizado"}
+                      </small>
+                      <b>
+                        {money.format(
+                          investment.type === "etf"
+                            ? (investment.etfCurrentValue ?? 0)
+                            : (investment.updatedBalance ?? investment.balance),
+                        )}
+                      </b>
+                    </div>
+                    <div>
+                      <small>Rendimiento acumulado</small>
+                      <b>{money.format(investment.totalAccumulated ?? 0)}</b>
+                    </div>
+                    <div className="saved-row-actions">
+                      <button
+                        className="secondary-button"
+                        onClick={() => editInvestment(investment)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        className="danger-button"
+                        onClick={() => deleteInvestment(investment)}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </article>
+                ))}
               </div>
-            </div>
-          </> : <p className="saved-empty">Las inversiones guardadas aparecerán aquí.</p>}
+              <div className="saved-pagination">
+                <label>
+                  Registros por página
+                  <select
+                    value={savedPageSize}
+                    onChange={(event) => {
+                      setSavedPageSize(Number(event.target.value));
+                      setSavedPage(1);
+                    }}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                  </select>
+                </label>
+                <span>
+                  Página {effectiveSavedPage} de {savedTotalPages}
+                </span>
+                <div className="saved-pagination-actions">
+                  <button
+                    className="secondary-button"
+                    disabled={effectiveSavedPage <= 1}
+                    onClick={() =>
+                      setSavedPage((page) => Math.max(1, page - 1))
+                    }
+                  >
+                    Anterior
+                  </button>
+                  <button
+                    className="secondary-button"
+                    disabled={effectiveSavedPage >= savedTotalPages}
+                    onClick={() =>
+                      setSavedPage((page) =>
+                        Math.min(savedTotalPages, page + 1),
+                      )
+                    }
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="saved-empty">
+              Las inversiones guardadas aparecerán aquí.
+            </p>
+          )}
         </section>
       </main>
     </div>
