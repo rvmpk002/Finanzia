@@ -37,6 +37,7 @@ async function ensureSchema() {
   await pool.query(`CREATE TABLE IF NOT EXISTS investments (id BIGSERIAL PRIMARY KEY, type VARCHAR(20) NOT NULL CHECK (type IN ('vista', 'plazo', 'etf')), institution_id TEXT NOT NULL, product_id TEXT NOT NULL, data JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS calculation_formulas (id TEXT PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT UNIQUE NOT NULL, password_hash TEXT, full_name TEXT, phone TEXT, two_factor_secret TEXT, two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
+  await pool.query(`ALTER TABLE investments ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE`)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT`)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`)
   await pool.query(`CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at TIMESTAMPTZ NOT NULL)`)
@@ -292,10 +293,12 @@ app.post('/api/institutions/sync', async (request, response) => {
   }
 })
 
-app.get('/api/investments', async (_request, response) => {
+app.get('/api/investments', async (request, response) => {
   if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
+  const user = await currentUser(request)
+  if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   try {
-    const result = await pool.query('SELECT id, data, created_at FROM investments ORDER BY created_at DESC')
+    const result = await pool.query('SELECT id, data, created_at FROM investments WHERE user_id = $1 ORDER BY created_at DESC', [user.id])
     return response.json(result.rows.map((row) => ({ ...row.data, id: row.id, createdAt: row.created_at })))
   } catch (error) {
     console.error(error)
@@ -305,10 +308,12 @@ app.get('/api/investments', async (_request, response) => {
 
 app.post('/api/investments', async (request, response) => {
   if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
+  const user = await currentUser(request)
+  if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   const investment = request.body
   if (!investment?.type || !investment?.institutionId || !investment?.productId) return response.status(400).json({ error: 'Faltan datos requeridos.' })
   try {
-    const result = await pool.query('INSERT INTO investments (type, institution_id, product_id, data) VALUES ($1, $2, $3, $4) RETURNING id, created_at', [investment.type, investment.institutionId, investment.productId, investment])
+    const result = await pool.query('INSERT INTO investments (type, institution_id, product_id, data, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at', [investment.type, investment.institutionId, investment.productId, investment, user.id])
     return response.status(201).json({ ...investment, id: result.rows[0].id, createdAt: result.rows[0].created_at })
   } catch (error) {
     console.error(error)
@@ -318,10 +323,12 @@ app.post('/api/investments', async (request, response) => {
 
 app.put('/api/investments/:id', async (request, response) => {
   if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
+  const user = await currentUser(request)
+  if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   const investment = request.body
   if (!investment?.type || !investment?.institutionId || !investment?.productId) return response.status(400).json({ error: 'Faltan datos requeridos.' })
   try {
-    const result = await pool.query('UPDATE investments SET type = $1, institution_id = $2, product_id = $3, data = $4 WHERE id = $5 RETURNING id, created_at', [investment.type, investment.institutionId, investment.productId, investment, request.params.id])
+    const result = await pool.query('UPDATE investments SET type = $1, institution_id = $2, product_id = $3, data = $4 WHERE id = $5 AND user_id = $6 RETURNING id, created_at', [investment.type, investment.institutionId, investment.productId, investment, request.params.id, user.id])
     if (!result.rowCount) return response.status(404).json({ error: 'Inversión no encontrada.' })
     return response.json({ ...investment, id: result.rows[0].id, createdAt: result.rows[0].created_at })
   } catch (error) {
@@ -332,8 +339,10 @@ app.put('/api/investments/:id', async (request, response) => {
 
 app.delete('/api/investments/:id', async (request, response) => {
   if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
+  const user = await currentUser(request)
+  if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   try {
-    const result = await pool.query('DELETE FROM investments WHERE id = $1', [request.params.id])
+    const result = await pool.query('DELETE FROM investments WHERE id = $1 AND user_id = $2', [request.params.id, user.id])
     if (!result.rowCount) return response.status(404).json({ error: 'Inversión no encontrada.' })
     return response.status(204).end()
   } catch (error) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Clock3, FilePlus2, LineChart, WalletCards } from "lucide-react";
 import NavigationHeader from "./NavigationHeader";
+import { authHeaders, investmentStorageKey } from "./auth";
 
 type RateProduct = {
   id: string;
@@ -367,15 +368,17 @@ export default function InvestmentPage({
   useEffect(() => {
     const loadInvestments = async () => {
       try {
-        const response = await fetch("/api/investments");
+        const response = await fetch("/api/investments", {
+          headers: authHeaders(),
+        });
         setSavedInvestments(
           response.ok
             ? await response.json()
-            : JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]"),
+            : JSON.parse(localStorage.getItem(investmentStorageKey()) ?? "[]"),
         );
       } catch {
         setSavedInvestments(
-          JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]"),
+          JSON.parse(localStorage.getItem(investmentStorageKey()) ?? "[]"),
         );
       }
     };
@@ -383,7 +386,9 @@ export default function InvestmentPage({
   }, []);
   const refreshInvestments = async () => {
     try {
-      const response = await fetch("/api/investments");
+      const response = await fetch("/api/investments", {
+        headers: authHeaders(),
+      });
       if (response.ok) setSavedInvestments(await response.json());
     } catch {
       /* local fallback remains available */
@@ -424,15 +429,16 @@ export default function InvestmentPage({
     if (investment.id) {
       let response = await fetch(`/api/investments/${investment.id}`, {
         method: "DELETE",
+        headers: authHeaders(),
       });
       if (!response.ok) {
         if (response.status === 404) {
           const local = JSON.parse(
-            localStorage.getItem("finanzia-investments") ?? "[]",
+            localStorage.getItem(investmentStorageKey()) ?? "[]",
           ).filter(
             (item: SavedInvestment) => !sameInvestment(item, investment),
           );
-          localStorage.setItem("finanzia-investments", JSON.stringify(local));
+          localStorage.setItem(investmentStorageKey(), JSON.stringify(local));
           setSavedInvestments((current) =>
             current.filter((item) => item.id !== investment.id),
           );
@@ -456,7 +462,7 @@ export default function InvestmentPage({
       return;
     } else {
       const local = JSON.parse(
-        localStorage.getItem("finanzia-investments") ?? "[]",
+        localStorage.getItem(investmentStorageKey()) ?? "[]",
       ).filter(
         (item: SavedInvestment) =>
           !(
@@ -466,7 +472,7 @@ export default function InvestmentPage({
             item.balance === investment.balance
           ),
       );
-      localStorage.setItem("finanzia-investments", JSON.stringify(local));
+      localStorage.setItem(investmentStorageKey(), JSON.stringify(local));
       setSavedInvestments(local);
       window.dispatchEvent(new Event("finanzia-investment-saved"));
       return;
@@ -546,13 +552,13 @@ export default function InvestmentPage({
         : "/api/investments";
       const response = await fetch(endpoint, {
         method: editingInvestmentId ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(investment),
       });
       if (!response.ok) throw new Error("API unavailable");
       const savedInvestment = await response.json();
       const localInvestments = JSON.parse(
-        localStorage.getItem("finanzia-investments") ?? "[]",
+        localStorage.getItem(investmentStorageKey()) ?? "[]",
       );
       const localIndex = localInvestments.findIndex((item: SavedInvestment) =>
         savedInvestment.id
@@ -562,7 +568,7 @@ export default function InvestmentPage({
       if (localIndex >= 0) localInvestments[localIndex] = savedInvestment;
       else localInvestments.push(savedInvestment);
       localStorage.setItem(
-        "finanzia-investments",
+        investmentStorageKey(),
         JSON.stringify(localInvestments),
       );
       setSavedMessage("Inversión guardada en PostgreSQL.");
@@ -572,7 +578,7 @@ export default function InvestmentPage({
       window.dispatchEvent(new Event("finanzia-investment-saved"));
     } catch {
       const investments = JSON.parse(
-        localStorage.getItem("finanzia-investments") ?? "[]",
+        localStorage.getItem(investmentStorageKey()) ?? "[]",
       );
       if (editingInvestmentId) {
         const index = investments.findIndex(
@@ -588,7 +594,7 @@ export default function InvestmentPage({
         if (index >= 0) investments[index] = investment;
         else investments.push(investment);
       } else investments.push(investment);
-      localStorage.setItem("finanzia-investments", JSON.stringify(investments));
+      localStorage.setItem(investmentStorageKey(), JSON.stringify(investments));
       setSavedInvestments(investments);
       setEditingLocalInvestment(null);
       setSavedMessage("PostgreSQL no está disponible; guardada localmente.");

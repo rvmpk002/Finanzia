@@ -3,6 +3,7 @@ import { Calculator } from "lucide-react";
 import { defaultFormulaConfig, formulaKey } from "./calculationConfig";
 import type { FormulaId, FormulaStore } from "./calculationConfig";
 import NavigationHeader from "./NavigationHeader";
+import { authHeaders } from "./auth";
 
 type RateProduct = {
   id: string;
@@ -86,7 +87,7 @@ export default function ConfigurationPage({ institutions }: Props) {
     fetch("/api/formulas")
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then((saved: FormulaStore) => {
-        return fetch("/api/investments")
+        return fetch("/api/investments", { headers: authHeaders() })
           .then((response) => response.ok ? response.json() : [])
           .then((investments: { type?: string; etfName?: string; productId?: string }[]) => {
             const seeded = { ...saved };

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, Download, FileText } from "lucide-react";
 import NavigationHeader from "./NavigationHeader";
+import { authHeaders, investmentStorageKey } from "./auth";
 
 type Type = "vista" | "plazo" | "etf";
 type Institution = { id: string; name: string; products?: Product[] };
@@ -461,12 +462,12 @@ export default function ReportsPage({
   const [investments, setInvestments] = useState<Investment[]>([]);
   useEffect(() => {
     const loadInvestments = () => {
-      fetch("/api/investments")
+      fetch("/api/investments", { headers: authHeaders() })
         .then((response) => (response.ok ? response.json() : Promise.reject()))
         .then(setInvestments)
         .catch(() =>
           setInvestments(
-            JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]"),
+            JSON.parse(localStorage.getItem(investmentStorageKey()) ?? "[]"),
           ),
         );
     };

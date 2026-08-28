@@ -9,6 +9,7 @@ import { defaultFormulaConfig, evaluateFormula } from "./calculationConfig";
 import { formulaKey } from "./calculationConfig";
 import type { FormulaConfig, FormulaStore } from "./calculationConfig";
 import NavigationHeader from "./NavigationHeader";
+import { authHeaders, investmentStorageKey } from "./auth";
 
 type Product = {
   id: string;
@@ -352,7 +353,9 @@ export default function DashboardPage({
   useEffect(() => {
     const refreshInvestments = async () => {
       try {
-        const response = await fetch("/api/investments");
+        const response = await fetch("/api/investments", {
+          headers: authHeaders(),
+        });
         if (!response.ok) throw new Error("API unavailable");
         const databaseInvestments: Investment[] = await response.json();
         const localInvestments = readLocalInvestments();
@@ -378,14 +381,14 @@ export default function DashboardPage({
             if (investment.id && isKuboLiquidity(investment) && investment.startDate !== latestInvestments[index].startDate) {
               await fetch(`/api/investments/${investment.id}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: authHeaders({ "Content-Type": "application/json" }),
                 body: JSON.stringify(investment),
               });
             }
           }),
         );
         setInvestments(recalculatedInvestments);
-        localStorage.setItem("finanzia-investments", JSON.stringify(recalculatedInvestments));
+        localStorage.setItem(investmentStorageKey(), JSON.stringify(recalculatedInvestments));
       } catch {
         const localInvestments = readLocalInvestments().map((investment) =>
           rolloverKuboLiquidity(
@@ -394,7 +397,7 @@ export default function DashboardPage({
           ),
         );
         setInvestments(localInvestments);
-        localStorage.setItem("finanzia-investments", JSON.stringify(localInvestments));
+        localStorage.setItem(investmentStorageKey(), JSON.stringify(localInvestments));
       }
     };
     window.addEventListener("finanzia-investment-saved", refreshInvestments);
@@ -436,7 +439,7 @@ export default function DashboardPage({
       if (investment.id) {
         const response = await fetch(`/api/investments/${investment.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify(updatedInvestment),
         });
         if (!response.ok) throw new Error("API unavailable");
@@ -448,7 +451,7 @@ export default function DashboardPage({
           : item,
       );
       setInvestments(nextInvestments);
-      localStorage.setItem("finanzia-investments", JSON.stringify(nextInvestments));
+      localStorage.setItem(investmentStorageKey(), JSON.stringify(nextInvestments));
       setEditingBalances((current) => ({ ...current, [key]: value.toFixed(2) }));
       setActiveBalanceId(null);
     } catch {
@@ -458,7 +461,7 @@ export default function DashboardPage({
           : item,
       );
       setInvestments(nextInvestments);
-      localStorage.setItem("finanzia-investments", JSON.stringify(nextInvestments));
+      localStorage.setItem(investmentStorageKey(), JSON.stringify(nextInvestments));
     }
   };
   const visible = investments
@@ -932,7 +935,7 @@ export default function DashboardPage({
 
 function readLocalInvestments(): Investment[] {
   try {
-    return JSON.parse(localStorage.getItem("finanzia-investments") ?? "[]");
+    return JSON.parse(localStorage.getItem(investmentStorageKey()) ?? "[]");
   } catch {
     return [];
   }
