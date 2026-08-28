@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft,
   Check,
   Fingerprint,
   Plus,
@@ -11,6 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { startRegistration } from "@simplewebauthn/browser";
+import NavigationHeader from "./NavigationHeader";
 
 type User = {
   email: string;
@@ -190,25 +190,7 @@ export default function ProfilePage() {
   };
   return (
     <div className="investment-page profile-page">
-      <header className="investment-topbar">
-        <a href="/instituciones" className="back-link">
-          <ArrowLeft size={18} /> Instituciones
-        </a>
-        <nav className="investment-nav">
-          <a href="/instituciones">Instituciones</a>
-          <a href="/inversiones">Nueva inversión</a>
-          <a href="/dashboard">Dashboard</a>
-          <a href="/configuracion">Configuración</a>
-          <button
-            onClick={() => {
-              localStorage.removeItem("finanzia-auth-token");
-              window.location.href = "/login";
-            }}
-          >
-            Cerrar sesión
-          </button>
-        </nav>
-      </header>
+      <NavigationHeader pageLabel="Protección" />
       <main className="investment-content">
         <div className="investment-intro">
           <div>

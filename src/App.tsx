@@ -12,7 +12,6 @@ import {
   Search,
   Sparkles,
   Trash2,
-  Users,
   X,
 } from "lucide-react";
 import InvestmentPage from "./InvestmentPage";
@@ -21,6 +20,7 @@ import ConfigurationPage from "./ConfigurationPage";
 import AuthPage from "./AuthPage";
 import ProfilePage from "./ProfilePage";
 import ReportsPage from "./ReportsPage";
+import NavigationHeader from "./NavigationHeader";
 import "./App.css";
 
 type RateProduct = {
@@ -572,20 +572,7 @@ function App() {
   }
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <a className="brand" href="/instituciones">
-          <span className="brand-mark">F</span>
-          <span>FINANZIA</span>
-        </a>
-        <nav className="directory-nav"><a href="/instituciones">Instituciones</a><a href="/inversiones">Nueva inversión</a><a href="/dashboard">Dashboard</a><a href="/reportes">Reportes</a><a href="/configuracion">Configuración</a><a href="/proteccion">Protección</a><button onClick={() => { localStorage.removeItem("finanzia-auth-token"); window.location.href = "/login"; }}>Cerrar sesión</button></nav>
-        <div className="topbar-meta">
-          <span className="status-dot" /> Base de conocimiento{" "}
-          <span className="topbar-divider" /> 25 AGO 2026
-        </div>
-        <button className="icon-button mobile-menu" aria-label="Abrir menú">
-          <Users size={19} />
-        </button>
-      </header>
+      <NavigationHeader pageLabel="Instituciones" />
       <main className="workspace">
         <aside className="sidebar">
           <div className="sidebar-heading">

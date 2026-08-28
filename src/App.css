@@ -57,7 +57,6 @@
 .investment-form-panel > .primary-button { margin-top: 4px; min-width: 188px; justify-content: center; }
 @media (max-width: 600px) { .investment-fields { grid-template-columns: 1fr; gap: 14px; }.investment-form-panel { box-shadow: 0 12px 28px #0004; }.dashboard-pagination { align-items: stretch; flex-direction: column; }.dashboard-pagination-actions { justify-content: space-between; }.dashboard-pagination-actions .secondary-button { flex: 1; justify-content: center; } }
 .profile-secret { display: grid; justify-items: start; gap: 10px; }.profile-secret img { width: 220px; height: 220px; padding: 10px; background: #fff; border-radius: 4px; }.profile-secret span { color: var(--muted); font-size: 12px; }
-.profile-page .back-link { display: none; }
 .investment-topbar { justify-content: flex-start; }
 .investment-topbar .investment-nav { margin-left: auto; }
 .dashboard-mobile-cards { display: none; }
@@ -72,10 +71,10 @@
 .dashboard-mobile-term { display: flex; justify-content: space-between; gap: 10px; margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font: 10px var(--mono); }
 .dashboard-mobile-term strong { color: #ddd6fe; }.dashboard-mobile-edit { display: grid; gap: 7px; margin-top: 15px; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; }.dashboard-mobile-edit input { width: 100%; min-height: 40px; padding: 9px; color: var(--paper); background: #10131c; border: 1px solid #353b4d; border-radius: 4px; }
 .investment-topbar { position: relative; }
-.profile-page .investment-topbar::before { content: "F"; display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; background: var(--orange); color: var(--ink); border-radius: 7px; font-size: 25px; font-weight: 800; }
-.profile-page .investment-topbar::after { content: "FINANZIA"; position: absolute; left: 94px; color: var(--paper); font-size: 13px; font-weight: 800; letter-spacing: .16em; }
 .profile-disable-2fa { display: block; margin-top: 12px; color: #e98065; }
 .reports-controls label, .reports-controls select { min-width: 0; max-width: 100%; }
+
+.profile-page .investment-nav { flex-wrap: initial; justify-content: initial; }
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { max-width: 100%; overflow-x: hidden; }
