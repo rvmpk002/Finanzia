@@ -163,6 +163,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 .trend-line { stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
 .trend-line-capital { stroke: #d4bc91; }
 .trend-line-current { stroke: #69d891; }
+.trend-line-interest { stroke: #fb7185; }
 .trend-point { stroke: #151816; stroke-width: 2; }
 .trend-point-current { fill: #69d891; }
 .trend-label { fill: var(--muted); font-size: 10px; font-family: var(--mono); }

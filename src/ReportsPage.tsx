@@ -147,6 +147,7 @@ const buildTrendSeries = (items: Investment[], period: string) => {
       label: date.toLocaleDateString("es-MX", { month: "short" }),
       capital: 0,
       current: 0,
+      interest: 0,
     };
   });
 
@@ -165,6 +166,7 @@ const buildTrendSeries = (items: Investment[], period: string) => {
     if (!bucket) continue;
     bucket.capital += capital(item);
     bucket.current += current(item);
+    bucket.interest += profit(item);
   }
 
   return buckets;
@@ -182,7 +184,7 @@ function TrendChart({ data }: { data: ReturnType<typeof buildTrendSeries> }) {
     ...data.flatMap((entry) => [entry.capital, entry.current]),
   );
 
-  const points = (key: "capital" | "current") =>
+  const points = (key: "capital" | "current" | "interest") =>
     data.map((entry, index) => {
       const x =
         padding +
@@ -194,10 +196,14 @@ function TrendChart({ data }: { data: ReturnType<typeof buildTrendSeries> }) {
 
   const capitalPoints = points("capital");
   const currentPoints = points("current");
+  const interestPoints = points("interest");
   const capitalPath = capitalPoints
     .map((point) => `${point.x},${point.y}`)
     .join(" ");
   const currentPath = currentPoints
+    .map((point) => `${point.x},${point.y}`)
+    .join(" ");
+  const interestPath = interestPoints
     .map((point) => `${point.x},${point.y}`)
     .join(" ");
 
@@ -218,6 +224,9 @@ function TrendChart({ data }: { data: ReturnType<typeof buildTrendSeries> }) {
         </span>
         <span>
           <i className="legend-current" /> Valor actual
+        </span>
+        <span>
+          <i className="legend-profit" /> Intereses a recibir
         </span>
       </div>
       <svg
@@ -248,6 +257,11 @@ function TrendChart({ data }: { data: ReturnType<typeof buildTrendSeries> }) {
         <polyline
           points={currentPath}
           className="trend-line trend-line-current"
+          fill="none"
+        />
+        <polyline
+          points={interestPath}
+          className="trend-line trend-line-interest"
           fill="none"
         />
         {currentPoints.map((point, index) => (
@@ -329,6 +343,21 @@ function TypeChart({
         },
       ];
     }
+    if (item.institutionId === "kubo") {
+      return [
+        { key: "capital", label: "Monto invertido", amount: capital(item) },
+        {
+          key: "current",
+          label: "Monto a recibir",
+          amount: current(item, institutions),
+        },
+        {
+          key: "profit",
+          label: "Intereses a recibir",
+          amount: profit(item, institutions),
+        },
+      ];
+    }
     return [
       { key: "current", label: "Saldo actual", amount: current(item) },
       { key: "profit", label: "Ganancia acumulada", amount: profit(item) },
@@ -349,7 +378,9 @@ function TypeChart({
       ? "Valor y rendimiento de cada ETF"
       : type === "plazo"
         ? "Capital y avance hasta vencimiento"
-        : "Saldo y rendimiento de cada inversión";
+        : rows.some((item) => item.institutionId === "kubo")
+          ? "Montos e intereses de Kubo Financiero"
+          : "Saldo y rendimiento de cada inversión";
   return (
     <div className="reports-type-chart" aria-label={title}>
       <div className="reports-chart-legend">
