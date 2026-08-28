@@ -3,10 +3,11 @@ import { BarChart3, Download, FileText } from "lucide-react";
 import NavigationHeader from "./NavigationHeader";
 
 type Type = "vista" | "plazo" | "etf";
-type Institution = { id: string; name: string };
+type Institution = { id: string; name: string; products?: Product[] };
+type Product = { id: string; calculationMethod?: string };
 type Investment = {
   id?: number; type: Type; institutionId: string; productId: string; balance: number;
-  withdrawn?: number; startDate: string; endDate?: string; annualRate?: number;
+  withdrawn?: number; startDate: string; endDate?: string; termDays?: number; annualRate?: number;
   updatedBalance?: number; totalAccumulated?: number; etfName?: string;
   etfTitles?: number; etfPurchasePrice?: number; etfCurrentValue?: number;
 };
@@ -15,14 +16,28 @@ const money = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN
 const date = new Intl.DateTimeFormat("es-MX", { dateStyle: "medium" });
 const today = () => new Date().toISOString().slice(0, 10);
 const value = (amount: number | undefined) => Number(amount) || 0;
+const bancoPlataInterest = (principal: number, annualRate: number, days: number) =>
+  principal * (annualRate / 100) * (days / 360);
 const compactMoney = (amount: number) => {
   const absolute = Math.abs(amount);
   const formatted = absolute >= 1000000 ? `$${(absolute / 1000000).toFixed(1)}M` : absolute >= 1000 ? `$${(absolute / 1000).toFixed(1)}k` : money.format(absolute).replace(" ", "");
   return amount < 0 ? `-${formatted}` : formatted;
 };
 const capital = (item: Investment) => item.type === "etf" ? value(item.etfTitles) * value(item.etfPurchasePrice) : value(item.balance);
-const current = (item: Investment) => item.type === "etf" ? value(item.etfCurrentValue ?? item.balance) : value(item.updatedBalance ?? item.balance);
-const profit = (item: Investment) => item.type === "etf" ? current(item) - capital(item) : value(item.totalAccumulated);
+const current = (item: Investment, institutions: Institution[] = []) => {
+  if (item.type === "etf") return value(item.etfCurrentValue ?? item.balance);
+  const product = institutions
+    .find((institution) => institution.id === item.institutionId)
+    ?.products?.find((entry) => entry.id === item.productId);
+  if (item.type === "plazo" && product?.calculationMethod === "simple360") {
+    const days = item.termDays ?? (item.endDate && item.startDate
+      ? Math.max(0, (new Date(`${item.endDate}T00:00:00`).getTime() - new Date(`${item.startDate}T00:00:00`).getTime()) / 86400000)
+      : 0);
+    return value(item.balance) + bancoPlataInterest(value(item.balance), value(item.annualRate), days);
+  }
+  return value(item.updatedBalance ?? item.balance);
+};
+const profit = (item: Investment, institutions: Institution[] = []) => item.type === "etf" ? current(item, institutions) - capital(item) : value(item.totalAccumulated);
 const label = (item: Investment, institutions: Institution[]) => institutions.find((entry) => entry.id === item.institutionId)?.name ?? item.etfName ?? item.productId;
 const periodLabel = (period: string) => {
   const end = new Date(); const start = new Date(end);
@@ -131,8 +146,8 @@ function TypeChart({ investments, institutions, type }: { investments: Investmen
       const invested = capital(item);
       return [
         { key: "capital", label: "Capital invertido", amount: invested },
-        { key: "current", label: "Valor actual", amount: current(item) },
-        { key: "profit", label: "Ganancia", amount: profit(item) },
+        { key: "current", label: "Valor actual", amount: current(item, institutions) },
+        { key: "profit", label: "Ganancia", amount: profit(item, institutions) },
       ];
     }
     if (type === "plazo") {
@@ -141,7 +156,7 @@ function TypeChart({ investments, institutions, type }: { investments: Investmen
       const elapsed = Math.max(0, Math.min(100, ((new Date(`${today()}T00:00:00`).getTime() - start) / Math.max(1, end - start)) * 100));
       return [
         { key: "capital", label: "Capital", amount: capital(item) },
-        { key: "current", label: "Saldo al vencimiento", amount: current(item) },
+        { key: "current", label: "Saldo al vencimiento", amount: current(item, institutions) },
         { key: "progress", label: "Avance del plazo", amount: elapsed, display: `${Math.round(elapsed)}%` },
       ];
     }
