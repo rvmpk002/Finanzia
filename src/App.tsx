@@ -185,39 +185,23 @@ const mifel: Institution = {
   category: "Banca digital",
   website: "https://www.mifel.com.mx/personas/cuentas/cuenta-digital",
   notes:
-    "Dos opciones de cuenta digital Mifel para administrar tu dinero desde canales digitales.",
+    "Cuenta Digital Mifel con tasa del 10% anual, rendimientos diarios y saldo máximo de $500,000 MXN.",
   products: [
     {
       id: "mifel-cuenta-digital",
       name: "Cuenta Digital Mifel",
-      description:
-        "10% de rendimiento anual con rendimientos diarios. A partir de $100.",
-      annualRate: 10,
-      calculationMethod: "mifel360",
-      taxRate: 9,
-      daysBase: 360,
-      promoCap: 25000,
-      conditions: [
-        "Tope de depósitos: 3,000 UDIS al mes, aproximadamente $25,000 MXN",
-        "Dinero protegido por el IPAB · opción Objetivos para separar tu dinero",
-      ],
-      website:
-        "https://www.mifel.com.mx/personas/cuentas/cuenta-digital?meta.slug=cuenta-digital-mifel",
-      icon: "account",
-    },
-    {
-      id: "mifel-cuenta-digital-evoluciona",
-      name: "Cuenta Digital Evoluciona",
-      description:
-        "10% de rendimiento anual con rendimientos diarios. A partir de $100.",
+      description: "Tasa del 10% anual con rendimientos diarios. A partir de $100.",
       annualRate: 10,
       calculationMethod: "mifel360",
       taxRate: 9,
       daysBase: 360,
       promoCap: 500000,
       conditions: [
-        "Tope de saldo: $500,000 MXN",
-        "Depósitos mensuales de hasta $500,000 MXN · completa tu expediente desde la app",
+        "Tasa del 10% anual con rendimientos diarios. A partir de $100",
+        "Aumenta los depósitos mensuales hasta $500,000 pesos.",
+        "Límite de $500,000 pesos respetando la tasa del 10% anual",
+        "Evoluciona tu cuenta completando tu expediente desde la app",
+        "Consulta comisiones aplicables.",
       ],
       website:
         "https://www.mifel.com.mx/personas/cuentas/cuenta-digital?meta.slug=cuenta-digital-evoluciona",
@@ -714,6 +698,14 @@ function App() {
                 </article>
               ))}
             </div>
+            {selected.id === "mifel" && (
+              <div className="calculation-note">
+                <strong>Mifel:</strong>
+                <span>
+                  Los rendimientos y el ISR se calculan diariamente; si el día cae en fin de semana, el registro se refleja en el siguiente día hábil.
+                </span>
+              </div>
+            )}
             <div className="source-note">
               <Banknote size={16} />
               <span>

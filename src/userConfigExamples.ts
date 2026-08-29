@@ -14,7 +14,7 @@ export type UserProductConfigExample = {
 export const userConfigExamples: UserProductConfigExample[] = [
   {
     institutionId: "mifel",
-    productId: "mifel-cuenta-digital-evoluciona",
+    productId: "mifel-cuenta-digital",
     annualRate: 10,
     promoCap: 500000,
     excessRate: 0,

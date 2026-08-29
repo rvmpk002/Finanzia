@@ -637,7 +637,16 @@ export default function DashboardPage({
                 </table>
               </div>
             )}
-            {standardInvestments.length > 0 && <div className="table-scroll">
+            {standardInvestments.length > 0 && <>
+              {activeTab === "vista" && (
+                <div className="calculation-note">
+                  <strong>Mifel:</strong>
+                  <span>
+                    Los rendimientos y el ISR se calculan diariamente; si el día cae en fin de semana, el registro se refleja en el siguiente día hábil.
+                  </span>
+                </div>
+              )}
+              <div className="table-scroll">
               <table>
                 <thead>
                   <tr>
@@ -840,7 +849,8 @@ export default function DashboardPage({
                   ))}
                 </tbody>
               </table>
-            </div>}
+            </div>
+            </>}
             <div className="dashboard-pagination">
               <label>
                 Registros por página

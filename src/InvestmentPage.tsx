@@ -23,6 +23,7 @@ const isSelectableProduct = (
     (tab === "plazo"
       ? product.id !== "kubo-liquidez"
       : product.id === "kubo-liquidez")) &&
+  (institutionId !== "mifel" || product.id === "mifel-cuenta-digital") &&
   (institutionId !== "nu" || product.id === "nu-cajita-turbo") &&
   (institutionId !== "openbank" || product.id === "openbank") &&
   (tab !== "plazo" ||
@@ -914,7 +915,7 @@ export default function InvestmentPage({
                 </strong>
                 <span>
                   {isMifel
-                    ? "Los rendimientos aplican únicamente sobre el saldo dentro del tope."
+                    ? "Los rendimientos y el ISR se calculan diariamente; si el día cae en fin de semana, el registro se refleja en el siguiente día hábil."
                     : "La promoción se aplica hasta el tope definido por el producto seleccionado."}
                 </span>
               </div>

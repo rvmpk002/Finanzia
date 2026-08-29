@@ -29,19 +29,41 @@ const rpName = 'Finanzia'
 const rpID = process.env.WEBAUTHN_RP_ID ?? 'cosmic-smakager-b538c4.netlify.app'
 const origin = process.env.WEBAUTHN_ORIGIN ?? `https://${rpID}`
 const legacyDidiProductIds = new Set(['didi-15', 'didi-7', 'didi-beneficios'])
+const legacyMifelProductIds = new Set(['mifel-cuenta-digital-evoluciona'])
 const legacyNuProductIds = new Set(['nu-cuenta', 'nu-cajita', 'nu-cajita-congelada'])
 const legacyOpenbankProductIds = new Set(['openbank-13', 'openbank-7', 'openbank-6-5'])
+const validInstitutionProducts = {
+  'banco-plata': ['plata-cuenta', 'ahorro-flexible', 'ahorro-fijo'],
+  openbank: ['openbank'],
+  nu: ['nu-cajita-turbo'],
+  'didi-cuenta': ['didi-cuenta'],
+  mifel: ['mifel-cuenta-digital'],
+  kubo: ['kubo-liquidez', 'kubo-plazos', 'kubo-largo-plazo'],
+  'mercado-pago': ['mercado-pago-12', 'mercado-pago-6'],
+  cetesdirecto: ['cetesdirecto-cetes', 'cetesdirecto-bonos', 'cetesdirecto-bonddia', 'cetesdirecto-udibonos'],
+  'cetesdirecto': ['cetesdirecto-cetes', 'cetesdirecto-bonos', 'cetesdirecto-bonddia', 'cetesdirecto-udibonos'],
+}
 const canonicalizeProductId = (institutionId, productId) => {
   const normalized = String(productId ?? '')
   if (institutionId === 'didi-cuenta' && legacyDidiProductIds.has(normalized)) return 'didi-cuenta'
+  if (institutionId === 'mifel' && legacyMifelProductIds.has(normalized)) return 'mifel-cuenta-digital'
   if (institutionId === 'nu' && legacyNuProductIds.has(normalized)) return 'nu-cajita-turbo'
   if (institutionId === 'openbank' && legacyOpenbankProductIds.has(normalized)) return 'openbank'
   return normalized
 }
+const isValidInstitutionProduct = (institutionId, productId) => {
+  const normalizedInstitutionId = String(institutionId ?? '').trim()
+  const normalizedProductId = String(productId ?? '').trim()
+  const allowedProducts = validInstitutionProducts[normalizedInstitutionId] ?? []
+  return allowedProducts.includes(normalizedProductId)
+}
 const sanitizeInstitutionProduct = (institutionId, productId) => {
   const normalizedInstitutionId = String(institutionId ?? '').trim()
   const normalizedProductId = canonicalizeProductId(normalizedInstitutionId, productId)
-  return { institutionId: normalizedInstitutionId, productId: normalizedProductId }
+  if (!normalizedInstitutionId || !normalizedProductId || !isValidInstitutionProduct(normalizedInstitutionId, normalizedProductId)) {
+    return { institutionId: normalizedInstitutionId, productId: normalizedProductId, isValid: false }
+  }
+  return { institutionId: normalizedInstitutionId, productId: normalizedProductId, isValid: true }
 }
 const smtpHost = process.env.SMTP_HOST ?? 'smtp.gmail.com'
 const smtpConnectionHost = process.env.SMTP_USER && process.env.SMTP_PASS
@@ -59,6 +81,8 @@ async function ensureSchema() {
   await pool.query('CREATE EXTENSION IF NOT EXISTS pgcrypto')
   await pool.query(`CREATE TABLE IF NOT EXISTS institutions (id TEXT PRIMARY KEY, name TEXT NOT NULL, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS investments (id BIGSERIAL PRIMARY KEY, type VARCHAR(20) NOT NULL CHECK (type IN ('vista', 'plazo', 'etf')), institution_id TEXT NOT NULL, product_id TEXT NOT NULL, data JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
+  await pool.query(`ALTER TABLE investments DROP CONSTRAINT IF EXISTS investments_product_integrity_check`)
+  await pool.query(`ALTER TABLE investments ADD CONSTRAINT investments_product_integrity_check CHECK ((institution_id, product_id) IN (('banco-plata', 'plata-cuenta'), ('banco-plata', 'ahorro-flexible'), ('banco-plata', 'ahorro-fijo'), ('openbank', 'openbank'), ('nu', 'nu-cajita-turbo'), ('didi-cuenta', 'didi-cuenta'), ('mifel', 'mifel-cuenta-digital'), ('kubo', 'kubo-liquidez'), ('kubo', 'kubo-plazos'), ('kubo', 'kubo-largo-plazo'), ('mercado-pago', 'mercado-pago-12'), ('mercado-pago', 'mercado-pago-6'), ('cetesdirecto', 'cetesdirecto-cetes'), ('cetesdirecto', 'cetesdirecto-bonos'), ('cetesdirecto', 'cetesdirecto-bonddia'), ('cetesdirecto', 'cetesdirecto-udibonos')))`)
   await pool.query(`CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT UNIQUE NOT NULL, password_hash TEXT, full_name TEXT, phone TEXT, two_factor_secret TEXT, two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS calculation_formulas (
     id TEXT NOT NULL,
@@ -81,6 +105,8 @@ async function ensureSchema() {
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (user_id, institution_id, product_id)
   )`)
+  await pool.query(`ALTER TABLE user_product_configs DROP CONSTRAINT IF EXISTS user_product_configs_product_integrity_check`)
+  await pool.query(`ALTER TABLE user_product_configs ADD CONSTRAINT user_product_configs_product_integrity_check CHECK ((institution_id, product_id) IN (('banco-plata', 'plata-cuenta'), ('banco-plata', 'ahorro-flexible'), ('banco-plata', 'ahorro-fijo'), ('openbank', 'openbank'), ('nu', 'nu-cajita-turbo'), ('didi-cuenta', 'didi-cuenta'), ('mifel', 'mifel-cuenta-digital'), ('kubo', 'kubo-liquidez'), ('kubo', 'kubo-plazos'), ('kubo', 'kubo-largo-plazo'), ('mercado-pago', 'mercado-pago-12'), ('mercado-pago', 'mercado-pago-6'), ('cetesdirecto', 'cetesdirecto-cetes'), ('cetesdirecto', 'cetesdirecto-bonos'), ('cetesdirecto', 'cetesdirecto-bonddia'), ('cetesdirecto', 'cetesdirecto-udibonos')))`)
   await pool.query(`ALTER TABLE investments ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE`)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT`)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`)
@@ -99,19 +125,26 @@ async function normalizeLegacyDidiData() {
     await pool.query("UPDATE investments SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id IN ('didi-15', 'didi-7', 'didi-beneficios')")
     await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"didi-cuenta\"'::jsonb, true) WHERE institution_id = 'didi-cuenta' AND (data->>'productId') IN ('didi-15', 'didi-7', 'didi-beneficios')")
 
+    await pool.query("UPDATE user_product_configs SET product_id = 'mifel-cuenta-digital' WHERE institution_id = 'mifel' AND product_id IN ('mifel-cuenta-digital-evoluciona')")
+    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'mifel' AND product_id <> 'mifel-cuenta-digital'")
+
+    await pool.query("UPDATE investments SET product_id = 'mifel-cuenta-digital' WHERE institution_id = 'mifel' AND product_id IN ('mifel-cuenta-digital-evoluciona')")
+    await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"mifel-cuenta-digital\"'::jsonb, true) WHERE institution_id = 'mifel' AND (data->>'productId') IN ('mifel-cuenta-digital-evoluciona')")
+
     await pool.query("UPDATE user_product_configs SET product_id = 'openbank' WHERE institution_id = 'openbank' AND product_id IN ('openbank-13', 'openbank-7', 'openbank-6-5')")
     await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'openbank' AND product_id <> 'openbank'")
 
     await pool.query("UPDATE investments SET product_id = 'openbank' WHERE institution_id = 'openbank' AND product_id IN ('openbank-13', 'openbank-7', 'openbank-6-5')")
     await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"openbank\"'::jsonb, true) WHERE institution_id = 'openbank' AND (data->>'productId') IN ('openbank-13', 'openbank-7', 'openbank-6-5')")
 
-    await pool.query("UPDATE institutions SET data = jsonb_set(data, '{products}', COALESCE((SELECT jsonb_agg(CASE WHEN product->>'id' IN ('didi-15', 'didi-7', 'didi-beneficios') THEN jsonb_set(product, '{id}', '\"didi-cuenta\"'::jsonb, true) WHEN product->>'id' IN ('openbank-13', 'openbank-7', 'openbank-6-5') THEN jsonb_set(product, '{id}', '\"openbank\"'::jsonb, true) ELSE product END) FROM jsonb_array_elements(data->'products') AS product), '[]'::jsonb), true) WHERE id IN ('didi-cuenta', 'openbank') AND jsonb_typeof(data->'products') = 'array'")
+    await pool.query("UPDATE institutions SET data = jsonb_set(data, '{products}', COALESCE((SELECT jsonb_agg(CASE WHEN product->>'id' IN ('didi-15', 'didi-7', 'didi-beneficios') THEN jsonb_set(product, '{id}', '\"didi-cuenta\"'::jsonb, true) WHEN product->>'id' IN ('mifel-cuenta-digital-evoluciona') THEN jsonb_set(product, '{id}', '\"mifel-cuenta-digital\"'::jsonb, true) WHEN product->>'id' IN ('openbank-13', 'openbank-7', 'openbank-6-5') THEN jsonb_set(product, '{id}', '\"openbank\"'::jsonb, true) ELSE product END) FROM jsonb_array_elements(data->'products') AS product), '[]'::jsonb), true) WHERE id IN ('didi-cuenta', 'mifel', 'openbank') AND jsonb_typeof(data->'products') = 'array'")
 
-    await pool.query("DELETE FROM user_product_configs WHERE institution_id IN ('didi-cuenta', 'openbank') AND product_id NOT IN ('didi-cuenta', 'openbank')")
+    await pool.query("DELETE FROM user_product_configs WHERE institution_id IN ('didi-cuenta', 'mifel', 'openbank') AND product_id NOT IN ('didi-cuenta', 'mifel-cuenta-digital', 'openbank')")
     await pool.query("UPDATE investments SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id <> 'didi-cuenta'")
+    await pool.query("UPDATE investments SET product_id = 'mifel-cuenta-digital' WHERE institution_id = 'mifel' AND product_id <> 'mifel-cuenta-digital'")
     await pool.query("UPDATE investments SET product_id = 'openbank' WHERE institution_id = 'openbank' AND product_id <> 'openbank'")
 
-    console.log('[MIGRATION] Legacy DiDi/Openbank product IDs normalizados a su producto canónico')
+    console.log('[MIGRATION] Legacy DiDi/Mifel/Openbank product IDs normalizados a su producto canónico')
   } catch (error) {
     console.error('[MIGRATION] Error normalizando legacy products:', error)
   }
@@ -377,9 +410,8 @@ app.put('/api/user-config', async (request, response) => {
   if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
   const { institutionId: rawInstitutionId, productId: rawProductId } = request.body ?? {}
-  const { institutionId, productId } = sanitizeInstitutionProduct(rawInstitutionId, rawProductId)
-  if (!institutionId || !productId) return response.status(400).json({ error: 'Faltan institutionId o productId.' })
-  if (institutionId === 'didi-cuenta' && productId !== 'didi-cuenta') return response.status(400).json({ error: 'El producto de DiDi debe ser único y canónico.' })
+  const { institutionId, productId, isValid } = sanitizeInstitutionProduct(rawInstitutionId, rawProductId)
+  if (!institutionId || !productId || !isValid) return response.status(400).json({ error: 'La combinación institutionId/productId no es válida.' })
   const data = { ...request.body }
   delete data.institutionId
   delete data.productId
@@ -426,7 +458,14 @@ app.post('/api/institutions/sync', async (request, response) => {
   const institutions = Array.isArray(request.body) ? request.body : []
   const sanitizedInstitutions = institutions.map((institution) => {
     if (!institution || !institution.id || !Array.isArray(institution.products)) return institution
-    const products = institution.products.map((product) => {
+    const validProducts = institution.products.filter((product) => {
+      const normalized = sanitizeInstitutionProduct(institution.id, product?.id)
+      return normalized.isValid
+    })
+    if (!validProducts.length) {
+      throw new Error(`La institución ${institution.id} no tiene productos válidos.`)
+    }
+    const products = validProducts.map((product) => {
       const normalized = sanitizeInstitutionProduct(institution.id, product?.id)
       return {
         ...product,
@@ -517,8 +556,8 @@ app.post('/api/investments', async (request, response) => {
   if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   const investment = request.body
   if (!investment?.type || !investment?.institutionId || !investment?.productId) return response.status(400).json({ error: 'Faltan datos requeridos.' })
-  const { institutionId, productId } = sanitizeInstitutionProduct(investment.institutionId, investment.productId)
-  if (institutionId === 'didi-cuenta' && productId !== 'didi-cuenta') return response.status(400).json({ error: 'La inversión de DiDi debe usar el producto canónico.' })
+  const { institutionId, productId, isValid } = sanitizeInstitutionProduct(investment.institutionId, investment.productId)
+  if (!isValid) return response.status(400).json({ error: 'La inversión tiene un producto inválido para la institución.' })
   const normalizedInvestment = { ...investment, institutionId, productId }
   try {
     const result = await pool.query('INSERT INTO investments (type, institution_id, product_id, data, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at', [normalizedInvestment.type, normalizedInvestment.institutionId, normalizedInvestment.productId, normalizedInvestment, user.id])
@@ -535,8 +574,8 @@ app.put('/api/investments/:id', async (request, response) => {
   if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   const investment = request.body
   if (!investment?.type || !investment?.institutionId || !investment?.productId) return response.status(400).json({ error: 'Faltan datos requeridos.' })
-  const { institutionId, productId } = sanitizeInstitutionProduct(investment.institutionId, investment.productId)
-  if (institutionId === 'didi-cuenta' && productId !== 'didi-cuenta') return response.status(400).json({ error: 'La inversión de DiDi debe usar el producto canónico.' })
+  const { institutionId, productId, isValid } = sanitizeInstitutionProduct(investment.institutionId, investment.productId)
+  if (!isValid) return response.status(400).json({ error: 'La inversión tiene un producto inválido para la institución.' })
   const normalizedInvestment = { ...investment, institutionId, productId }
   try {
     const result = await pool.query('UPDATE investments SET type = $1, institution_id = $2, product_id = $3, data = $4 WHERE id = $5 AND user_id = $6 RETURNING id, created_at', [normalizedInvestment.type, normalizedInvestment.institutionId, normalizedInvestment.productId, normalizedInvestment, request.params.id, user.id])
