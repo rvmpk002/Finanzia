@@ -377,11 +377,29 @@ app.post('/api/institutions/sync', async (request, response) => {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
+    const institutionIds = institutions.map((institution) => institution?.id).filter(Boolean)
+
+    await client.query(
+      'DELETE FROM user_product_configs WHERE NOT (institution_id = ANY($1::text[]))',
+      [institutionIds],
+    )
+    await client.query(
+      'DELETE FROM investments WHERE NOT (institution_id = ANY($1::text[]))',
+      [institutionIds],
+    )
+    await client.query(
+      'DELETE FROM institutions WHERE NOT (id = ANY($1::text[]))',
+      [institutionIds],
+    )
+
     for (const institution of institutions) {
       if (!institution?.id || !institution?.name || !Array.isArray(institution.products)) continue
-      await client.query('INSERT INTO institutions (id, name, data, updated_at) VALUES ($1, $2, $3, NOW()) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, data = EXCLUDED.data, updated_at = NOW()', [institution.id, institution.name, institution])
+      await client.query(
+        'INSERT INTO institutions (id, name, data, updated_at) VALUES ($1, $2, $3, NOW()) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, data = EXCLUDED.data, updated_at = NOW()',
+        [institution.id, institution.name, institution],
+      )
     }
-    if (institutions.length) await client.query('DELETE FROM institutions WHERE NOT (id = ANY($1::text[]))', [institutions.map((institution) => institution.id)])
+
     await client.query('COMMIT')
     return response.json({ saved: institutions.length })
   } catch (error) {
@@ -390,6 +408,23 @@ app.post('/api/institutions/sync', async (request, response) => {
     return response.status(500).json({ error: 'No fue posible sincronizar las instituciones.' })
   } finally {
     client.release()
+  }
+})
+
+app.delete('/api/institutions/:id', async (request, response) => {
+  if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
+  const institutionId = String(request.params.id ?? '').trim()
+  if (!institutionId) return response.status(400).json({ error: 'Falta el identificador de la institución.' })
+  const user = await currentUser(request)
+  if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
+  try {
+    await pool.query('DELETE FROM user_product_configs WHERE institution_id = $1', [institutionId])
+    await pool.query('DELETE FROM investments WHERE institution_id = $1', [institutionId])
+    await pool.query('DELETE FROM institutions WHERE id = $1', [institutionId])
+    return response.status(204).end()
+  } catch (error) {
+    console.error(error)
+    return response.status(500).json({ error: 'No fue posible eliminar la institución.' })
   }
 })
 

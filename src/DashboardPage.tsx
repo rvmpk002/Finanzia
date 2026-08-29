@@ -327,16 +327,19 @@ export default function DashboardPage({
         if (!response.ok) throw new Error("API unavailable");
         const databaseInvestments: Investment[] = await response.json();
         const localInvestments = readLocalInvestments();
-        const latestInvestments = databaseInvestments.map((databaseInvestment) => {
-          const localInvestment = localInvestments.find(
-            (investment) => investment.id === databaseInvestment.id,
-          );
-          return localInvestment?.updatedAt &&
-            (!databaseInvestment.updatedAt ||
-              localInvestment.updatedAt > databaseInvestment.updatedAt)
-            ? localInvestment
-            : databaseInvestment;
-        });
+        const validInstitutionIds = new Set(institutions.map((institution) => institution.id));
+        const latestInvestments = databaseInvestments
+          .filter((investment) => validInstitutionIds.has(investment.institutionId))
+          .map((databaseInvestment) => {
+            const localInvestment = localInvestments.find(
+              (investment) => investment.id === databaseInvestment.id,
+            );
+            return localInvestment?.updatedAt &&
+              (!databaseInvestment.updatedAt ||
+                localInvestment.updatedAt > databaseInvestment.updatedAt)
+              ? localInvestment
+              : databaseInvestment;
+          });
         const recalculatedInvestments = latestInvestments.map((investment) =>
           rolloverKuboLiquidity(
             investment,
@@ -370,12 +373,14 @@ export default function DashboardPage({
     };
     window.addEventListener("finanzia-investment-saved", refreshInvestments);
     window.addEventListener("finanzia-user-config-updated", refreshInvestments);
+    window.addEventListener("finanzia-institution-deleted", refreshInvestments);
     window.addEventListener("storage", refreshInvestments);
     refreshInvestments();
     const refreshTimer = window.setInterval(refreshInvestments, 60000);
     return () => {
       window.removeEventListener("finanzia-investment-saved", refreshInvestments);
       window.removeEventListener("finanzia-user-config-updated", refreshInvestments);
+      window.removeEventListener("finanzia-institution-deleted", refreshInvestments);
       window.removeEventListener("storage", refreshInvestments);
       window.clearInterval(refreshTimer);
     };

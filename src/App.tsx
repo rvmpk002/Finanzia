@@ -23,6 +23,7 @@ import ReportsPage from "./ReportsPage";
 import NavigationHeader from "./NavigationHeader";
 import { mergeUserProductConfig } from "./userConfig";
 import { validateInstitutionInput } from "./validation";
+import { institutionIdsFrom, pruneInstitutionRecords } from "./institutionCleanup";
 import "./App.css";
 
 type RateProduct = {
@@ -592,11 +593,34 @@ function App() {
   function deleteInstitution(id: string) {
     const item = institutions.find((institution) => institution.id === id);
     if (!item || !window.confirm(`¿Eliminar ${item.name}?`)) return;
+
     const remaining = institutions.filter(
       (institution) => institution.id !== id,
     );
+
+    const validInstitutionIds = institutionIdsFrom(remaining);
+    const localInvestments = JSON.parse(localStorage.getItem("finanzia-investments:" + (localStorage.getItem("finanzia-auth-token") ?? "")) ?? "[]");
+    localStorage.setItem(
+      "finanzia-investments:" + (localStorage.getItem("finanzia-auth-token") ?? ""),
+      JSON.stringify(pruneInstitutionRecords(localInvestments, id)),
+    );
+    const localUserConfigs = JSON.parse(localStorage.getItem("finanzia-user-configs") ?? "[]");
+    localStorage.setItem("finanzia-user-configs", JSON.stringify(localUserConfigs.filter((config: { institutionId?: string }) => validInstitutionIds.has(config.institutionId ?? ""))));
+
     setInstitutions(remaining);
     setSelectedId(remaining[0]?.id ?? "");
+    window.dispatchEvent(new Event("finanzia-institution-deleted"));
+
+    fetch(`/api/institutions/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${localStorage.getItem("finanzia-auth-token") ?? ""}` },
+    }).catch(() => undefined);
+
+    fetch("/api/institutions/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(remaining),
+    }).catch(() => undefined);
   }
   return (
     <div className="app-shell">

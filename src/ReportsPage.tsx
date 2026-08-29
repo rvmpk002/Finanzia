@@ -462,23 +462,26 @@ export default function ReportsPage({
   const [investments, setInvestments] = useState<Investment[]>([]);
   useEffect(() => {
     const loadInvestments = () => {
+      const validInstitutionIds = new Set(institutions.map((institution) => institution.id));
       fetch("/api/investments", { headers: authHeaders() })
         .then((response) => (response.ok ? response.json() : Promise.reject()))
-        .then(setInvestments)
+        .then((data) => setInvestments(data.filter((item: Investment) => validInstitutionIds.has(item.institutionId))))
         .catch(() =>
           setInvestments(
-            JSON.parse(localStorage.getItem(investmentStorageKey()) ?? "[]"),
+            JSON.parse(localStorage.getItem(investmentStorageKey()) ?? "[]").filter((item: Investment) => validInstitutionIds.has(item.institutionId)),
           ),
         );
     };
     window.addEventListener("finanzia-investment-saved", loadInvestments);
+    window.addEventListener("finanzia-institution-deleted", loadInvestments);
     window.addEventListener("storage", loadInvestments);
     loadInvestments();
     return () => {
       window.removeEventListener("finanzia-investment-saved", loadInvestments);
+      window.removeEventListener("finanzia-institution-deleted", loadInvestments);
       window.removeEventListener("storage", loadInvestments);
     };
-  }, []);
+  }, [institutions]);
   const filterOptions = useMemo(() => {
     const options = investments
       .filter((item) => item.type === filter)

@@ -178,7 +178,7 @@ export default function ProfilePage() {
         // Si falla, continúa con lo que tenemos
       }
       
-      const configs = Array.from(exampleMap.values());
+      const configs = Array.from(exampleMap.values()).filter((config) => Boolean(institutionNameMap[config.institutionId]));
       setUserConfigs(configs);
       setInstitutionNames(institutionNameMap);
       setProductNames(productNameMap);
