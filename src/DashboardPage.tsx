@@ -271,6 +271,8 @@ const tabs: { id: Tab; label: string; icon: typeof WalletCards }[] = [
   { id: "plazo", label: "A plazo", icon: Clock3 },
   { id: "etf", label: "ETF", icon: LineChart },
 ];
+const normalizedInvestmentType = (investment: Investment) =>
+  normalizeInvestmentType(investment.institutionId, investment.type);
 export default function DashboardPage({
   institutions,
 }: {
@@ -443,7 +445,7 @@ export default function DashboardPage({
     }
   };
   const visible = investments
-    .filter((investment) => normalizeInvestmentType(investment.institutionId, investment.type) === activeTab)
+    .filter((investment) => normalizedInvestmentType(investment) === activeTab)
     .sort((first, second) => {
       const firstInstitution = institutions.find(
         (institution) => institution.id === first.institutionId,
@@ -465,10 +467,10 @@ export default function DashboardPage({
   const isKuboInvestment = (investment: Investment) =>
     investment.institutionId === "kubo";
   const kuboVistaInvestments = paginatedInvestments.filter(
-    (investment) => isKuboInvestment(investment),
+    (investment) => isKuboInvestment(investment) && activeTab === "vista",
   );
   const standardInvestments = paginatedInvestments.filter(
-    (investment) => !isKuboInvestment(investment),
+    (investment) => !isKuboInvestment(investment) || activeTab === "plazo",
   );
   const institutionName = (id: string) =>
     institutions.find((institution) => institution.id === id)?.name ??
@@ -530,7 +532,7 @@ export default function DashboardPage({
               {label}
               <span className="tab-count">
                 {
-                  investments.filter((investment) => investment.type === id)
+                  investments.filter((investment) => normalizedInvestmentType(investment) === id)
                     .length
                 }
               </span>
