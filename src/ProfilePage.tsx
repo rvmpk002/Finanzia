@@ -175,6 +175,33 @@ export default function ProfilePage() {
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
     return `${institutionName} / ${productName}`;
   };
+
+  const getAvailableCalculationMethods = (institutionId: string) => {
+    const methods: Array<{ value: string; label: string }> = [];
+    
+    const lowerInstitution = institutionId.toLowerCase();
+    
+    // Métodos genéricos disponibles para todas las instituciones
+    methods.push(
+      { value: "compound", label: "Interés compuesto (365)" },
+      { value: "simple", label: "Interés simple (365)" },
+      { value: "simple360", label: "Interés simple (360)" }
+    );
+    
+    // Métodos específicos por institución
+    if (lowerInstitution === "mifel") {
+      methods.push({ value: "mifel360", label: "Mifel (360)" });
+    } else if (lowerInstitution === "openbank") {
+      methods.push({ value: "openbank", label: "Openbank (tiered)" });
+    } else if (lowerInstitution === "kubo") {
+      methods.push({ value: "kubo", label: "Kubo financiero" });
+    }
+    
+    // Método flexible disponible para todas
+    methods.push({ value: "flexible", label: "Ultra flexible" });
+    
+    return methods;
+  };
   const selectedConfig = orderedConfigs[selectedConfigIndex] ?? orderedConfigs[0] ?? userConfigExamples[0];
   const updateSelectedConfig = <K extends keyof UserProductConfig>(key: K, value: UserProductConfig[K]) => {
     setUserConfigs((current) => current.map((config, index) => index === selectedConfigIndex ? { ...config, [key]: value } : config));
@@ -392,13 +419,11 @@ export default function ProfilePage() {
                       value={selectedConfig?.calculationMethod ?? "compound"}
                       onChange={(event) => updateSelectedConfig("calculationMethod", event.target.value as UserProductConfig["calculationMethod"])}
                     >
-                      <option value="compound">Interés compuesto (365)</option>
-                      <option value="simple">Interés simple (365)</option>
-                      <option value="simple360">Interés simple (360)</option>
-                      <option value="flexible">Ultra flexible</option>
-                      <option value="openbank">Openbank (tiered)</option>
-                      <option value="mifel360">Mifel (360)</option>
-                      <option value="kubo">Kubo financiero</option>
+                      {getAvailableCalculationMethods(selectedConfig?.institutionId ?? "").map((method) => (
+                        <option key={method.value} value={method.value}>
+                          {method.label}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <small>Fórmula para calcular ganancias</small>
