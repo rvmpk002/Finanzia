@@ -1,6 +1,29 @@
 export const compoundInterest = (principal: number, annualRate: number, days: number) =>
   principal * (Math.pow(1 + annualRate / 100 / 365, days) - 1);
 
+export const resolveRateSplit = (
+  availableBalance: number,
+  annualRate: number,
+  promoCap: number,
+  excessRate: number,
+) => {
+  const hasPromoCap = promoCap > 0;
+  const hasExcessRate = excessRate > 0;
+  if (!hasPromoCap && !hasExcessRate && annualRate > 0) {
+    return {
+      promoBalance: availableBalance,
+      excessBalance: 0,
+      effectiveExcessRate: annualRate,
+    };
+  }
+
+  return {
+    promoBalance: Math.min(availableBalance, promoCap),
+    excessBalance: Math.max(0, availableBalance - promoCap),
+    effectiveExcessRate: excessRate,
+  };
+};
+
 export const simpleInterest = (
   principal: number,
   annualRate: number,
