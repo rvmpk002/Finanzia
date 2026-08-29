@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Clock3, FilePlus2, LineChart, WalletCards } from "lucide-react";
 import NavigationHeader from "./NavigationHeader";
 import { authHeaders, investmentStorageKey } from "./auth";
+import { validateInvestmentInput } from "./validation";
 
 type RateProduct = {
   id: string;
@@ -492,6 +493,26 @@ export default function InvestmentPage({
   );
   const saveInvestment = async () => {
     if (!canSave) return;
+
+    const validationErrors = validateInvestmentInput({
+      type: activeTab,
+      balance: currentBalance,
+      withdrawn: totalWithdrawn,
+      startDate,
+    });
+
+    if (validationErrors.length > 0) {
+      window.alert(validationErrors[0]);
+      return;
+    }
+
+    if (activeTab !== "etf" && totalWithdrawn > currentBalance) {
+      window.alert(
+        `No puedes retirar más de $${currentBalance.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 2 })}.`,
+      );
+      return;
+    }
+
     setIsSaving(true);
     const investment = {
       type: activeTab,

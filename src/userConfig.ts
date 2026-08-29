@@ -81,6 +81,17 @@ export const createUserProductConfig = (
     updatedAt: input.updatedAt ?? new Date().toISOString(),
   });
 
+export const notifyUserConfigUpdated = () => {
+  const event = new Event("finanzia-user-config-updated");
+  if (typeof window !== "undefined" && "dispatchEvent" in window) {
+    window.dispatchEvent(event);
+    return;
+  }
+  if (typeof globalThis !== "undefined" && "dispatchEvent" in globalThis) {
+    globalThis.dispatchEvent(event);
+  }
+};
+
 export const mergeUserProductConfig = <
   TInstitution extends { id: string; products: Array<Record<string, unknown>> },
 >(

@@ -161,8 +161,12 @@ const calculateInvestment = (
   const monthlyDays = daysInMonth(calculationDate);
   const promoBalance = calculate(formulas.promotionalBalance, { availableBalance, promoCap }, Math.min(availableBalance, promoCap));
   const excessBalance = calculate(formulas.excessBalance, { availableBalance, promoCap }, Math.max(0, availableBalance - promoCap));
-  const configuredSimpleInterest = (principal: number, rate: number, days: number) =>
-    calculate(formulas.simpleInterest, { principal, annualRate: rate, days }, simpleInterest(principal, rate, days));
+  const configuredSimpleInterest = (principal: number, rate: number, days: number, daysBase = 365) =>
+    calculate(
+      formulas.simpleInterest,
+      { principal, annualRate: rate, days, daysBase },
+      simpleInterest(principal, rate, days, daysBase),
+    );
   const configuredCompoundInterest = (principal: number, rate: number, days: number) =>
     calculate(formulas.compoundInterest, { principal, annualRate: rate, days }, compoundInterest(principal, rate, days));
   const openbankPostingDaysForDate = calculationMethod === "openbank"
@@ -172,6 +176,10 @@ const calculateInvestment = (
     ? flexibleUltraInterest(availableBalance, promoCap, 1, annualRate, excessRate, promotionDays)
     : calculationMethod === "kubo"
       ? kuboInterest(availableBalance, annualRate, 1)
+    : calculationMethod === "simple"
+      ? configuredSimpleInterest(availableBalance, annualRate, 1, daysBase)
+    : calculationMethod === "simple360"
+      ? configuredSimpleInterest(availableBalance, annualRate, 1, 360)
     : calculationMethod === "mifel360"
       ? mifelInterest(availableBalance, annualRate, 1)
     : calculationMethod === "openbank"
@@ -180,6 +188,10 @@ const calculateInvestment = (
       configuredCompoundInterest(excessBalance, excessRate, 1);
   const monthlyYield = isFlexibleUltra
     ? flexibleUltraInterest(availableBalance, promoCap, monthlyDays, annualRate, excessRate, promotionDays)
+    : calculationMethod === "simple"
+      ? configuredSimpleInterest(availableBalance, annualRate, monthlyDays, daysBase)
+    : calculationMethod === "simple360"
+      ? configuredSimpleInterest(availableBalance, annualRate, monthlyDays, 360)
     : calculationMethod === "mifel360"
       ? mifelInterest(availableBalance, annualRate, monthlyDays)
     : calculationMethod === "openbank"
@@ -188,10 +200,12 @@ const calculateInvestment = (
       configuredCompoundInterest(excessBalance, excessRate, monthlyDays);
   const totalAccumulated = Math.max(
     calculationMethod === "simple"
-      ? configuredSimpleInterest(availableBalance, annualRate, daysElapsed)
+      ? configuredSimpleInterest(availableBalance, annualRate, daysElapsed, daysBase)
+      : calculationMethod === "simple360"
+        ? configuredSimpleInterest(availableBalance, annualRate, daysElapsed, 360)
       : calculationMethod === "compound"
-      ? configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
-        configuredCompoundInterest(excessBalance, excessRate, daysElapsed)
+        ? configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
+          configuredCompoundInterest(excessBalance, excessRate, daysElapsed)
       : calculationMethod === "kubo"
         ? kuboInterest(availableBalance, annualRate, daysElapsed)
       : calculationMethod === "mifel360"
@@ -199,11 +213,11 @@ const calculateInvestment = (
       : calculationMethod === "openbank"
         ? openbankInterest(availableBalance, annualRate, excessRate, daysElapsed, daysBase)
       : completedMonthsBetween(startDate, calculationDate) > 0
-        ? monthlyYield * completedMonthsBetween(startDate, calculationDate)
-        : isFlexibleUltra
-          ? flexibleUltraInterest(availableBalance, promoCap, daysElapsed, annualRate, excessRate, promotionDays)
-          : configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
-            configuredCompoundInterest(excessBalance, excessRate, daysElapsed),
+          ? monthlyYield * completedMonthsBetween(startDate, calculationDate)
+          : isFlexibleUltra
+            ? flexibleUltraInterest(availableBalance, promoCap, daysElapsed, annualRate, excessRate, promotionDays)
+            : configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
+              configuredCompoundInterest(excessBalance, excessRate, daysElapsed),
   );
   const completedMonths = completedMonthsBetween(startDate, calculationDate);
   const calculatedUpdatedBalance = getCalculatedUpdatedBalance(
@@ -355,11 +369,13 @@ export default function DashboardPage({
       }
     };
     window.addEventListener("finanzia-investment-saved", refreshInvestments);
+    window.addEventListener("finanzia-user-config-updated", refreshInvestments);
     window.addEventListener("storage", refreshInvestments);
     refreshInvestments();
     const refreshTimer = window.setInterval(refreshInvestments, 60000);
     return () => {
       window.removeEventListener("finanzia-investment-saved", refreshInvestments);
+      window.removeEventListener("finanzia-user-config-updated", refreshInvestments);
       window.removeEventListener("storage", refreshInvestments);
       window.clearInterval(refreshTimer);
     };

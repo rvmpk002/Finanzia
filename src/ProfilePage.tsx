@@ -11,8 +11,9 @@ import {
 } from "lucide-react";
 import { startRegistration } from "@simplewebauthn/browser";
 import NavigationHeader from "./NavigationHeader";
-import { normalizeUserProductConfig, type UserProductConfig } from "./userConfig";
+import { normalizeUserProductConfig, notifyUserConfigUpdated, type UserProductConfig } from "./userConfig";
 import { userConfigExamples } from "./userConfigExamples";
+import { formatInstitutionName, formatProductName } from "./displayNames";
 
 type User = {
   email: string;
@@ -110,15 +111,14 @@ export default function ProfilePage() {
       userConfigExamples.forEach((example) => {
         const key = `${example.institutionId}::${example.productId}`;
         exampleMap.set(key, normalizeUserProductConfig(example));
-        // Usar el ID como nombre si no lo tenemos
         if (!institutionNameMap[example.institutionId]) {
-          institutionNameMap[example.institutionId] = example.institutionId;
+          institutionNameMap[example.institutionId] = formatInstitutionName(example.institutionId);
         }
         if (!productNameMap[example.institutionId]) {
           productNameMap[example.institutionId] = {};
         }
         if (!productNameMap[example.institutionId][example.productId]) {
-          productNameMap[example.institutionId][example.productId] = example.productId;
+          productNameMap[example.institutionId][example.productId] = formatProductName(example.productId);
         }
       });
       
@@ -130,26 +130,19 @@ export default function ProfilePage() {
           
           // Para cada institución y producto, crear config default si no existe
           institutions.forEach((institution: { id: string; name?: string; products?: Array<{ id: string; name?: string }> }) => {
-            // Guardar el nombre de la institución
-            if (institution.name) {
-              institutionNameMap[institution.id] = institution.name;
-            }
-            
+            institutionNameMap[institution.id] = formatInstitutionName(institution.id, institution.name);
+
             if (!productNameMap[institution.id]) {
               productNameMap[institution.id] = {};
             }
-            
+
             if (institution.products && Array.isArray(institution.products)) {
               institution.products.forEach((product: { id: string; name?: string }) => {
                 const key = `${institution.id}::${product.id}`;
-                
-                // Guardar el nombre del producto
-                if (product.name) {
-                  productNameMap[institution.id][product.id] = product.name;
-                }
-                
+
+                productNameMap[institution.id][product.id] = formatProductName(product.id, product.name);
+
                 if (!exampleMap.has(key)) {
-                  // Crear config default para productos nuevos
                   exampleMap.set(key, normalizeUserProductConfig({
                     institutionId: institution.id,
                     productId: product.id,
@@ -280,6 +273,7 @@ export default function ProfilePage() {
       return;
     }
     setUserConfigs((current) => current.map((config, index) => index === selectedConfigIndex ? normalizeUserProductConfig({ ...payload, ...data }) : config));
+    notifyUserConfigUpdated();
     setMessage("Configuración del usuario guardada.");
   };
   const setupTwoFactor = async () => {
@@ -380,10 +374,8 @@ export default function ProfilePage() {
               return orderedConfigs.map((config, index) => {
                 const showDivider = currentInstitution && currentInstitution !== config.institutionId;
                 currentInstitution = config.institutionId;
-                const institutionName = institutionNames[config.institutionId] || config.institutionId;
-                const productName = productNames[config.institutionId]?.[config.productId] || config.productId
-                  .replace(/[-_]/g, " ")
-                  .replace(/\b\w/g, (letter) => letter.toUpperCase());
+                const institutionName = formatInstitutionName(config.institutionId, institutionNames[config.institutionId]);
+                const productName = formatProductName(config.productId, productNames[config.institutionId]?.[config.productId]);
                 
                 return (
                   <button

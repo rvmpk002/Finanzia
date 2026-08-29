@@ -1,8 +1,13 @@
 export const compoundInterest = (principal: number, annualRate: number, days: number) =>
   principal * (Math.pow(1 + annualRate / 100 / 365, days) - 1);
 
-export const simpleInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (annualRate / 100) * (days / 365);
+export const simpleInterest = (
+  principal: number,
+  annualRate: number,
+  days: number,
+  daysBase = 365,
+) =>
+  principal * (annualRate / 100) * (days / daysBase);
 
 export const bancoPlataInterest = (principal: number, annualRate: number, days: number) =>
   principal * (annualRate / 100) * (days / 360);
@@ -73,8 +78,18 @@ export const getCalculatedUpdatedBalance = (
   monthlyYield: number,
   completedMonths: number,
 ) => {
-  const fallback = availableBalance + (calculationMethod === "compound" || calculationMethod === "kubo" || calculationMethod === "openbank" || calculationMethod === "mifel360"
-    ? totalAccumulated
-    : monthlyYield * completedMonths);
+  const isAccumulationMethod = [
+    "compound",
+    "simple",
+    "simple360",
+    "kubo",
+    "openbank",
+    "mifel360",
+  ].includes(calculationMethod);
+  const fallback = availableBalance + (
+    isAccumulationMethod
+      ? totalAccumulated
+      : monthlyYield * completedMonths
+  );
   return Math.max(0, fallback);
 };

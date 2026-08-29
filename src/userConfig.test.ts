@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createUserProductConfig, mergeUserProductConfig, normalizeUserProductConfig } from './userConfig.ts';
+import { createUserProductConfig, mergeUserProductConfig, normalizeUserProductConfig, notifyUserConfigUpdated } from './userConfig.ts';
 
 test('normalizeUserProductConfig preserves user config values and fills defaults', () => {
   const normalized = normalizeUserProductConfig({
@@ -72,4 +72,20 @@ test('mergeUserProductConfig applies the logged-in user override to the catalog 
   assert.equal(merged[0].products[0].calculationMethod, 'compound');
   assert.equal(merged[0].products[0].daysBase, 365);
   assert.equal(merged[0].products[0].promotionDays, 90);
+});
+
+test('notifyUserConfigUpdated dispatches a browser event so the dashboard refreshes immediately', () => {
+  const seen: string[] = [];
+  const previousDispatchEvent = globalThis.dispatchEvent;
+  globalThis.dispatchEvent = ((event: Event) => {
+    seen.push(event.type);
+    return true;
+  }) as typeof globalThis.dispatchEvent;
+
+  try {
+    notifyUserConfigUpdated();
+    assert.deepEqual(seen, ['finanzia-user-config-updated']);
+  } finally {
+    globalThis.dispatchEvent = previousDispatchEvent;
+  }
 });

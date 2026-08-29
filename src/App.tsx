@@ -22,6 +22,7 @@ import ProfilePage from "./ProfilePage";
 import ReportsPage from "./ReportsPage";
 import NavigationHeader from "./NavigationHeader";
 import { mergeUserProductConfig } from "./userConfig";
+import { validateInstitutionInput } from "./validation";
 import "./App.css";
 
 type RateProduct = {
@@ -567,6 +568,16 @@ function App() {
   if (window.location.pathname === "/reportes")
     return <ReportsPage institutions={institutions} />;
   function saveInstitution(institution: Institution) {
+    const validationErrors = validateInstitutionInput({
+      name: institution.name,
+      website: institution.website,
+    });
+
+    if (validationErrors.length > 0) {
+      window.alert(validationErrors[0]);
+      return;
+    }
+
     setInstitutions((current) =>
       current.some((item) => item.id === institution.id)
         ? current.map((item) =>
@@ -820,8 +831,7 @@ function InstitutionForm({
   }
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!name.trim()) return;
-    onSave({
+    const nextInstitution: Institution = {
       id: institution?.id ?? crypto.randomUUID(),
       name: name.trim(),
       country,
@@ -831,7 +841,19 @@ function InstitutionForm({
       products: products
         .filter((product) => product.name.trim())
         .map((product) => ({ ...product, name: product.name.trim() })),
+    };
+
+    const validationErrors = validateInstitutionInput({
+      name: nextInstitution.name,
+      website: nextInstitution.website,
     });
+
+    if (validationErrors.length > 0) {
+      window.alert(validationErrors[0]);
+      return;
+    }
+
+    onSave(nextInstitution);
   }
   return (
     <div className="modal-backdrop">
