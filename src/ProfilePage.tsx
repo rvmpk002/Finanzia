@@ -235,19 +235,6 @@ export default function ProfilePage() {
     if (leftOrder !== rightOrder) return leftOrder - rightOrder;
     return left.productId.localeCompare(right.productId, "es", { sensitivity: "base" });
   });
-  const resolveConfigLabel = (config: UserProductConfig) => {
-    // Usar el nombre de la institución si está disponible, sino derivar del ID
-    const institutionName = institutionNames[config.institutionId] || config.institutionId
-      .replace(/[-_]/g, " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-    
-    // Usar el nombre del producto si está disponible, sino derivar del ID
-    const productName = productNames[config.institutionId]?.[config.productId] || config.productId
-      .replace(/[-_]/g, " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-    
-    return `${institutionName} / ${productName}`;
-  };
 
   const getAvailableCalculationMethods = (institutionId: string) => {
     const methods: Array<{ value: string; label: string }> = [];
