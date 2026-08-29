@@ -36,7 +36,7 @@ export const bancoPlataInterest = (principal: number, annualRate: number, days: 
   principal * (annualRate / 100) * (days / 360);
 
 export const kuboInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (Math.pow(1 + annualRate / 100, days / 365) - 1);
+  principal * (annualRate / 100) * (days / 365);
 
 export const mifelInterest = (principal: number, annualRate: number, days: number, daysBase = 360) =>
   principal * (annualRate / 100) * (days / daysBase);

@@ -93,7 +93,7 @@ const openbankPostingDays = (date: Date) => {
   return 1;
 };
 const kuboInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (Math.pow(1 + annualRate / 100, days / 365) - 1);
+  principal * (annualRate / 100) * (days / 365);
 const flexibleUltraInterest = (
   principal: number,
   promoCap: number,
