@@ -59,12 +59,14 @@ export const normalizeUserProductConfig = (input: UserProductConfigInput): UserP
 
   const institutionId = String(input.institutionId || "").trim();
   const productId = canonicalizeUserProduct(institutionId, String(input.productId || "").trim());
+  const isMifel = institutionId === "mifel";
+  const normalizedPromoCap = isMifel ? 500000 : Math.max(0, safeNumber(input.promoCap, defaults.promoCap));
 
   return {
     institutionId,
     productId,
     annualRate: safeNumber(input.annualRate, defaults.annualRate),
-    promoCap: Math.max(0, safeNumber(input.promoCap, defaults.promoCap)),
+    promoCap: normalizedPromoCap,
     excessRate: Math.max(0, safeNumber(input.excessRate, defaults.excessRate)),
     calculationMethod: (input.calculationMethod as CalculationMethod) || defaults.calculationMethod,
     taxRate: Math.max(0, safeNumber(input.taxRate, defaults.taxRate)),

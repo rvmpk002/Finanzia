@@ -67,7 +67,7 @@ test('mergeUserProductConfig applies the logged-in user override to the catalog 
   }]);
 
   assert.equal(merged[0].products[0].annualRate, 12.5);
-  assert.equal(merged[0].products[0].promoCap, 32000);
+  assert.equal(merged[0].products[0].promoCap, 500000);
   assert.equal(merged[0].products[0].excessRate, 7);
   assert.equal(merged[0].products[0].calculationMethod, 'compound');
   assert.equal(merged[0].products[0].daysBase, 365);
@@ -113,6 +113,24 @@ test('legacy Kubo product ids collapse to the single canonical product in protec
 
   const kuboProducts = canonical[0].products.map((product: { id: string }) => product.id);
   assert.deepEqual(kuboProducts, ['kubo-liquidez']);
+});
+
+test('legacy Mifel promo caps are normalized to the canonical 500000 limit', () => {
+  const normalized = normalizeUserProductConfig({
+    institutionId: 'mifel',
+    productId: 'mifel-cuenta-digital',
+    annualRate: 10,
+    promoCap: 25000,
+    excessRate: 0,
+    calculationMethod: 'mifel360',
+    taxRate: 9,
+    daysBase: 360,
+    promotionDays: 60,
+    isActive: true,
+    updatedAt: '2026-08-29T00:00:00.000Z',
+  });
+
+  assert.equal(normalized.promoCap, 500000);
 });
 
 test('notifyUserConfigUpdated dispatches a browser event so the dashboard refreshes immediately', () => {
