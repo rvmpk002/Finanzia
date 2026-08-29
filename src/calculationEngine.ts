@@ -28,8 +28,9 @@ export const openbankInterest = (
   const firstTier = Math.min(principal, 30000);
   const secondTier = Math.min(Math.max(0, principal - 30000), 970000);
   const thirdTier = Math.max(0, principal - 1000000);
+  const upperTierRate = 6.5;
   return (
-    (firstTier * annualRate / 100 + (secondTier + thirdTier) * excessRate / 100) *
+    (firstTier * annualRate / 100 + secondTier * excessRate / 100 + thirdTier * upperTierRate / 100) *
     (days / daysBase)
   );
 };

@@ -29,9 +29,12 @@ const rpName = 'Finanzia'
 const rpID = process.env.WEBAUTHN_RP_ID ?? 'cosmic-smakager-b538c4.netlify.app'
 const origin = process.env.WEBAUTHN_ORIGIN ?? `https://${rpID}`
 const legacyDidiProductIds = new Set(['didi-15', 'didi-7', 'didi-beneficios'])
+const legacyOpenbankProductIds = new Set(['openbank-13', 'openbank-7', 'openbank-6-5'])
 const canonicalizeProductId = (institutionId, productId) => {
-  if (institutionId === 'didi-cuenta' && legacyDidiProductIds.has(String(productId ?? ''))) return 'didi-cuenta'
-  return String(productId ?? '')
+  const normalized = String(productId ?? '')
+  if (institutionId === 'didi-cuenta' && legacyDidiProductIds.has(normalized)) return 'didi-cuenta'
+  if (institutionId === 'openbank' && legacyOpenbankProductIds.has(normalized)) return 'openbank'
+  return normalized
 }
 const sanitizeInstitutionProduct = (institutionId, productId) => {
   const normalizedInstitutionId = String(institutionId ?? '').trim()
@@ -94,15 +97,21 @@ async function normalizeLegacyDidiData() {
     await pool.query("UPDATE investments SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id IN ('didi-15', 'didi-7', 'didi-beneficios')")
     await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"didi-cuenta\"'::jsonb, true) WHERE institution_id = 'didi-cuenta' AND (data->>'productId') IN ('didi-15', 'didi-7', 'didi-beneficios')")
 
-    await pool.query("UPDATE institutions SET data = jsonb_set(data, '{products}', COALESCE((SELECT jsonb_agg(CASE WHEN product->>'id' IN ('didi-15', 'didi-7', 'didi-beneficios') THEN jsonb_set(product, '{id}', '\"didi-cuenta\"'::jsonb, true) ELSE product END) FROM jsonb_array_elements(data->'products') AS product), '[]'::jsonb), true) WHERE id = 'didi-cuenta' AND jsonb_typeof(data->'products') = 'array'")
+    await pool.query("UPDATE user_product_configs SET product_id = 'openbank' WHERE institution_id = 'openbank' AND product_id IN ('openbank-13', 'openbank-7', 'openbank-6-5')")
+    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'openbank' AND product_id <> 'openbank'")
 
-    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'didi-cuenta' AND product_id <> 'didi-cuenta'")
+    await pool.query("UPDATE investments SET product_id = 'openbank' WHERE institution_id = 'openbank' AND product_id IN ('openbank-13', 'openbank-7', 'openbank-6-5')")
+    await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"openbank\"'::jsonb, true) WHERE institution_id = 'openbank' AND (data->>'productId') IN ('openbank-13', 'openbank-7', 'openbank-6-5')")
+
+    await pool.query("UPDATE institutions SET data = jsonb_set(data, '{products}', COALESCE((SELECT jsonb_agg(CASE WHEN product->>'id' IN ('didi-15', 'didi-7', 'didi-beneficios') THEN jsonb_set(product, '{id}', '\"didi-cuenta\"'::jsonb, true) WHEN product->>'id' IN ('openbank-13', 'openbank-7', 'openbank-6-5') THEN jsonb_set(product, '{id}', '\"openbank\"'::jsonb, true) ELSE product END) FROM jsonb_array_elements(data->'products') AS product), '[]'::jsonb), true) WHERE id IN ('didi-cuenta', 'openbank') AND jsonb_typeof(data->'products') = 'array'")
+
+    await pool.query("DELETE FROM user_product_configs WHERE institution_id IN ('didi-cuenta', 'openbank') AND product_id NOT IN ('didi-cuenta', 'openbank')")
     await pool.query("UPDATE investments SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id <> 'didi-cuenta'")
-    await pool.query("UPDATE institutions SET data = jsonb_set(data, '{products}', COALESCE((SELECT jsonb_agg(CASE WHEN value->>'id' = 'didi-15' OR value->>'id' = 'didi-7' OR value->>'id' = 'didi-beneficios' THEN jsonb_set(value, '{id}', '\"didi-cuenta\"'::jsonb, true) ELSE value END) FROM jsonb_array_elements(data->'products') AS value), '[]'::jsonb), true) WHERE id = 'didi-cuenta'")
+    await pool.query("UPDATE investments SET product_id = 'openbank' WHERE institution_id = 'openbank' AND product_id <> 'openbank'")
 
-    console.log('[MIGRATION] Legacy DiDi product IDs normalizados a didi-cuenta')
+    console.log('[MIGRATION] Legacy DiDi/Openbank product IDs normalizados a su producto canónico')
   } catch (error) {
-    console.error('[MIGRATION] Error normalizando DiDi legacy:', error)
+    console.error('[MIGRATION] Error normalizando legacy products:', error)
   }
 }
 

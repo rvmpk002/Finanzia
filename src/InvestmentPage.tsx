@@ -23,7 +23,7 @@ const isSelectableProduct = (
     (tab === "plazo"
       ? product.id !== "kubo-liquidez"
       : product.id === "kubo-liquidez")) &&
-  (institutionId !== "openbank" || product.id === "openbank-13") &&
+  (institutionId !== "openbank" || product.id === "openbank") &&
   (tab !== "plazo" ||
     ["cetesdirecto-cetes", "cetesdirecto-udibonos", "ahorro-fijo"].includes(
       product.id,
@@ -101,9 +101,11 @@ const openbankInterest = (
   const firstTier = Math.min(principal, 30000);
   const secondTier = Math.min(Math.max(0, principal - 30000), 970000);
   const thirdTier = Math.max(0, principal - 1000000);
+  const upperTierRate = 6.5;
   return (
     ((firstTier * annualRate) / 100 +
-      ((secondTier + thirdTier) * excessRate) / 100) *
+      (secondTier * excessRate) / 100 +
+      (thirdTier * upperTierRate) / 100) *
     (days / 360)
   );
 };

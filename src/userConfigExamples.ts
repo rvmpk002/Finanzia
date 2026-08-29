@@ -26,7 +26,7 @@ export const userConfigExamples: UserProductConfigExample[] = [
   },
   {
     institutionId: "openbank",
-    productId: "openbank-13",
+    productId: "openbank",
     annualRate: 13,
     promoCap: 30000,
     excessRate: 7,
