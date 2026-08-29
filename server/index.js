@@ -254,26 +254,42 @@ app.delete('/api/auth/passkey/:id', async (request, response) => {
 
 app.get('/api/formulas', async (request, response) => {
   const user = await currentUser(request)
-  if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
-  if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
+  if (!user) {
+    console.error('GET /api/formulas: No autenticado')
+    return response.status(401).json({ error: 'Sesión no válida.' })
+  }
+  if (!pool) {
+    console.error('GET /api/formulas: DATABASE_URL no configurada')
+    return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
+  }
   try {
+    console.log(`GET /api/formulas: Consultando para user_id=${user.id}`)
     const result = await pool.query('SELECT data FROM calculation_formulas WHERE id = $1 AND user_id = $2', ['default', user.id])
+    console.log(`GET /api/formulas: Encontrados ${result.rows.length} registros`)
     return response.json(result.rows[0]?.data ?? {})
   } catch (error) {
-    console.error(error)
+    console.error('GET /api/formulas: Error en query:', error.message, error.code)
     return response.status(500).json({ error: 'No fue posible consultar las fórmulas.' })
   }
 })
 
 app.put('/api/formulas', async (request, response) => {
   const user = await currentUser(request)
-  if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
-  if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
+  if (!user) {
+    console.error('PUT /api/formulas: No autenticado')
+    return response.status(401).json({ error: 'Sesión no válida.' })
+  }
+  if (!pool) {
+    console.error('PUT /api/formulas: DATABASE_URL no configurada')
+    return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
+  }
   try {
+    console.log(`PUT /api/formulas: Guardando para user_id=${user.id}`)
     const result = await pool.query('INSERT INTO calculation_formulas (id, user_id, data, updated_at) VALUES ($1, $2, $3, NOW()) ON CONFLICT (id, user_id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW() RETURNING data', ['default', user.id, request.body ?? {}])
+    console.log('PUT /api/formulas: Guardado exitoso')
     return response.json(result.rows[0].data)
   } catch (error) {
-    console.error(error)
+    console.error('PUT /api/formulas: Error en query:', error.message, error.code)
     return response.status(500).json({ error: 'No fue posible guardar las fórmulas.' })
   }
 })
@@ -426,7 +442,24 @@ app.use((request, response, next) => {
   return response.sendFile(path.join(frontendDirectory, 'index.html'))
 })
 
-const startup = ensureSchema().then(() => true).catch((error) => { console.error('No fue posible inicializar PostgreSQL.', error); return false })
-if (process.env.NETLIFY !== 'true') startup.then((ready) => { if (ready) app.listen(port, () => console.log(`Finanzia API activa en el puerto ${port}`)) })
+const startup = ensureSchema()
+  .then(() => {
+    console.log('[STARTUP] PostgreSQL schema inicializado correctamente')
+    return true
+  })
+  .catch((error) => {
+    console.error('[STARTUP] Error inicializando PostgreSQL:', error.message || error)
+    return false
+  })
+
+if (process.env.NETLIFY !== 'true') {
+  startup.then((ready) => {
+    if (ready) {
+      app.listen(port, () => console.log(`Finanzia API activa en el puerto ${port}`))
+    } else {
+      console.error('[STARTUP] No se pudo inicializar PostgreSQL. API continuará sin base de datos.')
+    }
+  })
+}
 
 export { app, startup }
