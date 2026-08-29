@@ -47,11 +47,15 @@ async function ensureSchema() {
   await pool.query(`CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT UNIQUE NOT NULL, password_hash TEXT, full_name TEXT, phone TEXT, two_factor_secret TEXT, two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS calculation_formulas (
     id TEXT NOT NULL,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NULL,
     data JSONB NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (id, user_id)
   )`)
+  await pool.query('ALTER TABLE calculation_formulas ADD COLUMN IF NOT EXISTS user_id UUID')
+  await pool.query('ALTER TABLE calculation_formulas DROP CONSTRAINT IF EXISTS calculation_formulas_pkey')
+  await pool.query('ALTER TABLE calculation_formulas ADD PRIMARY KEY (id, user_id)')
+  await pool.query('ALTER TABLE calculation_formulas ALTER COLUMN user_id SET NOT NULL')
   await pool.query(`CREATE TABLE IF NOT EXISTS user_product_configs (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     institution_id TEXT NOT NULL,
