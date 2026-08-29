@@ -9,6 +9,7 @@ import { defaultFormulaConfig, evaluateFormula } from "./calculationConfig";
 import { formulaKey } from "./calculationConfig";
 import type { FormulaConfig, FormulaStore } from "./calculationConfig";
 import {
+  bancoPlataInterest,
   completedMonthsBetween,
   daysInMonth,
   flexibleUltraInterest,
