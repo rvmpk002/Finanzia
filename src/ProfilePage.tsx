@@ -99,31 +99,69 @@ export default function ProfilePage() {
       .catch(() => setError("No fue posible cargar tus Passkeys."));
   }, [token]);
   useEffect(() => {
-    fetch("/api/user-config", { headers: { Authorization: `Bearer ${token}` } })
-      .then((response) => (response.ok ? response.json() : Promise.reject()))
-      .then((data: UserProductConfig[]) => {
-        // Siempre usar todos los ejemplos como base
-        const exampleMap = new Map<string, UserProductConfig>();
-        userConfigExamples.forEach((example) => {
-          const key = `${example.institutionId}::${example.productId}`;
-          exampleMap.set(key, normalizeUserProductConfig(example));
-        });
-        
-        // Sobrescribir con datos del usuario si existen
-        data.forEach((userConfig) => {
-          const key = `${userConfig.institutionId}::${userConfig.productId}`;
-          exampleMap.set(key, userConfig);
-        });
-        
-        const configs = Array.from(exampleMap.values());
-        setUserConfigs(configs);
-        setSelectedConfigIndex(0);
-      })
-      .catch(() => {
-        const configs = userConfigExamples.map((example) => normalizeUserProductConfig(example));
-        setUserConfigs(configs);
-        setSelectedConfigIndex(0);
+    const loadConfigs = async () => {
+      const exampleMap = new Map<string, UserProductConfig>();
+      
+      // 1. Agregar todos los ejemplos hardcodeados
+      userConfigExamples.forEach((example) => {
+        const key = `${example.institutionId}::${example.productId}`;
+        exampleMap.set(key, normalizeUserProductConfig(example));
       });
+      
+      // 2. Cargar instituciones dinámicas del usuario
+      try {
+        const institutionsResponse = await fetch("/api/institutions", { headers });
+        if (institutionsResponse.ok) {
+          const institutions = await institutionsResponse.json();
+          
+          // Para cada institución y producto, crear config default si no existe
+          institutions.forEach((institution: { id: string; products?: Array<{ id: string }> }) => {
+            if (institution.products && Array.isArray(institution.products)) {
+              institution.products.forEach((product: { id: string }) => {
+                const key = `${institution.id}::${product.id}`;
+                if (!exampleMap.has(key)) {
+                  // Crear config default para productos nuevos
+                  exampleMap.set(key, normalizeUserProductConfig({
+                    institutionId: institution.id,
+                    productId: product.id,
+                    annualRate: 0,
+                    promoCap: 0,
+                    excessRate: 0,
+                    calculationMethod: "compound",
+                    taxRate: 0,
+                    daysBase: 365,
+                    promotionDays: 60,
+                    isActive: true,
+                  }));
+                }
+              });
+            }
+          });
+        }
+      } catch {
+        // Si falla, continúa con ejemplos
+      }
+      
+      // 3. Cargar configuraciones guardadas del usuario y sobrescribir
+      try {
+        const userConfigResponse = await fetch("/api/user-config", { headers });
+        if (userConfigResponse.ok) {
+          const userConfigs = await userConfigResponse.json();
+          userConfigs.forEach((userConfig: UserProductConfig) => {
+            const key = `${userConfig.institutionId}::${userConfig.productId}`;
+            exampleMap.set(key, userConfig);
+          });
+        }
+      } catch {
+        // Si falla, continúa con lo que tenemos
+      }
+      
+      const configs = Array.from(exampleMap.values());
+      setUserConfigs(configs);
+      setSelectedConfigIndex(0);
+    };
+    
+    loadConfigs();
   }, [token]);
   useEffect(() => {
     const container = document.querySelector<HTMLElement>(".profile-secret");
