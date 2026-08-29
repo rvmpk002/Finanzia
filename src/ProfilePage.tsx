@@ -35,6 +35,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [userConfigs, setUserConfigs] = useState<UserProductConfig[]>([]);
   const [selectedConfigIndex, setSelectedConfigIndex] = useState(0);
+  const [institutionNames, setInstitutionNames] = useState<Record<string, string>>({});
   const headers = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
@@ -101,11 +102,16 @@ export default function ProfilePage() {
   useEffect(() => {
     const loadConfigs = async () => {
       const exampleMap = new Map<string, UserProductConfig>();
+      const institutionNameMap: Record<string, string> = {};
       
       // 1. Agregar todos los ejemplos hardcodeados
       userConfigExamples.forEach((example) => {
         const key = `${example.institutionId}::${example.productId}`;
         exampleMap.set(key, normalizeUserProductConfig(example));
+        // Usar el ID como nombre si no lo tenemos
+        if (!institutionNameMap[example.institutionId]) {
+          institutionNameMap[example.institutionId] = example.institutionId;
+        }
       });
       
       // 2. Cargar instituciones dinámicas del usuario
@@ -115,7 +121,12 @@ export default function ProfilePage() {
           const institutions = await institutionsResponse.json();
           
           // Para cada institución y producto, crear config default si no existe
-          institutions.forEach((institution: { id: string; products?: Array<{ id: string }> }) => {
+          institutions.forEach((institution: { id: string; name?: string; products?: Array<{ id: string }> }) => {
+            // Guardar el nombre de la institución
+            if (institution.name) {
+              institutionNameMap[institution.id] = institution.name;
+            }
+            
             if (institution.products && Array.isArray(institution.products)) {
               institution.products.forEach((product: { id: string }) => {
                 const key = `${institution.id}::${product.id}`;
@@ -158,6 +169,7 @@ export default function ProfilePage() {
       
       const configs = Array.from(exampleMap.values());
       setUserConfigs(configs);
+      setInstitutionNames(institutionNameMap);
       setSelectedConfigIndex(0);
     };
     
@@ -205,7 +217,8 @@ export default function ProfilePage() {
     return left.productId.localeCompare(right.productId, "es", { sensitivity: "base" });
   });
   const resolveConfigLabel = (config: UserProductConfig) => {
-    const institutionName = config.institutionId
+    // Usar el nombre de la institución si está disponible, sino derivar del ID
+    const institutionName = institutionNames[config.institutionId] || config.institutionId
       .replace(/[-_]/g, " ")
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
     const productName = config.productId
@@ -358,6 +371,7 @@ export default function ProfilePage() {
               return orderedConfigs.map((config, index) => {
                 const showDivider = currentInstitution && currentInstitution !== config.institutionId;
                 currentInstitution = config.institutionId;
+                const institutionName = institutionNames[config.institutionId] || config.institutionId;
                 
                 return (
                   <button
@@ -366,7 +380,7 @@ export default function ProfilePage() {
                     onClick={() => setSelectedConfigIndex(index)}
                     style={showDivider ? { marginLeft: "0.75rem", paddingLeft: "0.75rem", borderLeft: "1px solid var(--color-border, #e5e7eb)" } : {}}
                   >
-                    <strong>{config.institutionId}</strong>
+                    <strong>{institutionName}</strong>
                     <span>{resolveConfigLabel(config).replace(`${config.institutionId} / `, "")}</span>
                   </button>
                 );
