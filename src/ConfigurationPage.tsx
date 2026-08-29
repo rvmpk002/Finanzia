@@ -84,30 +84,51 @@ export default function ConfigurationPage({ institutions }: Props) {
       })),
   ], [institutions, formulaStore]);
   useEffect(() => {
-    fetch("/api/formulas", { headers: authHeaders() })
-      .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((saved: FormulaStore) => {
-        return fetch("/api/investments", { headers: authHeaders() })
-          .then((response) => response.ok ? response.json() : [])
-          .then((investments: { type?: string; etfName?: string; productId?: string }[]) => {
-            const seeded = { ...saved };
-            investments.filter((investment) => investment.type === "etf").forEach((investment) => {
-              const key = formulaKey("etf", investment.etfName ?? investment.productId ?? "ETF");
-              if (!seeded[key]) seeded[key] = { ...defaultFormulaConfig };
-            });
-            return seeded;
-          });
-      })
-      .then((seeded: FormulaStore) => {
+    const loadFormulas = async () => {
+      try {
+        const response = await fetch("/api/formulas", { headers: authHeaders() });
+        if (response.status === 401) {
+          setSavedMessage("Debes iniciar sesión para ver las fórmulas.");
+          return;
+        }
+        if (response.status === 503) {
+          setSavedMessage("PostgreSQL no está configurado. Usando valores por defecto.");
+          setFormulaStore({});
+          setSavedFormulaStore({});
+          return;
+        }
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: 'Error desconocido' }));
+          throw new Error(error.error || 'Error al cargar las fórmulas');
+        }
+
+        const saved: FormulaStore = await response.json();
+        const investResponse = await fetch("/api/investments", { headers: authHeaders() });
+        const investments: { type?: string; etfName?: string; productId?: string }[] = investResponse.ok ? await investResponse.json() : [];
+
+        const seeded = { ...saved };
+        investments.filter((investment) => investment.type === "etf").forEach((investment) => {
+          const key = formulaKey("etf", investment.etfName ?? investment.productId ?? "ETF");
+          if (!seeded[key]) seeded[key] = { ...defaultFormulaConfig };
+        });
+
         formulaProducts.forEach(({ institution, product }) => {
           const key = formulaKey(institution.id, product.id);
           if (!seeded[key]) seeded[key] = { ...defaultFormulaConfig };
         });
+
         setFormulaStore(seeded);
         setSavedFormulaStore(seeded);
-        void fetch("/api/formulas", { method: "PUT", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(seeded) });
-      })
-      .catch(() => setSavedMessage("No fue posible cargar las fórmulas desde PostgreSQL."));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "No fue posible cargar las fórmulas desde PostgreSQL.";
+        setSavedMessage(message);
+        // Fallback: use empty formulas, will be populated with defaults
+        setFormulaStore({});
+        setSavedFormulaStore({});
+      }
+    };
+
+    loadFormulas();
   }, [formulaProducts]);
   const selectedFormula = formulaProducts.find(({ institution, product }) => formulaKey(institution.id, product.id) === selectedFormulaKey) ?? formulaProducts[0];
   const activeFormulaKey = selectedFormula ? formulaKey(selectedFormula.institution.id, selectedFormula.product.id) : "";
@@ -124,13 +145,26 @@ export default function ConfigurationPage({ institutions }: Props) {
 
   const saveChanges = async () => {
     try {
-      const response = await fetch("/api/formulas", { method: "PUT", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(formulaStore) });
-      if (!response.ok) throw new Error("API unavailable");
+      const response = await fetch("/api/formulas", {
+        method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(formulaStore),
+      });
+      if (response.status === 503) {
+        setSavedMessage("PostgreSQL no está configurado. Los cambios no se guardaron.");
+        setIsConfirmOpen(false);
+        return;
+      }
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        throw new Error(error.error || 'Error al guardar');
+      }
       setSavedFormulaStore(formulaStore);
       setIsConfirmOpen(false);
       setSavedMessage("Configuración guardada en PostgreSQL y aplicada al dashboard.");
-    } catch {
-      setSavedMessage("No fue posible guardar las fórmulas en PostgreSQL.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No fue posible guardar las fórmulas en PostgreSQL.";
+      setSavedMessage(message);
     }
   };
   const cancelChanges = () => {
