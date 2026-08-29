@@ -50,6 +50,14 @@ export const canonicalizeUserProduct = (institutionId: string, productId: string
   return normalizedProductId;
 };
 
+export const canonicalizeProductPromoCap = (institutionId: string, promoCap?: number) => {
+  const normalizedInstitutionId = String(institutionId ?? "").trim();
+  if (normalizedInstitutionId === "mifel") return 500000;
+
+  const safePromoCap = Number.isFinite(Number(promoCap)) ? Number(promoCap) : 0;
+  return Math.max(0, safePromoCap);
+};
+
 export const normalizeUserProductConfig = (input: UserProductConfigInput): UserProductConfig => {
   const defaults = defaultUserProductConfig();
   const safeNumber = (value: unknown, fallback: number) => {
@@ -59,8 +67,7 @@ export const normalizeUserProductConfig = (input: UserProductConfigInput): UserP
 
   const institutionId = String(input.institutionId || "").trim();
   const productId = canonicalizeUserProduct(institutionId, String(input.productId || "").trim());
-  const isMifel = institutionId === "mifel";
-  const normalizedPromoCap = isMifel ? 500000 : Math.max(0, safeNumber(input.promoCap, defaults.promoCap));
+  const normalizedPromoCap = canonicalizeProductPromoCap(institutionId, input.promoCap ?? defaults.promoCap);
 
   return {
     institutionId,
@@ -133,12 +140,24 @@ export const mergeUserProductConfig = <
       .map((product) => {
         const overrideKey = `${institution.id}::${canonicalizeUserProduct(String(institution.id ?? ""), String(product.id ?? ""))}`;
         const override = overrides.get(overrideKey);
-        if (!override) return product;
+        if (!override) {
+          const productPromoCap = Number((product as { promoCap?: unknown }).promoCap);
+          return {
+            ...product,
+            promoCap: canonicalizeProductPromoCap(String(institution.id ?? ""), Number.isFinite(productPromoCap) ? productPromoCap : 0),
+          } as typeof product;
+        }
 
         const { institutionId: _institutionId, productId: _productId, updatedAt: _updatedAt, ...rest } = override;
-        return {
+        const merged = {
           ...product,
           ...rest,
+        } as typeof product;
+        const mergedPromoCap = Number((merged as { promoCap?: unknown }).promoCap);
+
+        return {
+          ...merged,
+          promoCap: canonicalizeProductPromoCap(String(institution.id ?? ""), Number.isFinite(mergedPromoCap) ? mergedPromoCap : 0),
         } as typeof product;
       });
 

@@ -133,6 +133,27 @@ test('legacy Mifel promo caps are normalized to the canonical 500000 limit', () 
   assert.equal(normalized.promoCap, 500000);
 });
 
+test('mergeUserProductConfig canonicalizes stale Mifel promo caps in saved catalog data', () => {
+  const institutions = [{
+    id: 'mifel',
+    products: [{
+      id: 'mifel-cuenta-digital',
+      annualRate: 10,
+      promoCap: 25000,
+      excessRate: 0,
+      calculationMethod: 'mifel360',
+      taxRate: 9,
+      daysBase: 360,
+      promotionDays: 60,
+      isActive: true,
+    }],
+  }];
+
+  const merged = mergeUserProductConfig(institutions as any);
+
+  assert.equal(merged[0].products[0].promoCap, 500000);
+});
+
 test('notifyUserConfigUpdated dispatches a browser event so the dashboard refreshes immediately', () => {
   const seen: string[] = [];
   const previousDispatchEvent = globalThis.dispatchEvent;

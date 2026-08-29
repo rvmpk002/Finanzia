@@ -21,7 +21,7 @@ import AuthPage from "./AuthPage";
 import ProfilePage from "./ProfilePage";
 import ReportsPage from "./ReportsPage";
 import NavigationHeader from "./NavigationHeader";
-import { mergeUserProductConfig } from "./userConfig";
+import { canonicalizeProductPromoCap, mergeUserProductConfig } from "./userConfig";
 import { validateInstitutionInput } from "./validation";
 import { institutionIdsFrom, pruneInstitutionRecords } from "./institutionCleanup";
 import "./App.css";
@@ -346,7 +346,13 @@ function App() {
           const catalogProduct = catalog.products.find(
             (product) => product.id === savedProduct.id,
           );
-          return catalogProduct ? { ...catalogProduct, ...savedProduct } : savedProduct;
+          const mergedProduct = catalogProduct
+            ? { ...catalogProduct, ...savedProduct }
+            : savedProduct;
+          return {
+            ...mergedProduct,
+            promoCap: canonicalizeProductPromoCap(item.id, Number(mergedProduct.promoCap)),
+          };
         }),
       };
     });
@@ -376,10 +382,14 @@ function App() {
           const merged = new Map(databaseInstitutions.map((item) => {
             const catalog = initialInstitutions.find((entry) => entry.id === item.id);
             return [item.id, catalog
-              ? { ...catalog, ...item, products: catalog.products.map((product) => ({
-                  ...product,
-                  ...item.products.find((savedProduct) => savedProduct.id === product.id),
-                })) }
+              ? { ...catalog, ...item, products: catalog.products.map((product) => {
+                  const savedProduct = item.products.find((entry) => entry.id === product.id);
+                  const mergedProduct = savedProduct ? { ...product, ...savedProduct } : product;
+                  return {
+                    ...mergedProduct,
+                    promoCap: canonicalizeProductPromoCap(item.id, Number(mergedProduct.promoCap)),
+                  };
+                }) }
               : item] as const;
           }));
           return [...merged.values()];
