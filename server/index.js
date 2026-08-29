@@ -29,10 +29,12 @@ const rpName = 'Finanzia'
 const rpID = process.env.WEBAUTHN_RP_ID ?? 'cosmic-smakager-b538c4.netlify.app'
 const origin = process.env.WEBAUTHN_ORIGIN ?? `https://${rpID}`
 const legacyDidiProductIds = new Set(['didi-15', 'didi-7', 'didi-beneficios'])
+const legacyNuProductIds = new Set(['nu-cuenta', 'nu-cajita', 'nu-cajita-congelada'])
 const legacyOpenbankProductIds = new Set(['openbank-13', 'openbank-7', 'openbank-6-5'])
 const canonicalizeProductId = (institutionId, productId) => {
   const normalized = String(productId ?? '')
   if (institutionId === 'didi-cuenta' && legacyDidiProductIds.has(normalized)) return 'didi-cuenta'
+  if (institutionId === 'nu' && legacyNuProductIds.has(normalized)) return 'nu-cajita-turbo'
   if (institutionId === 'openbank' && legacyOpenbankProductIds.has(normalized)) return 'openbank'
   return normalized
 }

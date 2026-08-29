@@ -23,6 +23,7 @@ const isSelectableProduct = (
     (tab === "plazo"
       ? product.id !== "kubo-liquidez"
       : product.id === "kubo-liquidez")) &&
+  (institutionId !== "nu" || product.id === "nu-cajita-turbo") &&
   (institutionId !== "openbank" || product.id === "openbank") &&
   (tab !== "plazo" ||
     ["cetesdirecto-cetes", "cetesdirecto-udibonos", "ahorro-fijo"].includes(

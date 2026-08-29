@@ -38,9 +38,9 @@ export const userConfigExamples: UserProductConfigExample[] = [
   },
   {
     institutionId: "nu",
-    productId: "nu-cuenta",
+    productId: "nu-cajita-turbo",
     annualRate: 13,
-    promoCap: 25000,
+    promoCap: 0,
     excessRate: 0,
     calculationMethod: "compound",
     taxRate: 0,
