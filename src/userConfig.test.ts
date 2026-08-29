@@ -74,6 +74,47 @@ test('mergeUserProductConfig applies the logged-in user override to the catalog 
   assert.equal(merged[0].products[0].promotionDays, 90);
 });
 
+test('legacy Kubo product ids collapse to the single canonical product in protection configs', () => {
+  const canonical = mergeUserProductConfig([
+    {
+      id: 'kubo',
+      products: [
+        { id: 'kubo-liquidez', annualRate: 10, promoCap: 0, excessRate: 0, calculationMethod: 'kubo', taxRate: 0, daysBase: 365, promotionDays: 60, isActive: true },
+      ],
+    },
+  ] as any, [
+    {
+      institutionId: 'kubo',
+      productId: 'kubo-plazos',
+      annualRate: 7.5,
+      promoCap: 0,
+      excessRate: 0,
+      calculationMethod: 'kubo',
+      taxRate: 0,
+      daysBase: 365,
+      promotionDays: 60,
+      isActive: true,
+      updatedAt: '2026-08-29T00:00:00.000Z',
+    },
+    {
+      institutionId: 'kubo',
+      productId: 'kubo-largo-plazo',
+      annualRate: 12,
+      promoCap: 0,
+      excessRate: 0,
+      calculationMethod: 'kubo',
+      taxRate: 0,
+      daysBase: 365,
+      promotionDays: 60,
+      isActive: true,
+      updatedAt: '2026-08-29T00:00:00.000Z',
+    },
+  ]);
+
+  const kuboProducts = canonical[0].products.map((product: { id: string }) => product.id);
+  assert.deepEqual(kuboProducts, ['kubo-liquidez']);
+});
+
 test('notifyUserConfigUpdated dispatches a browser event so the dashboard refreshes immediately', () => {
   const seen: string[] = [];
   const previousDispatchEvent = globalThis.dispatchEvent;

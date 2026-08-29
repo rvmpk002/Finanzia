@@ -469,8 +469,11 @@ export default function DashboardPage({
   const kuboVistaInvestments = paginatedInvestments.filter(
     (investment) => isKuboInvestment(investment) && activeTab === "vista",
   );
+  const kuboPlazoInvestments = paginatedInvestments.filter(
+    (investment) => isKuboInvestment(investment) && activeTab === "plazo",
+  );
   const standardInvestments = paginatedInvestments.filter(
-    (investment) => !isKuboInvestment(investment) || activeTab === "plazo",
+    (investment) => !isKuboInvestment(investment),
   );
   const institutionName = (id: string) =>
     institutions.find((institution) => institution.id === id)?.name ??
@@ -634,6 +637,71 @@ export default function DashboardPage({
                         <td>{amount(investment.totalAccumulated)}</td>
                         <td>{percentage(investment.annualRate)}</td>
                         <td>Diario</td>
+                        <td>{investment.startDate}</td>
+                        <td>{kuboAvailabilityDate(new Date(`${investment.calculatedAt}T00:00:00`))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {kuboPlazoInvestments.length > 0 && activeTab === "plazo" && (
+              <div className="table-scroll">
+                <table className="kubo-dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Institución</th>
+                      <th>Producto</th>
+                      <th>Monto invertido</th>
+                      <th>Monto a recibir</th>
+                      <th>Intereses a recibir</th>
+                      <th>Tasa</th>
+                      <th>Plazo</th>
+                      <th>Fecha inicio</th>
+                      <th>Fecha disponibilidad</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {kuboPlazoInvestments.map((investment) => (
+                      <tr key={investmentKey(investment)}>
+                        <td><strong>{institutionName(investment.institutionId)}</strong></td>
+                        <td>{productName(investment)}</td>
+                        <td>{amount(investment.balance)}</td>
+                        <td className="editable-dashboard-cell">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            readOnly={activeBalanceId !== investmentKey(investment)}
+                            value={editingBalances[investmentKey(investment)] ?? Number(investment.updatedBalance).toFixed(2)}
+                            onClick={() => {
+                              const key = investmentKey(investment);
+                              setActiveBalanceId(key);
+                              setEditingBalances((current) => ({
+                                ...current,
+                                [key]: current[key] ?? Number(investment.updatedBalance).toFixed(2),
+                              }));
+                            }}
+                            onChange={(event) => {
+                              const key = investmentKey(investment);
+                              setEditingBalances((current) => ({
+                                ...current,
+                                [key]: event.target.value,
+                              }));
+                            }}
+                            onBlur={(event) => {
+                              const key = investmentKey(investment);
+                              setEditingBalances((current) => ({
+                                ...current,
+                                [key]: Number(event.currentTarget.value).toFixed(2),
+                              }));
+                              void saveUpdatedBalance(investment, event.currentTarget.value);
+                            }}
+                          />
+                        </td>
+                        <td>{amount(investment.totalAccumulated)}</td>
+                        <td>{percentage(investment.annualRate)}</td>
+                        <td>1-4 días</td>
                         <td>{investment.startDate}</td>
                         <td>{kuboAvailabilityDate(new Date(`${investment.calculatedAt}T00:00:00`))}</td>
                       </tr>

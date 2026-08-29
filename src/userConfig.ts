@@ -37,6 +37,19 @@ export const defaultUserProductConfig = (): Omit<UserProductConfig, "institution
   isActive: true,
 });
 
+export const canonicalizeUserProduct = (institutionId: string, productId: string) => {
+  const normalizedInstitutionId = String(institutionId ?? "").trim();
+  const normalizedProductId = String(productId ?? "").trim();
+
+  if (normalizedInstitutionId === "kubo") {
+    return normalizedProductId === "kubo-plazos" || normalizedProductId === "kubo-largo-plazo"
+      ? "kubo-liquidez"
+      : normalizedProductId;
+  }
+
+  return normalizedProductId;
+};
+
 export const normalizeUserProductConfig = (input: UserProductConfigInput): UserProductConfig => {
   const defaults = defaultUserProductConfig();
   const safeNumber = (value: unknown, fallback: number) => {
@@ -44,9 +57,12 @@ export const normalizeUserProductConfig = (input: UserProductConfigInput): UserP
     return Number.isFinite(parsed) ? parsed : fallback;
   };
 
+  const institutionId = String(input.institutionId || "").trim();
+  const productId = canonicalizeUserProduct(institutionId, String(input.productId || "").trim());
+
   return {
-    institutionId: String(input.institutionId || "").trim(),
-    productId: String(input.productId || "").trim(),
+    institutionId,
+    productId,
     annualRate: safeNumber(input.annualRate, defaults.annualRate),
     promoCap: Math.max(0, safeNumber(input.promoCap, defaults.promoCap)),
     excessRate: Math.max(0, safeNumber(input.excessRate, defaults.excessRate)),
@@ -101,22 +117,28 @@ export const mergeUserProductConfig = <
   const overrides = new Map<string, UserProductConfig>();
 
   for (const config of userConfigs) {
-    const key = `${config.institutionId}::${config.productId}`;
-    overrides.set(key, normalizeUserProductConfig(config));
+    const normalized = normalizeUserProductConfig(config);
+    const key = `${normalized.institutionId}::${normalized.productId}`;
+    overrides.set(key, normalized);
   }
 
   return institutions.map((institution) => {
-    const products = institution.products.map((product) => {
-      const overrideKey = `${institution.id}::${String(product.id ?? "")}`;
-      const override = overrides.get(overrideKey);
-      if (!override) return product;
+    const products = institution.products
+      .filter((product) => {
+        const canonical = canonicalizeUserProduct(String(institution.id ?? ""), String(product.id ?? ""));
+        return canonical === String(product.id ?? "");
+      })
+      .map((product) => {
+        const overrideKey = `${institution.id}::${canonicalizeUserProduct(String(institution.id ?? ""), String(product.id ?? ""))}`;
+        const override = overrides.get(overrideKey);
+        if (!override) return product;
 
-      const { institutionId: _institutionId, productId: _productId, updatedAt: _updatedAt, ...rest } = override;
-      return {
-        ...product,
-        ...rest,
-      } as typeof product;
-    });
+        const { institutionId: _institutionId, productId: _productId, updatedAt: _updatedAt, ...rest } = override;
+        return {
+          ...product,
+          ...rest,
+        } as typeof product;
+      });
 
     return {
       ...institution,
