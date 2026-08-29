@@ -467,18 +467,6 @@ export default function DashboardPage({
   const standardInvestments = paginatedInvestments.filter(
     (investment) => !isKuboInvestment(investment),
   );
-  const investmentRowClass = (investment: Investment) => {
-    if (investment.type === "etf") {
-      return etfMetrics(investment, formulasFor(investment)).gain >= 0 ? "mifel-limit-green" : "mifel-limit-red";
-    }
-    if (investment.type === "plazo") {
-      const daysRemaining = daysUntilMaturity(investment);
-      if (daysRemaining <= 0) return "mifel-limit-red";
-      if (daysRemaining <= 10) return "mifel-limit-yellow";
-      return "mifel-limit-green";
-    }
-    return "";
-  };
   const institutionName = (id: string) =>
     institutions.find((institution) => institution.id === id)?.name ??
     "Institución eliminada";
@@ -571,7 +559,7 @@ export default function DashboardPage({
                 return <article className="dashboard-mobile-card" key={key}>
                   <div className="dashboard-mobile-card-heading">
                     <div><span className="dashboard-mobile-label">{isEtf ? "ETF" : institutionName(investment.institutionId)}</span><h3>{title}</h3></div>
-                    <span className={gain < 0 ? "mobile-value negative" : "mobile-value positive"}>{amount(gain)}</span>
+                    <span className="mobile-value">{amount(gain)}</span>
                   </div>
                   <div className="dashboard-mobile-metrics">
                     <div><span>{isEtf || isKubo ? "Monto invertido" : "Saldo actual"}</span><strong>{amount(isEtf ? etf?.capitalInvested : investment.balance)}</strong></div>
@@ -705,7 +693,7 @@ export default function DashboardPage({
                     (() => {
                       const key = investmentKey(investment);
                       return (
-                    <tr key={key} className={investmentRowClass(investment)}>
+                    <tr key={key}>
                       {activeTab === "etf" ? null : <td>
                         <strong>
                           {institutionName(investment.institutionId)}

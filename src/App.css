@@ -64,8 +64,7 @@
 .dashboard-mobile-card-heading { display: flex; align-items: start; justify-content: space-between; gap: 14px; }
 .dashboard-mobile-label, .dashboard-mobile-metrics span { display: block; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; }
 .dashboard-mobile-card h3 { margin: 5px 0 0; color: var(--paper); font-size: 16px; overflow-wrap: anywhere; }
-.dashboard-mobile-card .mobile-value { white-space: nowrap; font-size: 16px; font-weight: 800; }
-.dashboard-mobile-card .positive { color: #86efac; }.dashboard-mobile-card .negative { color: #fda4af; }
+.dashboard-mobile-card .mobile-value { white-space: nowrap; font-size: 16px; font-weight: 800; color: var(--paper); }
 .dashboard-mobile-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 17px; }
 .dashboard-mobile-metrics div { min-width: 0; }.dashboard-mobile-metrics strong { display: block; margin-top: 5px; color: var(--paper); font-size: 12px; overflow-wrap: anywhere; }
 .dashboard-mobile-term { display: flex; justify-content: space-between; gap: 10px; margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font: 10px var(--mono); }
@@ -354,8 +353,6 @@ body { background: #080d12; color: var(--paper); }
 .primary-button:hover { background: linear-gradient(120deg, #8affda, var(--cyan)); border-color: #8affda; transform: translateY(-2px); box-shadow: 0 12px 30px #62f5c555; }
 input, textarea, select, .search-box { border-color: #29424b !important; background-color: #0b151c !important; }
 input:focus, textarea:focus, select:focus, .search-box:focus-within { border-color: var(--orange) !important; box-shadow: 0 0 0 3px #62f5c51c, 0 0 20px #62f5c522; }
-.dashboard-table-section tr.mifel-limit-red .etf-current-value input { color: #ffd7d2; background: #71362f99 !important; border-color: #a84d43; }
-.dashboard-table-section tr.mifel-limit-green .etf-current-value input { color: #c9f4d7; background: #28684699 !important; border-color: #3d9d66; }
 .dashboard-table-section .etf-current-value input:focus { color: var(--paper); background: #102a31 !important; border-color: var(--orange); }
 .profile-heading-icon, .device-icon { background: #14343a; color: var(--orange); box-shadow: 0 0 22px #62f5c522; }
 .profile-chip, .count-badge, .saved-count { border-color: #35616a; background: #102a31; color: #9ee8d4; }
@@ -368,41 +365,6 @@ input:focus, textarea:focus, select:focus, .search-box:focus-within { border-col
 	.directory-nav, .investment-nav { gap: 8px 14px; }
 }
 
-.dashboard-table-section tr.mifel-limit-red {
-	box-shadow: inset 4px 0 #ff766e, 0 8px 28px #ff55451a;
-}
-.dashboard-table-section tr.mifel-limit-red td {
-	background: linear-gradient(105deg, #572c2b, #3c2229 58%, #321f2a);
-	border-bottom-color: #713c3d;
-}
-.dashboard-table-section tr.mifel-limit-red:hover td {
-	background: linear-gradient(105deg, #713733, #51282f 58%, #432632);
-}
-.dashboard-table-section tr.mifel-limit-yellow {
-	box-shadow: inset 4px 0 #ffd166, 0 8px 28px #f2b84a18;
-}
-.dashboard-table-section tr.mifel-limit-yellow td {
-	background: linear-gradient(105deg, #554321, #3d3221 58%, #302b24);
-	border-bottom-color: #76602f;
-}
-.dashboard-table-section tr.mifel-limit-yellow:hover td {
-	background: linear-gradient(105deg, #6a5328, #4d4025 58%, #3c3529);
-}
-.dashboard-table-section tr.mifel-limit-green {
-	box-shadow: inset 4px 0 #62f5c5, 0 8px 28px #30d29d1c;
-}
-.dashboard-table-section tr.mifel-limit-green td {
-	background: linear-gradient(105deg, #1d4d3a, #173c39 58%, #16333a);
-	border-bottom-color: #286c58;
-}
-.dashboard-table-section tr.mifel-limit-green:hover td {
-	background: linear-gradient(105deg, #286746, #205044 58%, #1d4248);
-}
-.dashboard-table-section tr.mifel-limit-red .etf-current-value input,
-.dashboard-table-section tr.mifel-limit-yellow .etf-current-value input,
-.dashboard-table-section tr.mifel-limit-green .etf-current-value input {
-	box-shadow: inset 0 1px 0 #ffffff12, 0 4px 14px #0003;
-}
 
 .reports-section, .reports-type-chart, .reports-trend {
 	background: linear-gradient(145deg, #14232c, #0c151c 72%);

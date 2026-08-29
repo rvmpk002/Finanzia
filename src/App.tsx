@@ -206,43 +206,20 @@ const didiCuenta: Institution = {
     "Cuenta digital operada por J.P. Sofiexpress, supervisada por la CNBV y con protección del Fondo de Protección.",
   products: [
     {
-      id: "didi-15",
-      name: "Tasa preferente",
+      id: "didi-cuenta",
+      name: "DiDi Cuenta",
       description:
-        "15% de rendimiento anual fijo para los primeros $10,000 MXN.",
+        "15% anual sobre los primeros $10,000 MXN y 7.5% anual sobre el excedente.",
       conditions: [
-        "GAT Nominal 16.18% · GAT Real 11.77%",
-        "Rendimientos diarios · fecha de cálculo: 13 de julio de 2026",
+        "Monto hasta MXN$10,000: GAT Nominal 16.18% · GAT Real 11.99%",
+        "Monto restante: GAT Nominal 7.79% · GAT Real 3.90%",
+        "Rendimientos calculados diariamente sobre el saldo disponible.",
       ],
       icon: "account",
       promoCap: 10000,
       annualRate: 15,
-      excessRate: 7,
+      excessRate: 7.5,
       calculationMethod: "compound",
-    },
-    {
-      id: "didi-7",
-      name: "Saldo restante",
-      description: "7% de rendimiento anual fijo para el monto restante.",
-      conditions: [
-        "GAT Nominal 7.25% · GAT Real 3.17%",
-        "Aplica sobre el saldo que exceda los primeros $10,000 MXN",
-      ],
-      icon: "flexible",
-      promoCap: 10000,
-      annualRate: 7,
-      excessRate: 7,
-      calculationMethod: "compound",
-    },
-    {
-      id: "didi-beneficios",
-      name: "Beneficios de DiDi Cuenta",
-      description: "Tu dinero disponible 24/7 para enviar, recibir y pagar.",
-      conditions: [
-        "Sin comisión por manejo, saldo mínimo, apertura o plazos forzosos",
-        "Límite regulatorio: hasta 3,000 UDIS al mes, aproximadamente $25,000 MXN",
-      ],
-      icon: "fixed",
     },
   ],
 };

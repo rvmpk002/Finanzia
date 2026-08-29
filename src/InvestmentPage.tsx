@@ -18,7 +18,7 @@ const isSelectableProduct = (
   product: RateProduct,
   tab: Tab = "vista",
 ) =>
-  (institutionId !== "didi-cuenta" || product.id === "didi-15") &&
+  (institutionId !== "didi-cuenta" || product.id === "didi-cuenta") &&
   (institutionId !== "kubo" ||
     (tab === "plazo"
       ? product.id !== "kubo-liquidez"
@@ -28,7 +28,6 @@ const isSelectableProduct = (
     ["cetesdirecto-cetes", "cetesdirecto-udibonos", "ahorro-fijo"].includes(
       product.id,
     )) &&
-  product.id !== "didi-beneficios" &&
   !(
     institutionId === "banco-plata" &&
     product.id === "ahorro-fijo" &&

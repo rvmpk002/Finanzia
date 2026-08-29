@@ -28,6 +28,16 @@ if (pool) {
 const rpName = 'Finanzia'
 const rpID = process.env.WEBAUTHN_RP_ID ?? 'cosmic-smakager-b538c4.netlify.app'
 const origin = process.env.WEBAUTHN_ORIGIN ?? `https://${rpID}`
+const legacyDidiProductIds = new Set(['didi-15', 'didi-7', 'didi-beneficios'])
+const canonicalizeProductId = (institutionId, productId) => {
+  if (institutionId === 'didi-cuenta' && legacyDidiProductIds.has(String(productId ?? ''))) return 'didi-cuenta'
+  return String(productId ?? '')
+}
+const sanitizeInstitutionProduct = (institutionId, productId) => {
+  const normalizedInstitutionId = String(institutionId ?? '').trim()
+  const normalizedProductId = canonicalizeProductId(normalizedInstitutionId, productId)
+  return { institutionId: normalizedInstitutionId, productId: normalizedProductId }
+}
 const smtpHost = process.env.SMTP_HOST ?? 'smtp.gmail.com'
 const smtpConnectionHost = process.env.SMTP_USER && process.env.SMTP_PASS
   ? process.env.SMTP_HOST_IP ?? (await resolve4(smtpHost).then((addresses) => addresses[0]).catch(() => smtpHost))
@@ -73,6 +83,27 @@ async function ensureSchema() {
   await pool.query(`CREATE TABLE IF NOT EXISTS password_resets (token TEXT PRIMARY KEY, user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at TIMESTAMPTZ NOT NULL)`)
   await pool.query(`CREATE TABLE IF NOT EXISTS passkeys (id TEXT PRIMARY KEY, user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, public_key BYTEA NOT NULL, counter BIGINT NOT NULL DEFAULT 0, transports JSONB)`)
   await pool.query(`CREATE TABLE IF NOT EXISTS webauthn_challenges (id TEXT PRIMARY KEY, user_id UUID REFERENCES users(id) ON DELETE CASCADE, challenge TEXT NOT NULL, kind TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL)`)
+}
+
+async function normalizeLegacyDidiData() {
+  if (!pool) return
+  try {
+    await pool.query("UPDATE user_product_configs SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id IN ('didi-15', 'didi-7', 'didi-beneficios')")
+    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'didi-cuenta' AND product_id <> 'didi-cuenta'")
+
+    await pool.query("UPDATE investments SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id IN ('didi-15', 'didi-7', 'didi-beneficios')")
+    await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"didi-cuenta\"'::jsonb, true) WHERE institution_id = 'didi-cuenta' AND (data->>'productId') IN ('didi-15', 'didi-7', 'didi-beneficios')")
+
+    await pool.query("UPDATE institutions SET data = jsonb_set(data, '{products}', COALESCE((SELECT jsonb_agg(CASE WHEN product->>'id' IN ('didi-15', 'didi-7', 'didi-beneficios') THEN jsonb_set(product, '{id}', '\"didi-cuenta\"'::jsonb, true) ELSE product END) FROM jsonb_array_elements(data->'products') AS product), '[]'::jsonb), true) WHERE id = 'didi-cuenta' AND jsonb_typeof(data->'products') = 'array'")
+
+    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'didi-cuenta' AND product_id <> 'didi-cuenta'")
+    await pool.query("UPDATE investments SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id <> 'didi-cuenta'")
+    await pool.query("UPDATE institutions SET data = jsonb_set(data, '{products}', COALESCE((SELECT jsonb_agg(CASE WHEN value->>'id' = 'didi-15' OR value->>'id' = 'didi-7' OR value->>'id' = 'didi-beneficios' THEN jsonb_set(value, '{id}', '\"didi-cuenta\"'::jsonb, true) ELSE value END) FROM jsonb_array_elements(data->'products') AS value), '[]'::jsonb), true) WHERE id = 'didi-cuenta'")
+
+    console.log('[MIGRATION] Legacy DiDi product IDs normalizados a didi-cuenta')
+  } catch (error) {
+    console.error('[MIGRATION] Error normalizando DiDi legacy:', error)
+  }
 }
 
 const hashPassword = (password, salt = crypto.randomBytes(16).toString('hex')) => new Promise((resolve, reject) => crypto.scrypt(password, salt, 64, (error, derived) => error ? reject(error) : resolve(`${salt}:${derived.toString('hex')}`)))
@@ -315,11 +346,15 @@ app.get('/api/user-config', async (request, response) => {
   if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
   try {
     const result = await pool.query('SELECT institution_id, product_id, data FROM user_product_configs WHERE user_id = $1 ORDER BY institution_id, product_id', [user.id])
-    return response.json(result.rows.map((row) => ({
-      institutionId: row.institution_id,
-      productId: row.product_id,
-      ...row.data,
-    })))
+    return response.json(result.rows
+      .map((row) => {
+        const { institutionId, productId } = sanitizeInstitutionProduct(row.institution_id, row.product_id)
+        if (institutionId !== 'didi-cuenta' && productId !== 'didi-cuenta') {
+          return { institutionId, productId, ...row.data }
+        }
+        return { institutionId: 'didi-cuenta', productId: 'didi-cuenta', ...row.data }
+      })
+      .filter((row) => row.institutionId !== 'didi-cuenta' || row.productId === 'didi-cuenta'))
   } catch (error) {
     console.error(error)
     return response.status(500).json({ error: 'No fue posible consultar la configuración del usuario.' })
@@ -330,9 +365,10 @@ app.put('/api/user-config', async (request, response) => {
   const user = await currentUser(request)
   if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
-  const institutionId = String(request.body?.institutionId ?? '').trim()
-  const productId = String(request.body?.productId ?? '').trim()
+  const { institutionId: rawInstitutionId, productId: rawProductId } = request.body ?? {}
+  const { institutionId, productId } = sanitizeInstitutionProduct(rawInstitutionId, rawProductId)
   if (!institutionId || !productId) return response.status(400).json({ error: 'Faltan institutionId o productId.' })
+  if (institutionId === 'didi-cuenta' && productId !== 'didi-cuenta') return response.status(400).json({ error: 'El producto de DiDi debe ser único y canónico.' })
   const data = { ...request.body }
   delete data.institutionId
   delete data.productId
@@ -348,6 +384,9 @@ app.put('/api/user-config', async (request, response) => {
     updatedAt: new Date().toISOString(),
   }
   try {
+    if (institutionId === 'didi-cuenta') {
+      await pool.query('DELETE FROM user_product_configs WHERE user_id = $1 AND institution_id = $2 AND product_id <> $3', [user.id, institutionId, productId])
+    }
     const result = await pool.query('INSERT INTO user_product_configs (user_id, institution_id, product_id, data, updated_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (user_id, institution_id, product_id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW() RETURNING institution_id, product_id, data', [user.id, institutionId, productId, normalized])
     return response.json({
       institutionId: result.rows[0].institution_id,
@@ -374,10 +413,25 @@ app.get('/api/institutions', async (_request, response) => {
 app.post('/api/institutions/sync', async (request, response) => {
   if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
   const institutions = Array.isArray(request.body) ? request.body : []
+  const sanitizedInstitutions = institutions.map((institution) => {
+    if (!institution || !institution.id || !Array.isArray(institution.products)) return institution
+    const products = institution.products.map((product) => {
+      const normalized = sanitizeInstitutionProduct(institution.id, product?.id)
+      return {
+        ...product,
+        id: normalized.productId,
+      }
+    })
+    if (institution.id === 'didi-cuenta') {
+      const canonicalProducts = products.filter((product) => product.id === 'didi-cuenta')
+      return { ...institution, products: canonicalProducts.length ? canonicalProducts : [{ ...products[0], id: 'didi-cuenta' }] }
+    }
+    return { ...institution, products }
+  })
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    const institutionIds = institutions.map((institution) => institution?.id).filter(Boolean)
+    const institutionIds = sanitizedInstitutions.map((institution) => institution?.id).filter(Boolean)
 
     await client.query(
       'DELETE FROM user_product_configs WHERE NOT (institution_id = ANY($1::text[]))',
@@ -392,7 +446,12 @@ app.post('/api/institutions/sync', async (request, response) => {
       [institutionIds],
     )
 
-    for (const institution of institutions) {
+    if (institutionIds.includes('didi-cuenta')) {
+      await client.query('DELETE FROM user_product_configs WHERE institution_id = $1 AND product_id <> $2', ['didi-cuenta', 'didi-cuenta'])
+      await client.query('UPDATE investments SET product_id = $1 WHERE institution_id = $2 AND product_id <> $3', ['didi-cuenta', 'didi-cuenta', 'didi-cuenta'])
+    }
+
+    for (const institution of sanitizedInstitutions) {
       if (!institution?.id || !institution?.name || !Array.isArray(institution.products)) continue
       await client.query(
         'INSERT INTO institutions (id, name, data, updated_at) VALUES ($1, $2, $3, NOW()) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, data = EXCLUDED.data, updated_at = NOW()',
@@ -401,7 +460,7 @@ app.post('/api/institutions/sync', async (request, response) => {
     }
 
     await client.query('COMMIT')
-    return response.json({ saved: institutions.length })
+    return response.json({ saved: sanitizedInstitutions.length })
   } catch (error) {
     await client.query('ROLLBACK')
     console.error(error)
@@ -447,9 +506,12 @@ app.post('/api/investments', async (request, response) => {
   if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   const investment = request.body
   if (!investment?.type || !investment?.institutionId || !investment?.productId) return response.status(400).json({ error: 'Faltan datos requeridos.' })
+  const { institutionId, productId } = sanitizeInstitutionProduct(investment.institutionId, investment.productId)
+  if (institutionId === 'didi-cuenta' && productId !== 'didi-cuenta') return response.status(400).json({ error: 'La inversión de DiDi debe usar el producto canónico.' })
+  const normalizedInvestment = { ...investment, institutionId, productId }
   try {
-    const result = await pool.query('INSERT INTO investments (type, institution_id, product_id, data, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at', [investment.type, investment.institutionId, investment.productId, investment, user.id])
-    return response.status(201).json({ ...investment, id: result.rows[0].id, createdAt: result.rows[0].created_at })
+    const result = await pool.query('INSERT INTO investments (type, institution_id, product_id, data, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at', [normalizedInvestment.type, normalizedInvestment.institutionId, normalizedInvestment.productId, normalizedInvestment, user.id])
+    return response.status(201).json({ ...normalizedInvestment, id: result.rows[0].id, createdAt: result.rows[0].created_at })
   } catch (error) {
     console.error(error)
     return response.status(500).json({ error: 'No fue posible guardar la inversión.' })
@@ -462,10 +524,13 @@ app.put('/api/investments/:id', async (request, response) => {
   if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   const investment = request.body
   if (!investment?.type || !investment?.institutionId || !investment?.productId) return response.status(400).json({ error: 'Faltan datos requeridos.' })
+  const { institutionId, productId } = sanitizeInstitutionProduct(investment.institutionId, investment.productId)
+  if (institutionId === 'didi-cuenta' && productId !== 'didi-cuenta') return response.status(400).json({ error: 'La inversión de DiDi debe usar el producto canónico.' })
+  const normalizedInvestment = { ...investment, institutionId, productId }
   try {
-    const result = await pool.query('UPDATE investments SET type = $1, institution_id = $2, product_id = $3, data = $4 WHERE id = $5 AND user_id = $6 RETURNING id, created_at', [investment.type, investment.institutionId, investment.productId, investment, request.params.id, user.id])
+    const result = await pool.query('UPDATE investments SET type = $1, institution_id = $2, product_id = $3, data = $4 WHERE id = $5 AND user_id = $6 RETURNING id, created_at', [normalizedInvestment.type, normalizedInvestment.institutionId, normalizedInvestment.productId, normalizedInvestment, request.params.id, user.id])
     if (!result.rowCount) return response.status(404).json({ error: 'Inversión no encontrada.' })
-    return response.json({ ...investment, id: result.rows[0].id, createdAt: result.rows[0].created_at })
+    return response.json({ ...normalizedInvestment, id: result.rows[0].id, createdAt: result.rows[0].created_at })
   } catch (error) {
     console.error(error)
     return response.status(500).json({ error: 'No fue posible actualizar la inversión.' })
@@ -493,7 +558,8 @@ app.use((request, response, next) => {
 })
 
 const startup = ensureSchema()
-  .then(() => {
+  .then(async () => {
+    await normalizeLegacyDidiData()
     console.log('[STARTUP] PostgreSQL schema inicializado correctamente')
     return true
   })
