@@ -36,6 +36,7 @@ export default function ProfilePage() {
   const [userConfigs, setUserConfigs] = useState<UserProductConfig[]>([]);
   const [selectedConfigIndex, setSelectedConfigIndex] = useState(0);
   const [institutionNames, setInstitutionNames] = useState<Record<string, string>>({});
+  const [productNames, setProductNames] = useState<Record<string, Record<string, string>>>({}); // institutionId -> productId -> name;
   const headers = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
@@ -103,6 +104,7 @@ export default function ProfilePage() {
     const loadConfigs = async () => {
       const exampleMap = new Map<string, UserProductConfig>();
       const institutionNameMap: Record<string, string> = {};
+      const productNameMap: Record<string, Record<string, string>> = {};
       
       // 1. Agregar todos los ejemplos hardcodeados
       userConfigExamples.forEach((example) => {
@@ -111,6 +113,12 @@ export default function ProfilePage() {
         // Usar el ID como nombre si no lo tenemos
         if (!institutionNameMap[example.institutionId]) {
           institutionNameMap[example.institutionId] = example.institutionId;
+        }
+        if (!productNameMap[example.institutionId]) {
+          productNameMap[example.institutionId] = {};
+        }
+        if (!productNameMap[example.institutionId][example.productId]) {
+          productNameMap[example.institutionId][example.productId] = example.productId;
         }
       });
       
@@ -121,15 +129,25 @@ export default function ProfilePage() {
           const institutions = await institutionsResponse.json();
           
           // Para cada institución y producto, crear config default si no existe
-          institutions.forEach((institution: { id: string; name?: string; products?: Array<{ id: string }> }) => {
+          institutions.forEach((institution: { id: string; name?: string; products?: Array<{ id: string; name?: string }> }) => {
             // Guardar el nombre de la institución
             if (institution.name) {
               institutionNameMap[institution.id] = institution.name;
             }
             
+            if (!productNameMap[institution.id]) {
+              productNameMap[institution.id] = {};
+            }
+            
             if (institution.products && Array.isArray(institution.products)) {
-              institution.products.forEach((product: { id: string }) => {
+              institution.products.forEach((product: { id: string; name?: string }) => {
                 const key = `${institution.id}::${product.id}`;
+                
+                // Guardar el nombre del producto
+                if (product.name) {
+                  productNameMap[institution.id][product.id] = product.name;
+                }
+                
                 if (!exampleMap.has(key)) {
                   // Crear config default para productos nuevos
                   exampleMap.set(key, normalizeUserProductConfig({
@@ -170,6 +188,7 @@ export default function ProfilePage() {
       const configs = Array.from(exampleMap.values());
       setUserConfigs(configs);
       setInstitutionNames(institutionNameMap);
+      setProductNames(productNameMap);
       setSelectedConfigIndex(0);
     };
     
@@ -221,9 +240,12 @@ export default function ProfilePage() {
     const institutionName = institutionNames[config.institutionId] || config.institutionId
       .replace(/[-_]/g, " ")
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
-    const productName = config.productId
+    
+    // Usar el nombre del producto si está disponible, sino derivar del ID
+    const productName = productNames[config.institutionId]?.[config.productId] || config.productId
       .replace(/[-_]/g, " ")
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    
     return `${institutionName} / ${productName}`;
   };
 
@@ -372,6 +394,9 @@ export default function ProfilePage() {
                 const showDivider = currentInstitution && currentInstitution !== config.institutionId;
                 currentInstitution = config.institutionId;
                 const institutionName = institutionNames[config.institutionId] || config.institutionId;
+                const productName = productNames[config.institutionId]?.[config.productId] || config.productId
+                  .replace(/[-_]/g, " ")
+                  .replace(/\b\w/g, (letter) => letter.toUpperCase());
                 
                 return (
                   <button
@@ -381,7 +406,7 @@ export default function ProfilePage() {
                     style={showDivider ? { marginLeft: "0.75rem", paddingLeft: "0.75rem", borderLeft: "1px solid var(--color-border, #e5e7eb)" } : {}}
                   >
                     <strong>{institutionName}</strong>
-                    <span>{resolveConfigLabel(config).replace(`${config.institutionId} / `, "")}</span>
+                    <span>{productName}</span>
                   </button>
                 );
               });
