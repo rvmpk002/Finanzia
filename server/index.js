@@ -47,12 +47,14 @@ async function ensureSchema() {
   await pool.query(`CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT UNIQUE NOT NULL, password_hash TEXT, full_name TEXT, phone TEXT, two_factor_secret TEXT, two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS calculation_formulas (
     id TEXT NOT NULL,
-    user_id UUID NULL,
+    user_id UUID NOT NULL,
     data JSONB NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (id, user_id)
   )`)
   await pool.query('ALTER TABLE calculation_formulas ADD COLUMN IF NOT EXISTS user_id UUID')
+  await pool.query('DELETE FROM calculation_formulas WHERE user_id IS NULL')
+  await pool.query('DELETE FROM calculation_formulas a USING calculation_formulas b WHERE a.ctid < b.ctid AND a.id = b.id AND a.user_id = b.user_id')
   await pool.query('ALTER TABLE calculation_formulas DROP CONSTRAINT IF EXISTS calculation_formulas_pkey')
   await pool.query('ALTER TABLE calculation_formulas ADD PRIMARY KEY (id, user_id)')
   await pool.query('ALTER TABLE calculation_formulas ALTER COLUMN user_id SET NOT NULL')
@@ -466,11 +468,10 @@ const startup = ensureSchema()
   })
 
 if (process.env.NETLIFY !== 'true') {
+  app.listen(port, () => console.log(`Finanzia API activa en el puerto ${port}`))
   startup.then((ready) => {
-    if (ready) {
-      app.listen(port, () => console.log(`Finanzia API activa en el puerto ${port}`))
-    } else {
-      console.error('[STARTUP] No se pudo inicializar PostgreSQL. API continuará sin base de datos.')
+    if (!ready) {
+      console.error('[STARTUP] PostgreSQL no quedó listo, pero la API sigue levantada para responder con 503 en endpoints protegidos.')
     }
   })
 }
