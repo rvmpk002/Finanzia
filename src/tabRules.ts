@@ -41,3 +41,8 @@ export const isSelectableInstitution = (institutionId: string, tab: Tab = "vista
   if (tab === "plazo") return ["cetesdirecto"].includes(institutionId);
   return true;
 };
+
+export const getInvestmentTab = (institutionId: string, currentTab: Tab = "vista") => {
+  if (institutionId === "kubo") return "plazo";
+  return currentTab;
+};

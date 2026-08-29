@@ -340,12 +340,13 @@ export default function DashboardPage({
               ? localInvestment
               : databaseInvestment;
           });
-        const recalculatedInvestments = latestInvestments.map((investment) =>
-          rolloverKuboLiquidity(
-            investment,
-            calculateInvestment(investment, institutions, formulaStore[formulaKey(investment.institutionId, investment.productId)] ?? defaultFormulaConfig),
-          ),
-        );
+        const recalculatedInvestments = latestInvestments.map((investment) => {
+          const normalized = investment.institutionId === "kubo" ? { ...investment, type: "plazo" as const } : investment;
+          return rolloverKuboLiquidity(
+            normalized,
+            calculateInvestment(normalized, institutions, formulaStore[formulaKey(normalized.institutionId, normalized.productId)] ?? defaultFormulaConfig),
+          );
+        });
         await Promise.all(
           recalculatedInvestments.map(async (investment, index) => {
             if (investment.updatedAt === latestInvestments[index].updatedAt && !isKuboLiquidity(investment)) return;
@@ -361,12 +362,13 @@ export default function DashboardPage({
         setInvestments(recalculatedInvestments);
         localStorage.setItem(investmentStorageKey(), JSON.stringify(recalculatedInvestments));
       } catch {
-        const localInvestments = readLocalInvestments().map((investment) =>
-          rolloverKuboLiquidity(
-            investment,
-            calculateInvestment(investment, institutions, formulaStore[formulaKey(investment.institutionId, investment.productId)] ?? defaultFormulaConfig),
-          ),
-        );
+        const localInvestments = readLocalInvestments().map((investment) => {
+          const normalized = investment.institutionId === "kubo" ? { ...investment, type: "plazo" as const } : investment;
+          return rolloverKuboLiquidity(
+            normalized,
+            calculateInvestment(normalized, institutions, formulaStore[formulaKey(normalized.institutionId, normalized.productId)] ?? defaultFormulaConfig),
+          );
+        });
         setInvestments(localInvestments);
         localStorage.setItem(investmentStorageKey(), JSON.stringify(localInvestments));
       }
@@ -440,7 +442,7 @@ export default function DashboardPage({
     }
   };
   const visible = investments
-    .filter((investment) => investment.type === activeTab)
+    .filter((investment) => (investment.institutionId === "kubo" ? "plazo" : investment.type) === activeTab)
     .sort((first, second) => {
       const firstInstitution = institutions.find(
         (institution) => institution.id === first.institutionId,
