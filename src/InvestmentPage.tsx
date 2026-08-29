@@ -912,12 +912,16 @@ export default function InvestmentPage({
                 <strong>
                   {isMifel
                     ? `El saldo máximo de este producto es ${money.format(promoCap)}.`
-                    : `Excedente calculado al ${excessRate}% anual.`}
+                    : institutionId === "mercado-pago"
+                      ? "Tasa anual fija del 12%."
+                      : `Excedente calculado al ${excessRate}% anual.`}
                 </strong>
                 <span>
                   {isMifel
                     ? "Los rendimientos y el ISR se calculan diariamente; si el día cae en fin de semana, el registro se refleja en el siguiente día hábil."
-                    : "La promoción se aplica hasta el tope definido por el producto seleccionado."}
+                    : institutionId === "mercado-pago"
+                      ? "Este producto se calcula con una sola regla: 12% anual fijo y sin compra mensual ni tope promocional."
+                      : "La promoción se aplica hasta el tope definido por el producto seleccionado."}
                 </span>
               </div>
             )}

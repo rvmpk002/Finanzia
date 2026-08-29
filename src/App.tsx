@@ -262,36 +262,22 @@ const mercadoPago: Institution = {
   category: "Cuenta digital",
   website: "https://www.mercadopago.com.mx/",
   notes:
-    "Cuenta Mercado Pago con rendimiento anual variable según los ingresos o transferencias recibidas durante el mes.",
+    "Cuenta Mercado Pago con rendimiento anual fijo del 12%, sin variación por compras ni transferencias mensuales.",
   products: [
     {
-      id: "mercado-pago-12",
-      name: "Rendimiento preferente",
-      description: "Hasta 12% de rendimiento anual.",
+      id: "mercado-pago",
+      name: "Rendimiento",
+      description: "12% anual fijo con ganancias diarias.",
       annualRate: 12,
-      promoCap: 25000,
-      excessRate: 6,
+      promoCap: 0,
+      excessRate: 0,
       calculationMethod: "compound",
       conditions: [
-        "Alcanza un total de $3,000 en ingresos o transferencias recibidas durante el mes",
-        "El rendimiento se mantiene hasta el último día del mes siguiente",
-        "Puedes usar el dinero como quieras sin perder el beneficio",
+        "Tasa anual fija del 12%.",
+        "Rendimientos diarios acumulados sobre el saldo disponible.",
+        "Sin regla de compras ni transferencias mensuales.",
       ],
       icon: "account",
-    },
-    {
-      id: "mercado-pago-6",
-      name: "Rendimiento base",
-      description: "Hasta 6% de rendimiento anual.",
-      annualRate: 6,
-      promoCap: 25000,
-      excessRate: 6,
-      calculationMethod: "compound",
-      conditions: [
-        "Aplica cuando no alcanzas $3,000 en ingresos durante el mes",
-        "El dinero sigue disponible para usarlo cuando quieras",
-      ],
-      icon: "flexible",
     },
   ],
 };
@@ -698,11 +684,13 @@ function App() {
                 </article>
               ))}
             </div>
-            {selected.id === "mifel" && (
+            {(selected.id === "mifel" || selected.id === "mercado-pago") && (
               <div className="calculation-note">
-                <strong>Mifel:</strong>
+                <strong>{selected.id === "mifel" ? "Mifel:" : "Mercado Pago:"}</strong>
                 <span>
-                  Los rendimientos y el ISR se calculan diariamente; si el día cae en fin de semana, el registro se refleja en el siguiente día hábil.
+                  {selected.id === "mifel"
+                    ? "Los rendimientos y el ISR se calculan diariamente; si el día cae en fin de semana, el registro se refleja en el siguiente día hábil."
+                    : "Tasa anual fija del 12%, con ganancias diarias y sin regla de compra mensual ni tope promocional."}
                 </span>
               </div>
             )}

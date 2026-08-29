@@ -32,6 +32,7 @@ const legacyDidiProductIds = new Set(['didi-15', 'didi-7', 'didi-beneficios'])
 const legacyMifelProductIds = new Set(['mifel-cuenta-digital-evoluciona'])
 const legacyNuProductIds = new Set(['nu-cuenta', 'nu-cajita', 'nu-cajita-congelada'])
 const legacyOpenbankProductIds = new Set(['openbank-13', 'openbank-7', 'openbank-6-5'])
+const legacyMercadoPagoProductIds = new Set(['mercado-pago-12', 'mercado-pago-6'])
 const validInstitutionProducts = {
   'banco-plata': ['plata-cuenta', 'ahorro-flexible', 'ahorro-fijo'],
   openbank: ['openbank'],
@@ -39,7 +40,7 @@ const validInstitutionProducts = {
   'didi-cuenta': ['didi-cuenta'],
   mifel: ['mifel-cuenta-digital'],
   kubo: ['kubo-liquidez', 'kubo-plazos', 'kubo-largo-plazo'],
-  'mercado-pago': ['mercado-pago-12', 'mercado-pago-6'],
+  'mercado-pago': ['mercado-pago'],
   cetesdirecto: ['cetesdirecto-cetes', 'cetesdirecto-bonos', 'cetesdirecto-bonddia', 'cetesdirecto-udibonos'],
   'cetesdirecto': ['cetesdirecto-cetes', 'cetesdirecto-bonos', 'cetesdirecto-bonddia', 'cetesdirecto-udibonos'],
 }
@@ -49,6 +50,7 @@ const canonicalizeProductId = (institutionId, productId) => {
   if (institutionId === 'mifel' && legacyMifelProductIds.has(normalized)) return 'mifel-cuenta-digital'
   if (institutionId === 'nu' && legacyNuProductIds.has(normalized)) return 'nu-cajita-turbo'
   if (institutionId === 'openbank' && legacyOpenbankProductIds.has(normalized)) return 'openbank'
+  if (institutionId === 'mercado-pago' && legacyMercadoPagoProductIds.has(normalized)) return 'mercado-pago'
   return normalized
 }
 const isValidInstitutionProduct = (institutionId, productId) => {
@@ -82,7 +84,7 @@ async function ensureSchema() {
   await pool.query(`CREATE TABLE IF NOT EXISTS institutions (id TEXT PRIMARY KEY, name TEXT NOT NULL, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS investments (id BIGSERIAL PRIMARY KEY, type VARCHAR(20) NOT NULL CHECK (type IN ('vista', 'plazo', 'etf')), institution_id TEXT NOT NULL, product_id TEXT NOT NULL, data JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`ALTER TABLE investments DROP CONSTRAINT IF EXISTS investments_product_integrity_check`)
-  await pool.query(`ALTER TABLE investments ADD CONSTRAINT investments_product_integrity_check CHECK ((institution_id, product_id) IN (('banco-plata', 'plata-cuenta'), ('banco-plata', 'ahorro-flexible'), ('banco-plata', 'ahorro-fijo'), ('openbank', 'openbank'), ('nu', 'nu-cajita-turbo'), ('didi-cuenta', 'didi-cuenta'), ('mifel', 'mifel-cuenta-digital'), ('kubo', 'kubo-liquidez'), ('kubo', 'kubo-plazos'), ('kubo', 'kubo-largo-plazo'), ('mercado-pago', 'mercado-pago-12'), ('mercado-pago', 'mercado-pago-6'), ('cetesdirecto', 'cetesdirecto-cetes'), ('cetesdirecto', 'cetesdirecto-bonos'), ('cetesdirecto', 'cetesdirecto-bonddia'), ('cetesdirecto', 'cetesdirecto-udibonos')))`)
+  await pool.query(`ALTER TABLE investments ADD CONSTRAINT investments_product_integrity_check CHECK ((institution_id, product_id) IN (('banco-plata', 'plata-cuenta'), ('banco-plata', 'ahorro-flexible'), ('banco-plata', 'ahorro-fijo'), ('openbank', 'openbank'), ('nu', 'nu-cajita-turbo'), ('didi-cuenta', 'didi-cuenta'), ('mifel', 'mifel-cuenta-digital'), ('kubo', 'kubo-liquidez'), ('kubo', 'kubo-plazos'), ('kubo', 'kubo-largo-plazo'), ('mercado-pago', 'mercado-pago'), ('cetesdirecto', 'cetesdirecto-cetes'), ('cetesdirecto', 'cetesdirecto-bonos'), ('cetesdirecto', 'cetesdirecto-bonddia'), ('cetesdirecto', 'cetesdirecto-udibonos')))`)
   await pool.query(`CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT UNIQUE NOT NULL, password_hash TEXT, full_name TEXT, phone TEXT, two_factor_secret TEXT, two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS calculation_formulas (
     id TEXT NOT NULL,
@@ -106,7 +108,7 @@ async function ensureSchema() {
     PRIMARY KEY (user_id, institution_id, product_id)
   )`)
   await pool.query(`ALTER TABLE user_product_configs DROP CONSTRAINT IF EXISTS user_product_configs_product_integrity_check`)
-  await pool.query(`ALTER TABLE user_product_configs ADD CONSTRAINT user_product_configs_product_integrity_check CHECK ((institution_id, product_id) IN (('banco-plata', 'plata-cuenta'), ('banco-plata', 'ahorro-flexible'), ('banco-plata', 'ahorro-fijo'), ('openbank', 'openbank'), ('nu', 'nu-cajita-turbo'), ('didi-cuenta', 'didi-cuenta'), ('mifel', 'mifel-cuenta-digital'), ('kubo', 'kubo-liquidez'), ('kubo', 'kubo-plazos'), ('kubo', 'kubo-largo-plazo'), ('mercado-pago', 'mercado-pago-12'), ('mercado-pago', 'mercado-pago-6'), ('cetesdirecto', 'cetesdirecto-cetes'), ('cetesdirecto', 'cetesdirecto-bonos'), ('cetesdirecto', 'cetesdirecto-bonddia'), ('cetesdirecto', 'cetesdirecto-udibonos')))`)
+  await pool.query(`ALTER TABLE user_product_configs ADD CONSTRAINT user_product_configs_product_integrity_check CHECK ((institution_id, product_id) IN (('banco-plata', 'plata-cuenta'), ('banco-plata', 'ahorro-flexible'), ('banco-plata', 'ahorro-fijo'), ('openbank', 'openbank'), ('nu', 'nu-cajita-turbo'), ('didi-cuenta', 'didi-cuenta'), ('mifel', 'mifel-cuenta-digital'), ('kubo', 'kubo-liquidez'), ('kubo', 'kubo-plazos'), ('kubo', 'kubo-largo-plazo'), ('mercado-pago', 'mercado-pago'), ('cetesdirecto', 'cetesdirecto-cetes'), ('cetesdirecto', 'cetesdirecto-bonos'), ('cetesdirecto', 'cetesdirecto-bonddia'), ('cetesdirecto', 'cetesdirecto-udibonos')))`)
   await pool.query(`ALTER TABLE investments ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE`)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT`)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`)
@@ -137,14 +139,21 @@ async function normalizeLegacyDidiData() {
     await pool.query("UPDATE investments SET product_id = 'openbank' WHERE institution_id = 'openbank' AND product_id IN ('openbank-13', 'openbank-7', 'openbank-6-5')")
     await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"openbank\"'::jsonb, true) WHERE institution_id = 'openbank' AND (data->>'productId') IN ('openbank-13', 'openbank-7', 'openbank-6-5')")
 
-    await pool.query("UPDATE institutions SET data = jsonb_set(data, '{products}', COALESCE((SELECT jsonb_agg(CASE WHEN product->>'id' IN ('didi-15', 'didi-7', 'didi-beneficios') THEN jsonb_set(product, '{id}', '\"didi-cuenta\"'::jsonb, true) WHEN product->>'id' IN ('mifel-cuenta-digital-evoluciona') THEN jsonb_set(product, '{id}', '\"mifel-cuenta-digital\"'::jsonb, true) WHEN product->>'id' IN ('openbank-13', 'openbank-7', 'openbank-6-5') THEN jsonb_set(product, '{id}', '\"openbank\"'::jsonb, true) ELSE product END) FROM jsonb_array_elements(data->'products') AS product), '[]'::jsonb), true) WHERE id IN ('didi-cuenta', 'mifel', 'openbank') AND jsonb_typeof(data->'products') = 'array'")
+    await pool.query("UPDATE user_product_configs SET product_id = 'mercado-pago' WHERE institution_id = 'mercado-pago' AND product_id IN ('mercado-pago-12', 'mercado-pago-6')")
+    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'mercado-pago' AND product_id <> 'mercado-pago'")
 
-    await pool.query("DELETE FROM user_product_configs WHERE institution_id IN ('didi-cuenta', 'mifel', 'openbank') AND product_id NOT IN ('didi-cuenta', 'mifel-cuenta-digital', 'openbank')")
+    await pool.query("UPDATE investments SET product_id = 'mercado-pago' WHERE institution_id = 'mercado-pago' AND product_id IN ('mercado-pago-12', 'mercado-pago-6')")
+    await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"mercado-pago\"'::jsonb, true) WHERE institution_id = 'mercado-pago' AND (data->>'productId') IN ('mercado-pago-12', 'mercado-pago-6')")
+
+    await pool.query("UPDATE institutions SET data = jsonb_set(data, '{products}', COALESCE((SELECT jsonb_agg(CASE WHEN product->>'id' IN ('didi-15', 'didi-7', 'didi-beneficios') THEN jsonb_set(product, '{id}', '\"didi-cuenta\"'::jsonb, true) WHEN product->>'id' IN ('mifel-cuenta-digital-evoluciona') THEN jsonb_set(product, '{id}', '\"mifel-cuenta-digital\"'::jsonb, true) WHEN product->>'id' IN ('openbank-13', 'openbank-7', 'openbank-6-5') THEN jsonb_set(product, '{id}', '\"openbank\"'::jsonb, true) WHEN product->>'id' IN ('mercado-pago-12', 'mercado-pago-6') THEN jsonb_set(product, '{id}', '\"mercado-pago\"'::jsonb, true) ELSE product END) FROM jsonb_array_elements(data->'products') AS product), '[]'::jsonb), true) WHERE id IN ('didi-cuenta', 'mifel', 'openbank', 'mercado-pago') AND jsonb_typeof(data->'products') = 'array'")
+
+    await pool.query("DELETE FROM user_product_configs WHERE institution_id IN ('didi-cuenta', 'mifel', 'openbank', 'mercado-pago') AND product_id NOT IN ('didi-cuenta', 'mifel-cuenta-digital', 'openbank', 'mercado-pago')")
     await pool.query("UPDATE investments SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id <> 'didi-cuenta'")
     await pool.query("UPDATE investments SET product_id = 'mifel-cuenta-digital' WHERE institution_id = 'mifel' AND product_id <> 'mifel-cuenta-digital'")
     await pool.query("UPDATE investments SET product_id = 'openbank' WHERE institution_id = 'openbank' AND product_id <> 'openbank'")
+    await pool.query("UPDATE investments SET product_id = 'mercado-pago' WHERE institution_id = 'mercado-pago' AND product_id <> 'mercado-pago'")
 
-    console.log('[MIGRATION] Legacy DiDi/Mifel/Openbank product IDs normalizados a su producto canónico')
+    console.log('[MIGRATION] Legacy DiDi/Mifel/Openbank/Mercado Pago product IDs normalizados a su producto canónico')
   } catch (error) {
     console.error('[MIGRATION] Error normalizando legacy products:', error)
   }
