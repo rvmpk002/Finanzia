@@ -36,6 +36,39 @@ test('createUserProductConfig builds a complete record from a product seed', () 
   assert.equal(record.isActive, true);
 });
 
+test('hydrateDefaultProductConfig uses the real catalog rates for default protection settings', () => {
+  const mercadoPago = createUserProductConfig({
+    institutionId: 'mercado-pago',
+    productId: 'mercado-pago',
+    annualRate: 12,
+    promoCap: 0,
+    excessRate: 0,
+    calculationMethod: 'compound',
+    taxRate: 0,
+    daysBase: 365,
+    promotionDays: 60,
+    isActive: true,
+  });
+
+  assert.equal(mercadoPago.annualRate, 12);
+  assert.equal(mercadoPago.promoCap, 0);
+
+  const mifel = createUserProductConfig({
+    institutionId: 'mifel',
+    productId: 'mifel-cuenta-digital',
+    annualRate: 10,
+    promoCap: 25000,
+    excessRate: 0,
+    calculationMethod: 'mifel360',
+    taxRate: 9,
+    daysBase: 360,
+    promotionDays: 60,
+    isActive: true,
+  });
+
+  assert.equal(mifel.promoCap, 500000);
+});
+
 test('mergeUserProductConfig applies the logged-in user override to the catalog product', () => {
   const institutions = [{
     id: 'mifel',

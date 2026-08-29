@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { startRegistration } from "@simplewebauthn/browser";
 import NavigationHeader from "./NavigationHeader";
-import { normalizeUserProductConfig, notifyUserConfigUpdated, type UserProductConfig } from "./userConfig";
+import { hydrateDefaultProductConfig, normalizeUserProductConfig, notifyUserConfigUpdated, type UserProductConfig } from "./userConfig";
 import { userConfigExamples } from "./userConfigExamples";
 import { formatInstitutionName, formatProductName } from "./displayNames";
 
@@ -137,24 +137,36 @@ export default function ProfilePage() {
             }
 
             if (institution.products && Array.isArray(institution.products)) {
-              institution.products.forEach((product: { id: string; name?: string }) => {
+              institution.products.forEach((product: {
+                id: string;
+                name?: string;
+                annualRate?: number;
+                promoCap?: number;
+                excessRate?: number;
+                calculationMethod?: "compound" | "simple" | "simple360" | "flexible" | "openbank" | "mifel360" | "kubo";
+                taxRate?: number;
+                daysBase?: number;
+                promotionDays?: number;
+              }) => {
                 const key = `${institution.id}::${product.id}`;
 
                 productNameMap[institution.id][product.id] = formatProductName(product.id, product.name);
 
                 if (!exampleMap.has(key)) {
-                  exampleMap.set(key, normalizeUserProductConfig({
-                    institutionId: institution.id,
-                    productId: product.id,
-                    annualRate: 0,
-                    promoCap: 0,
-                    excessRate: 0,
-                    calculationMethod: "compound",
-                    taxRate: 0,
-                    daysBase: 365,
-                    promotionDays: 60,
-                    isActive: true,
-                  }));
+                  exampleMap.set(
+                    key,
+                    hydrateDefaultProductConfig(institution.id, {
+                      id: product.id,
+                      annualRate: product.annualRate ?? 0,
+                      promoCap: product.promoCap ?? 0,
+                      excessRate: product.excessRate ?? 0,
+                      calculationMethod: product.calculationMethod ?? "compound",
+                      taxRate: product.taxRate ?? 0,
+                      daysBase: product.daysBase ?? 365,
+                      promotionDays: product.promotionDays ?? 60,
+                      isActive: true,
+                    }),
+                  );
                 }
               });
             }

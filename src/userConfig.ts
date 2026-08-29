@@ -58,6 +58,33 @@ export const canonicalizeProductPromoCap = (institutionId: string, promoCap?: nu
   return Math.max(0, safePromoCap);
 };
 
+export const hydrateDefaultProductConfig = (
+  institutionId: string,
+  product: Partial<UserProductConfig> & { id?: string } = {},
+): UserProductConfig => {
+  const defaults = defaultUserProductConfig();
+  const normalizedInstitutionId = String(institutionId ?? "").trim();
+  const normalizedProductId = String(product.id ?? "").trim();
+  const defaultConfig = {
+    institutionId: normalizedInstitutionId,
+    productId: normalizedProductId,
+    annualRate: Number(product.annualRate ?? defaults.annualRate),
+    promoCap: canonicalizeProductPromoCap(
+      normalizedInstitutionId,
+      Number.isFinite(Number(product.promoCap)) ? Number(product.promoCap) : defaults.promoCap,
+    ),
+    excessRate: Math.max(0, Number(product.excessRate ?? defaults.excessRate)),
+    calculationMethod: (product.calculationMethod as CalculationMethod) ?? defaults.calculationMethod,
+    taxRate: Math.max(0, Number(product.taxRate ?? defaults.taxRate)),
+    daysBase: Math.max(1, Number(product.daysBase ?? defaults.daysBase)),
+    promotionDays: Math.max(0, Number(product.promotionDays ?? defaults.promotionDays)),
+    isActive: product.isActive ?? defaults.isActive,
+    updatedAt: product.updatedAt ?? new Date().toISOString(),
+  };
+
+  return normalizeUserProductConfig(defaultConfig);
+};
+
 export const normalizeUserProductConfig = (input: UserProductConfigInput): UserProductConfig => {
   const defaults = defaultUserProductConfig();
   const safeNumber = (value: unknown, fallback: number) => {
