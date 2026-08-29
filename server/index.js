@@ -126,8 +126,8 @@ async function normalizeLegacyDidiData() {
     await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'banco-plata' AND product_id NOT IN ('ahorro-flexible', 'ahorro-fijo')")
     await pool.query("UPDATE investments SET product_id = 'ahorro-flexible' WHERE institution_id = 'banco-plata' AND product_id = 'plata-cuenta'")
     await pool.query("UPDATE investments SET product_id = 'ahorro-fijo' WHERE institution_id = 'banco-plata' AND product_id = 'ahorro-fijo'")
-    await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '"ahorro-flexible"'::jsonb, true) WHERE institution_id = 'banco-plata' AND (data->>'productId') = 'plata-cuenta'")
-    await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '"ahorro-fijo"'::jsonb, true) WHERE institution_id = 'banco-plata' AND (data->>'productId') = 'ahorro-fijo'")
+    await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"ahorro-flexible\"'::jsonb, true) WHERE institution_id = 'banco-plata' AND (data->>'productId') = 'plata-cuenta'")
+    await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"ahorro-fijo\"'::jsonb, true) WHERE institution_id = 'banco-plata' AND (data->>'productId') = 'ahorro-fijo'")
 
     await pool.query("UPDATE user_product_configs SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id IN ('didi-15', 'didi-7', 'didi-beneficios')")
     await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'didi-cuenta' AND product_id <> 'didi-cuenta'")
