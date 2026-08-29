@@ -2,6 +2,24 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { kuboInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
 
+const emulateRollover = (rows: Array<{ endDate: string; balance: number; updatedBalance: number; termDays?: number; reinvestmentRule?: 'no' | 'capital' | 'capital_e_intereses'; }>, today: Date) => {
+  return rows.flatMap((investment) => {
+    if (!investment.endDate || investment.reinvestmentRule === 'no') return [investment];
+    const maturityDate = new Date(`${investment.endDate}T00:00:00`);
+    if (maturityDate > today) return [investment];
+
+    const rolloverBase = investment.reinvestmentRule === 'capital'
+      ? Math.max(0, investment.balance)
+      : Math.max(0, investment.updatedBalance);
+    return [{
+      ...investment,
+      balance: rolloverBase,
+      updatedBalance: rolloverBase,
+      endDate: new Date(today.getTime() + Math.max(1, investment.termDays ?? 30) * 86400000).toISOString().slice(0, 10),
+    }];
+  });
+};
+
 test('simple interest uses the configured days base instead of compounding', () => {
   const daily = simpleInterest(100000, 11.5, 1, 365);
   const total = simpleInterest(100000, 11.5, 1, 365);
@@ -18,8 +36,25 @@ test('fixed-rate products without promo tiers keep the full balance at the annua
   assert.equal(split.effectiveExcessRate, 13);
 });
 
-test('Kubo short-term maturity uses simple annual interest instead of compounding', () => {
-  const interest = kuboInterest(27925.21, 10, 4);
+test('Kubo short-term maturity matches the official net return for a 3-day term', () => {
+  const interest = kuboInterest(27925.21, 10, 3);
 
-  assert.ok(Math.abs(interest - 30.60) < 0.2, `Kubo interest should be around $30.60 for a 4-day term, got $${interest.toFixed(2)}`);
+  assert.ok(Math.abs(interest - 21.18) < 0.2, `Kubo net interest should be around $21.18, got $${interest.toFixed(2)}`);
+});
+
+test('matured plazo investments with automatic reinvestment rollover their principal and interest', () => {
+  const matured = [{
+    endDate: '2026-08-31',
+    balance: 27925.21,
+    updatedBalance: 27946.39,
+    termDays: 3,
+    reinvestmentRule: 'capital_e_intereses' as const,
+  }];
+
+  const rolled = emulateRollover(matured, new Date('2026-08-31T00:00:00'));
+
+  assert.equal(rolled.length, 1);
+  assert.equal(rolled[0].balance, 27946.39);
+  assert.equal(rolled[0].updatedBalance, 27946.39);
+  assert.equal(rolled[0].endDate, '2026-09-03');
 });

@@ -66,6 +66,7 @@ type Investment = {
   netDailyYield?: number;
   withdrawn: number;
   plataPlus?: boolean;
+  reinvestmentRule?: "no" | "capital" | "capital_e_intereses";
   updatedAt?: string;
   etfName?: string;
   etfTitles?: number;
@@ -118,6 +119,46 @@ const kuboAvailabilityDate = (date: Date) => {
   if (availability.getDay() === 0) availability.setDate(availability.getDate() + 1);
   return availability.toISOString().slice(0, 10);
 };
+export const reinvestMaturedInvestments = (
+  investments: Investment[],
+  today = new Date(),
+): Investment[] => investments.flatMap((investment) => {
+  if (!investment.endDate || investment.reinvestmentRule === "no") return [investment];
+  const maturityDate = new Date(`${investment.endDate}T00:00:00`);
+  if (maturityDate > today) return [investment];
+
+  const rolloverBase =
+    investment.reinvestmentRule === "capital"
+      ? Math.max(0, Number(investment.balance) || 0)
+      : Math.max(0, Number(investment.updatedBalance) || 0);
+  const nextTermDays = Math.max(1, Number(investment.termDays) || 30);
+  const nextStartDate = today.toISOString().slice(0, 10);
+  const nextEndDate = new Date(today);
+  nextEndDate.setDate(today.getDate() + nextTermDays);
+
+  return [{
+    ...investment,
+    balance: rolloverBase,
+    withdrawn: 0,
+    updatedBalance: rolloverBase,
+    updatedBalanceOverride: undefined,
+    startDate: nextStartDate,
+    endDate: nextEndDate.toISOString().slice(0, 10),
+    calculatedAt: nextStartDate,
+    dailyYield: 0,
+    monthlyYield: 0,
+    nextMonthBalance: rolloverBase,
+    estimatedToday: rolloverBase,
+    totalAccumulated: 0,
+    promotionalYield: 0,
+    excessYield: 0,
+    taxWithheld: 0,
+    netDailyYield: 0,
+    daysElapsed: 0,
+    overwroteMatured: true,
+  } as Investment];
+});
+
 const calculateInvestment = (
   investment: Investment,
   institutions: Institution[],
@@ -286,7 +327,7 @@ export default function DashboardPage({
   institutions: Institution[];
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("vista");
-  const [investments, setInvestments] = useState<Investment[]>(readLocalInvestments);
+  const [investments, setInvestments] = useState<Investment[]>(() => reinvestMaturedInvestments(readLocalInvestments()));
   const [editingBalances, setEditingBalances] = useState<Record<string, string>>({});
   const [activeBalanceId, setActiveBalanceId] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(5);
@@ -369,8 +410,9 @@ export default function DashboardPage({
             }
           }),
         );
-        setInvestments(recalculatedInvestments);
-        localStorage.setItem(investmentStorageKey(), JSON.stringify(recalculatedInvestments));
+        const rolledInvestments = reinvestMaturedInvestments(recalculatedInvestments);
+        setInvestments(rolledInvestments);
+        localStorage.setItem(investmentStorageKey(), JSON.stringify(rolledInvestments));
       } catch {
         const localInvestments = readLocalInvestments().map((investment) => {
           const normalized = investment.institutionId === "kubo" ? { ...investment, type: "plazo" as const } : investment;
@@ -379,8 +421,9 @@ export default function DashboardPage({
             calculateInvestment(normalized, institutions, formulaStore[formulaKey(normalized.institutionId, normalized.productId)] ?? defaultFormulaConfig),
           );
         });
-        setInvestments(localInvestments);
-        localStorage.setItem(investmentStorageKey(), JSON.stringify(localInvestments));
+        const rolledInvestments = reinvestMaturedInvestments(localInvestments);
+        setInvestments(rolledInvestments);
+        localStorage.setItem(investmentStorageKey(), JSON.stringify(rolledInvestments));
       }
     };
     window.addEventListener("finanzia-investment-saved", refreshInvestments);

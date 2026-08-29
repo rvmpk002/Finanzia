@@ -35,8 +35,10 @@ export const simpleInterest = (
 export const bancoPlataInterest = (principal: number, annualRate: number, days: number) =>
   principal * (annualRate / 100) * (days / 360);
 
-export const kuboInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (annualRate / 100) * (days / 365);
+export const kuboInterest = (principal: number, annualRate: number, days: number) => {
+  const kuboEffectiveTaxRate = 0.077;
+  return principal * (annualRate / 100) * (days / 365) * (1 - kuboEffectiveTaxRate);
+};
 
 export const mifelInterest = (principal: number, annualRate: number, days: number, daysBase = 360) =>
   principal * (annualRate / 100) * (days / daysBase);

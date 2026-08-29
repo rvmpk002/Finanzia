@@ -30,6 +30,7 @@ type SavedInvestment = {
   excessRate?: number;
   termDays?: number;
   plataPlus?: boolean;
+  reinvestmentRule?: "no" | "capital" | "capital_e_intereses";
   endDate?: string;
   etfName?: string;
   etfTitles?: number;
@@ -92,8 +93,10 @@ const openbankPostingDays = (date: Date) => {
   if (day === 1) return 3;
   return 1;
 };
-const kuboInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (annualRate / 100) * (days / 365);
+const kuboInterest = (principal: number, annualRate: number, days: number) => {
+  const kuboEffectiveTaxRate = 0.077;
+  return principal * (annualRate / 100) * (days / 365) * (1 - kuboEffectiveTaxRate);
+};
 const flexibleUltraInterest = (
   principal: number,
   promoCap: number,
@@ -155,6 +158,7 @@ export default function InvestmentPage({
   const [fixedRate, setFixedRate] = useState("7");
   const [promoCapInput, setPromoCapInput] = useState("0");
   const [excessRateInput, setExcessRateInput] = useState("0");
+  const [reinvestmentRule, setReinvestmentRule] = useState<"no" | "capital" | "capital_e_intereses">("capital_e_intereses");
   const [balance, setBalance] = useState("0");
   const [withdrawn, setWithdrawn] = useState("0");
   const [startDate, setStartDate] = useState(dateValue(new Date()));
@@ -381,6 +385,7 @@ export default function InvestmentPage({
     setProductId(investment.productId);
     setInvestmentName(investment.investmentName ?? "");
     setPlataPlus(investment.plataPlus ?? false);
+    setReinvestmentRule(investment.reinvestmentRule ?? "capital_e_intereses");
     setFixedRate(
       String(investment.annualRate ?? 11),
     );
@@ -543,6 +548,7 @@ export default function InvestmentPage({
       updatedBalance,
       totalAccumulated,
       plataPlus: institutionId === "banco-plata" && plataPlus,
+      reinvestmentRule,
       updatedAt: new Date().toISOString(),
     };
     try {
@@ -879,6 +885,17 @@ export default function InvestmentPage({
                     </label>
                   )}
                 </div>
+                <label>
+                  Regla de reinversión
+                  <select
+                    value={reinvestmentRule}
+                    onChange={(event) => setReinvestmentRule(event.target.value as "no" | "capital" | "capital_e_intereses")}
+                  >
+                    <option value="no">No reinvertir</option>
+                    <option value="capital">Reinvertir solo capital</option>
+                    <option value="capital_e_intereses">Reinvertir capital e intereses</option>
+                  </select>
+                </label>
               </div>
             )}
             {activeTab !== "etf" && (
