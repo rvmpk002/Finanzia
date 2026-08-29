@@ -9,13 +9,22 @@ import { fileURLToPath } from 'node:url'
 import nodemailer from 'nodemailer'
 import { generateSecret, generateURI, verify } from 'otplib'
 import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse } from '@simplewebauthn/server'
+import { resolveDatabaseConfig } from './dbConfig.js'
 
 const { Pool } = pg
 const app = express()
 const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3001)
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
 const frontendDirectory = path.resolve(currentDirectory, '../dist')
-const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined }) : null
+const databaseConfig = resolveDatabaseConfig(process.env.DATABASE_URL)
+const pool = databaseConfig ? new Pool(databaseConfig) : null
+
+if (pool) {
+  pool.on('error', (error) => {
+    console.error('[DB] Error inesperado del pool PostgreSQL:', error)
+  })
+}
+
 const rpName = 'Finanzia'
 const rpID = process.env.WEBAUTHN_RP_ID ?? 'cosmic-smakager-b538c4.netlify.app'
 const origin = process.env.WEBAUTHN_ORIGIN ?? `https://${rpID}`

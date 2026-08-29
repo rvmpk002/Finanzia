@@ -83,6 +83,7 @@ export default function ConfigurationPage({ institutions }: Props) {
         product: { id: key.slice(4), name: key.slice(4), description: "", conditions: [], icon: "account" as const, calculationMethod: "etf" as const },
       })),
   ], [institutions, formulaStore]);
+
   useEffect(() => {
     const loadFormulas = async () => {
       try {
@@ -112,24 +113,29 @@ export default function ConfigurationPage({ institutions }: Props) {
           if (!seeded[key]) seeded[key] = { ...defaultFormulaConfig };
         });
 
-        formulaProducts.forEach(({ institution, product }) => {
-          const key = formulaKey(institution.id, product.id);
-          if (!seeded[key]) seeded[key] = { ...defaultFormulaConfig };
+        institutions.forEach((institution) => {
+          institution.products.forEach((product) => {
+            const key = formulaKey(institution.id, product.id);
+            if (!seeded[key]) seeded[key] = { ...defaultFormulaConfig };
+          });
         });
 
-        setFormulaStore(seeded);
+        setFormulaStore((current) => {
+          const next = { ...current, ...seeded };
+          const hasChanged = JSON.stringify(current) !== JSON.stringify(next);
+          return hasChanged ? next : current;
+        });
         setSavedFormulaStore(seeded);
       } catch (error) {
         const message = error instanceof Error ? error.message : "No fue posible cargar las fórmulas desde PostgreSQL.";
         setSavedMessage(message);
-        // Fallback: use empty formulas, will be populated with defaults
         setFormulaStore({});
         setSavedFormulaStore({});
       }
     };
 
-    loadFormulas();
-  }, [formulaProducts]);
+    void loadFormulas();
+  }, [institutions]);
   const selectedFormula = formulaProducts.find(({ institution, product }) => formulaKey(institution.id, product.id) === selectedFormulaKey) ?? formulaProducts[0];
   const activeFormulaKey = selectedFormula ? formulaKey(selectedFormula.institution.id, selectedFormula.product.id) : "";
   const formulas = selectedFormula ? { ...defaultFormulaConfig, ...formulaStore[activeFormulaKey] } : defaultFormulaConfig;
