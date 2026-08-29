@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { startRegistration } from "@simplewebauthn/browser";
 import NavigationHeader from "./NavigationHeader";
+import { normalizeUserProductConfig, type UserProductConfig } from "./userConfig";
+import { userConfigExamples } from "./userConfigExamples";
 
 type User = {
   email: string;
@@ -31,6 +33,8 @@ export default function ProfilePage() {
   const [qrCode, setQrCode] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [userConfigs, setUserConfigs] = useState<UserProductConfig[]>([]);
+  const [selectedConfigIndex, setSelectedConfigIndex] = useState(0);
   const headers = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
@@ -95,6 +99,20 @@ export default function ProfilePage() {
       .catch(() => setError("No fue posible cargar tus Passkeys."));
   }, [token]);
   useEffect(() => {
+    fetch("/api/user-config", { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then((data: UserProductConfig[]) => {
+        const configs = data.length ? data : userConfigExamples.map((example) => normalizeUserProductConfig(example));
+        setUserConfigs(configs);
+        setSelectedConfigIndex(0);
+      })
+      .catch(() => {
+        const configs = userConfigExamples.map((example) => normalizeUserProductConfig(example));
+        setUserConfigs(configs);
+        setSelectedConfigIndex(0);
+      });
+  }, [token]);
+  useEffect(() => {
     const container = document.querySelector<HTMLElement>(".profile-secret");
     if (!container || !qrCode) return;
     container.textContent = "";
@@ -118,6 +136,26 @@ export default function ProfilePage() {
         ? "Datos personales guardados."
         : "No fue posible guardar los datos.",
     );
+  };
+  const selectedConfig = userConfigs[selectedConfigIndex] ?? userConfigExamples[0];
+  const updateSelectedConfig = <K extends keyof UserProductConfig>(key: K, value: UserProductConfig[K]) => {
+    setUserConfigs((current) => current.map((config, index) => index === selectedConfigIndex ? { ...config, [key]: value } : config));
+  };
+  const saveUserConfig = async () => {
+    if (!selectedConfig) return;
+    const payload = normalizeUserProductConfig(selectedConfig);
+    const response = await fetch("/api/user-config", {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => payload);
+    if (!response.ok) {
+      setError(data.error ?? "No fue posible guardar la configuración del usuario.");
+      return;
+    }
+    setUserConfigs((current) => current.map((config, index) => index === selectedConfigIndex ? normalizeUserProductConfig({ ...payload, ...data }) : config));
+    setMessage("Configuración del usuario guardada.");
   };
   const setupTwoFactor = async () => {
     const response = await fetch("/api/auth/2fa/setup", {
@@ -200,6 +238,144 @@ export default function ProfilePage() {
           </div>
           <UserRound size={30} className="configuration-icon" />
         </div>
+        <section className="profile-panel config-section" style={{ marginBottom: "1.5rem" }}>
+          <div className="profile-heading">
+            <div className="profile-heading-icon config-icon">
+              <ShieldCheck size={28} />
+            </div>
+            <div>
+              <span className="eyebrow profile-accent-green">Configuración personal</span>
+              <h2>Ajusta tasas y parámetros</h2>
+            </div>
+          </div>
+          <div className="profile-divider" />
+          <div className="config-tabs">
+            {userConfigs.map((config, index) => (
+              <button
+                key={`${config.institutionId}-${config.productId}`}
+                className={`config-tab ${selectedConfigIndex === index ? "active" : ""}`}
+                onClick={() => setSelectedConfigIndex(index)}
+              >
+                <strong>{config.institutionId}</strong>
+                <span>{config.productId}</span>
+              </button>
+            ))}
+          </div>
+          {selectedConfig && (
+            <div className="config-form">
+              <div className="config-grid">
+                <div className="config-field">
+                  <label>
+                    <span className="label-title">Tasa anual (%)</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={selectedConfig?.annualRate ?? 0}
+                      onChange={(event) => updateSelectedConfig("annualRate", Number(event.target.value) || 0)}
+                    />
+                  </label>
+                  <small>Rendimiento anual en porcentaje</small>
+                </div>
+                <div className="config-field">
+                  <label>
+                    <span className="label-title">Tope promocional</span>
+                    <input
+                      type="number"
+                      step="100"
+                      value={selectedConfig?.promoCap ?? 0}
+                      onChange={(event) => updateSelectedConfig("promoCap", Number(event.target.value) || 0)}
+                    />
+                  </label>
+                  <small>Monto máximo con tasa promocional</small>
+                </div>
+                <div className="config-field">
+                  <label>
+                    <span className="label-title">Tasa excedente (%)</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={selectedConfig?.excessRate ?? 0}
+                      onChange={(event) => updateSelectedConfig("excessRate", Number(event.target.value) || 0)}
+                    />
+                  </label>
+                  <small>Tasa para montos fuera del tope</small>
+                </div>
+                <div className="config-field">
+                  <label>
+                    <span className="label-title">Retención fiscal (%)</span>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={selectedConfig?.taxRate ?? 0}
+                      onChange={(event) => updateSelectedConfig("taxRate", Number(event.target.value) || 0)}
+                    />
+                  </label>
+                  <small>Impuesto retenido en ganancias</small>
+                </div>
+                <div className="config-field">
+                  <label>
+                    <span className="label-title">Días base (año)</span>
+                    <input
+                      type="number"
+                      step="1"
+                      min="1"
+                      value={selectedConfig?.daysBase ?? 365}
+                      onChange={(event) => updateSelectedConfig("daysBase", Math.max(1, Number(event.target.value) || 365))}
+                    />
+                  </label>
+                  <small>Días en el año comercial (365 ó 360)</small>
+                </div>
+                <div className="config-field">
+                  <label>
+                    <span className="label-title">Días de promoción</span>
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      value={selectedConfig?.promotionDays ?? 60}
+                      onChange={(event) => updateSelectedConfig("promotionDays", Math.max(0, Number(event.target.value) || 60))}
+                    />
+                  </label>
+                  <small>Duración de la tasa promocional</small>
+                </div>
+                <div className="config-field">
+                  <label>
+                    <span className="label-title">Método de cálculo</span>
+                    <select
+                      value={selectedConfig?.calculationMethod ?? "compound"}
+                      onChange={(event) => updateSelectedConfig("calculationMethod", event.target.value as UserProductConfig["calculationMethod"])}
+                    >
+                      <option value="compound">Interés compuesto (365)</option>
+                      <option value="simple">Interés simple (365)</option>
+                      <option value="simple360">Interés simple (360)</option>
+                      <option value="flexible">Ultra flexible</option>
+                      <option value="openbank">Openbank (tiered)</option>
+                      <option value="mifel360">Mifel (360)</option>
+                      <option value="kubo">Kubo financiero</option>
+                    </select>
+                  </label>
+                  <small>Fórmula para calcular ganancias</small>
+                </div>
+                <div className="config-field full-width">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={selectedConfig?.isActive ?? true}
+                      onChange={(event) => updateSelectedConfig("isActive", event.target.checked)}
+                    />
+                    <span>Producto activo</span>
+                  </label>
+                  <small>Desactiva este producto temporalmente si es necesario</small>
+                </div>
+              </div>
+              <div className="config-actions">
+                <button className="primary-button" onClick={() => void saveUserConfig()}>
+                  Guardar cambios
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
         <section className="profile-security-grid">
           <div className="profile-panel profile-security-panel">
             <div className="profile-heading">

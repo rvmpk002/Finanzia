@@ -84,7 +84,7 @@ export default function ConfigurationPage({ institutions }: Props) {
       })),
   ], [institutions, formulaStore]);
   useEffect(() => {
-    fetch("/api/formulas")
+    fetch("/api/formulas", { headers: authHeaders() })
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then((saved: FormulaStore) => {
         return fetch("/api/investments", { headers: authHeaders() })
@@ -105,7 +105,7 @@ export default function ConfigurationPage({ institutions }: Props) {
         });
         setFormulaStore(seeded);
         setSavedFormulaStore(seeded);
-        void fetch("/api/formulas", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(seeded) });
+        void fetch("/api/formulas", { method: "PUT", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(seeded) });
       })
       .catch(() => setSavedMessage("No fue posible cargar las fórmulas desde PostgreSQL."));
   }, [formulaProducts]);
@@ -124,7 +124,7 @@ export default function ConfigurationPage({ institutions }: Props) {
 
   const saveChanges = async () => {
     try {
-      const response = await fetch("/api/formulas", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formulaStore) });
+      const response = await fetch("/api/formulas", { method: "PUT", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(formulaStore) });
       if (!response.ok) throw new Error("API unavailable");
       setSavedFormulaStore(formulaStore);
       setIsConfirmOpen(false);

@@ -35,8 +35,22 @@ async function ensureSchema() {
   await pool.query('CREATE EXTENSION IF NOT EXISTS pgcrypto')
   await pool.query(`CREATE TABLE IF NOT EXISTS institutions (id TEXT PRIMARY KEY, name TEXT NOT NULL, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS investments (id BIGSERIAL PRIMARY KEY, type VARCHAR(20) NOT NULL CHECK (type IN ('vista', 'plazo', 'etf')), institution_id TEXT NOT NULL, product_id TEXT NOT NULL, data JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
-  await pool.query(`CREATE TABLE IF NOT EXISTS calculation_formulas (id TEXT PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT UNIQUE NOT NULL, password_hash TEXT, full_name TEXT, phone TEXT, two_factor_secret TEXT, two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
+  await pool.query(`CREATE TABLE IF NOT EXISTS calculation_formulas (
+    id TEXT NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    data JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (id, user_id)
+  )`)
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_product_configs (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    institution_id TEXT NOT NULL,
+    product_id TEXT NOT NULL,
+    data JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, institution_id, product_id)
+  )`)
   await pool.query(`ALTER TABLE investments ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE`)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT`)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`)
@@ -238,10 +252,12 @@ app.delete('/api/auth/passkey/:id', async (request, response) => {
   return response.json({ revoked: true, id: result.rows[0].id })
 })
 
-app.get('/api/formulas', async (_request, response) => {
+app.get('/api/formulas', async (request, response) => {
+  const user = await currentUser(request)
+  if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
   try {
-    const result = await pool.query('SELECT data FROM calculation_formulas WHERE id = $1', ['default'])
+    const result = await pool.query('SELECT data FROM calculation_formulas WHERE id = $1 AND user_id = $2', ['default', user.id])
     return response.json(result.rows[0]?.data ?? {})
   } catch (error) {
     console.error(error)
@@ -250,13 +266,66 @@ app.get('/api/formulas', async (_request, response) => {
 })
 
 app.put('/api/formulas', async (request, response) => {
+  const user = await currentUser(request)
+  if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
   try {
-    const result = await pool.query('INSERT INTO calculation_formulas (id, data, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW() RETURNING data', ['default', request.body ?? {}])
+    const result = await pool.query('INSERT INTO calculation_formulas (id, user_id, data, updated_at) VALUES ($1, $2, $3, NOW()) ON CONFLICT (id, user_id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW() RETURNING data', ['default', user.id, request.body ?? {}])
     return response.json(result.rows[0].data)
   } catch (error) {
     console.error(error)
     return response.status(500).json({ error: 'No fue posible guardar las fórmulas.' })
+  }
+})
+
+app.get('/api/user-config', async (request, response) => {
+  const user = await currentUser(request)
+  if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
+  if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
+  try {
+    const result = await pool.query('SELECT institution_id, product_id, data FROM user_product_configs WHERE user_id = $1 ORDER BY institution_id, product_id', [user.id])
+    return response.json(result.rows.map((row) => ({
+      institutionId: row.institution_id,
+      productId: row.product_id,
+      ...row.data,
+    })))
+  } catch (error) {
+    console.error(error)
+    return response.status(500).json({ error: 'No fue posible consultar la configuración del usuario.' })
+  }
+})
+
+app.put('/api/user-config', async (request, response) => {
+  const user = await currentUser(request)
+  if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
+  if (!pool) return response.status(503).json({ error: 'DATABASE_URL no está configurada.' })
+  const institutionId = String(request.body?.institutionId ?? '').trim()
+  const productId = String(request.body?.productId ?? '').trim()
+  if (!institutionId || !productId) return response.status(400).json({ error: 'Faltan institutionId o productId.' })
+  const data = { ...request.body }
+  delete data.institutionId
+  delete data.productId
+  const normalized = {
+    annualRate: Number.isFinite(Number(data.annualRate)) ? Number(data.annualRate) : 0,
+    promoCap: Math.max(0, Number.isFinite(Number(data.promoCap)) ? Number(data.promoCap) : 0),
+    excessRate: Math.max(0, Number.isFinite(Number(data.excessRate)) ? Number(data.excessRate) : 0),
+    calculationMethod: data.calculationMethod ?? 'compound',
+    taxRate: Math.max(0, Number.isFinite(Number(data.taxRate)) ? Number(data.taxRate) : 0),
+    daysBase: Math.max(1, Number.isFinite(Number(data.daysBase)) ? Number(data.daysBase) : 365),
+    promotionDays: Math.max(0, Number.isFinite(Number(data.promotionDays)) ? Number(data.promotionDays) : 60),
+    isActive: data.isActive ?? true,
+    updatedAt: new Date().toISOString(),
+  }
+  try {
+    const result = await pool.query('INSERT INTO user_product_configs (user_id, institution_id, product_id, data, updated_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (user_id, institution_id, product_id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW() RETURNING institution_id, product_id, data', [user.id, institutionId, productId, normalized])
+    return response.json({
+      institutionId: result.rows[0].institution_id,
+      productId: result.rows[0].product_id,
+      ...result.rows[0].data,
+    })
+  } catch (error) {
+    console.error(error)
+    return response.status(500).json({ error: 'No fue posible guardar la configuración del usuario.' })
   }
 })
 

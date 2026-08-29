@@ -472,6 +472,27 @@ input:focus, textarea:focus, select:focus, .search-box:focus-within { border-col
 
 .profile-security-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; margin-top: 42px; }
 .profile-security-panel { min-height: 470px; padding: 48px; background: #101729; border-color: #26334d; border-radius: 22px; }
+.config-section { padding: 28px; background: linear-gradient(145deg, #13202b, #0d151d); border-color: #2a4855; }
+.config-icon { color: #62f5c5; background: #0f353f; box-shadow: 0 0 22px #62f5c533; }
+.config-tabs { display: flex; gap: 8px; margin-bottom: 22px; overflow-x: auto; padding-bottom: 8px; }
+.config-tab { appearance: none; border: 1px solid #2a4855; background: #0b151c; color: #a8c6ca; padding: 12px 16px; border-radius: 8px; cursor: pointer; transition: all .2s ease; white-space: nowrap; font: inherit; display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+.config-tab:hover { border-color: #3ccbb0; background: #122a32; }
+.config-tab.active { background: linear-gradient(120deg, #0f4a54, #0b3a45); border-color: #3ccbb0; color: #62f5c5; box-shadow: 0 0 16px #62f5c544; }
+.config-tab strong { font-size: 13px; font-weight: 700; }
+.config-tab span { font-size: 11px; opacity: .75; }
+.config-form { display: grid; gap: 24px; margin-top: 18px; }
+.config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+.config-field { display: grid; gap: 8px; }
+.config-field label { display: grid; gap: 6px; }
+.config-field .label-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #9aa3b8; }
+.config-field input, .config-field select { background: #0a131a; border: 1px solid #29424b; border-radius: 6px; padding: 10px 12px; color: #edf8f6; font: 14px inherit; transition: border-color .2s ease, box-shadow .2s ease; }
+.config-field input:focus, .config-field select:focus { border-color: #62f5c5; outline: 0; box-shadow: 0 0 0 3px #62f5c522; }
+.config-field small { font-size: 11px; color: #7a8a98; line-height: 1.4; }
+.config-field.full-width { grid-column: 1 / -1; }
+.checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.checkbox-label input { width: 18px; height: 18px; accent-color: #62f5c5; margin: 0; cursor: pointer; }
+.checkbox-label span { font-weight: 500; }
+.config-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 12px; border-top: 1px solid #29424b; margin-top: 8px; }
 .profile-heading { display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; align-items: center; gap: 17px; }
 .profile-heading-icon { display: grid; place-items: center; width: 60px; height: 60px; border: 1px solid; border-radius: 18px; }
 .passkey-icon { color: #00d69b; border-color: #075f50; background: #06242a; }

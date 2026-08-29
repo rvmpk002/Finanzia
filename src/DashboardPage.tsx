@@ -8,6 +8,18 @@ import {
 import { defaultFormulaConfig, evaluateFormula } from "./calculationConfig";
 import { formulaKey } from "./calculationConfig";
 import type { FormulaConfig, FormulaStore } from "./calculationConfig";
+import {
+  completedMonthsBetween,
+  daysInMonth,
+  flexibleUltraInterest,
+  getCalculatedUpdatedBalance,
+  kuboInterest,
+  mifelInterest,
+  openbankInterest,
+  openbankPostingDays,
+  compoundInterest,
+  simpleInterest,
+} from "./calculationEngine";
 import NavigationHeader from "./NavigationHeader";
 import { authHeaders, investmentStorageKey } from "./auth";
 
@@ -96,70 +108,12 @@ const etfMetrics = (investment: Investment, formulas: FormulaConfig) => {
     monthlyDividendIncome,
   };
 };
-const compoundInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (Math.pow(1 + annualRate / 100 / 365, days) - 1);
-const simpleInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (annualRate / 100) * (days / 365);
-const bancoPlataInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (annualRate / 100) * (days / 360);
-const kuboInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (Math.pow(1 + annualRate / 100, days / 365) - 1);
-const mifelInterest = (principal: number, annualRate: number, days: number, daysBase = 360) =>
-  principal * (annualRate / 100) * (days / daysBase);
-const openbankInterest = (
-  principal: number,
-  annualRate: number,
-  excessRate: number,
-  days: number,
-  daysBase = 360,
-) => {
-  const firstTier = Math.min(principal, 30000);
-  const secondTier = Math.min(Math.max(0, principal - 30000), 970000);
-  const thirdTier = Math.max(0, principal - 1000000);
-  return (
-    (firstTier * annualRate / 100 + (secondTier + thirdTier) * excessRate / 100) *
-    (days / daysBase)
-  );
-};
-const openbankPostingDays = (date: Date) => {
-  const day = date.getDay();
-  if (day === 0) return 0;
-  if (day === 1) return 3;
-  return 1;
-};
-const flexibleUltraInterest = (
-  principal: number,
-  promoCap: number,
-  days: number,
-  promoRate: number,
-  excessRate: number,
-  promotionDays = 60,
-) => {
-  const promoDays = Math.min(days, promotionDays);
-  const remainingDays = Math.max(0, days - promotionDays);
-  const promoAmount = Math.min(principal, promoCap);
-  const excessAmount = Math.max(0, principal - promoCap);
-  const promoValue = promoAmount * Math.pow(1 + promoRate / 100 / 365, promoDays);
-  const excessValue = excessAmount * Math.pow(1 + excessRate / 100 / 365, promoDays);
-  return promoValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) +
-    excessValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) - principal;
-};
-const daysInMonth = (date: Date) =>
-  new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 const kuboAvailabilityDate = (date: Date) => {
   const availability = new Date(date);
   availability.setDate(availability.getDate() + 1);
   if (availability.getDay() === 6) availability.setDate(availability.getDate() + 2);
   if (availability.getDay() === 0) availability.setDate(availability.getDate() + 1);
   return availability.toISOString().slice(0, 10);
-};
-const completedMonthsBetween = (startDate: Date, calculationDate: Date) => {
-  let months =
-    (calculationDate.getFullYear() - startDate.getFullYear()) * 12 +
-    calculationDate.getMonth() -
-    startDate.getMonth();
-  if (calculationDate.getDate() < startDate.getDate()) months -= 1;
-  return Math.max(0, months);
 };
 const calculateInvestment = (
   investment: Investment,
@@ -251,13 +205,12 @@ const calculateInvestment = (
             configuredCompoundInterest(excessBalance, excessRate, daysElapsed),
   );
   const completedMonths = completedMonthsBetween(startDate, calculationDate);
-  const calculatedUpdatedBalance = Math.max(
-    0,
-    availableBalance +
-      (calculationMethod === "compound" || calculationMethod === "kubo" || calculationMethod === "openbank"
-        ? totalAccumulated
-        : monthlyYield * completedMonths) -
-      0,
+  const calculatedUpdatedBalance = getCalculatedUpdatedBalance(
+    availableBalance,
+    totalAccumulated,
+    calculationMethod,
+    monthlyYield,
+    completedMonths,
   );
   const updatedBalance = Math.max(
     0,
@@ -345,7 +298,7 @@ export default function DashboardPage({
     );
   };
   useEffect(() => {
-    fetch("/api/formulas")
+    fetch("/api/formulas", { headers: authHeaders() })
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then((saved: FormulaStore) => setFormulaStore(saved))
       .catch(() => undefined);

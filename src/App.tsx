@@ -21,6 +21,7 @@ import AuthPage from "./AuthPage";
 import ProfilePage from "./ProfilePage";
 import ReportsPage from "./ReportsPage";
 import NavigationHeader from "./NavigationHeader";
+import { mergeUserProductConfig } from "./userConfig";
 import "./App.css";
 
 type RateProduct = {
@@ -525,6 +526,22 @@ function App() {
     if (!databaseLoaded) return;
     fetch("/api/institutions/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(institutions) }).catch(() => undefined);
   }, [databaseLoaded, institutions]);
+  useEffect(() => {
+    if (!authToken) return;
+    let isActive = true;
+    fetch("/api/user-config", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    })
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then((userConfigs) => {
+        if (!isActive) return;
+        setInstitutions((current) => mergeUserProductConfig(current, userConfigs));
+      })
+      .catch(() => undefined);
+    return () => {
+      isActive = false;
+    };
+  }, [authToken]);
   useEffect(() => {
     if (authToken && window.location.pathname === "/login") window.location.replace("/instituciones");
   }, [authToken]);

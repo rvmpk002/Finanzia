@@ -323,7 +323,7 @@ export default function InvestmentPage({
   const updatedBalance = Math.max(
     0,
     availableBalance +
-      (isDidi || isKubo || isNu || isOpenbank
+      (isDidi || isKubo || isNu || isOpenbank || isMifel
         ? totalAccumulated
         : monthlyYield * completedMonths) -
       0,

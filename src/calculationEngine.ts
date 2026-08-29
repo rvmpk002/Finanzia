@@ -1,0 +1,80 @@
+export const compoundInterest = (principal: number, annualRate: number, days: number) =>
+  principal * (Math.pow(1 + annualRate / 100 / 365, days) - 1);
+
+export const simpleInterest = (principal: number, annualRate: number, days: number) =>
+  principal * (annualRate / 100) * (days / 365);
+
+export const bancoPlataInterest = (principal: number, annualRate: number, days: number) =>
+  principal * (annualRate / 100) * (days / 360);
+
+export const kuboInterest = (principal: number, annualRate: number, days: number) =>
+  principal * (Math.pow(1 + annualRate / 100, days / 365) - 1);
+
+export const mifelInterest = (principal: number, annualRate: number, days: number, daysBase = 360) =>
+  principal * (annualRate / 100) * (days / daysBase);
+
+export const openbankInterest = (
+  principal: number,
+  annualRate: number,
+  excessRate: number,
+  days: number,
+  daysBase = 360,
+) => {
+  const firstTier = Math.min(principal, 30000);
+  const secondTier = Math.min(Math.max(0, principal - 30000), 970000);
+  const thirdTier = Math.max(0, principal - 1000000);
+  return (
+    (firstTier * annualRate / 100 + (secondTier + thirdTier) * excessRate / 100) *
+    (days / daysBase)
+  );
+};
+
+export const openbankPostingDays = (date: Date) => {
+  const day = date.getDay();
+  if (day === 0) return 0;
+  if (day === 1) return 3;
+  return 1;
+};
+
+export const flexibleUltraInterest = (
+  principal: number,
+  promoCap: number,
+  days: number,
+  promoRate: number,
+  excessRate: number,
+  promotionDays = 60,
+) => {
+  const promoDays = Math.min(days, promotionDays);
+  const remainingDays = Math.max(0, days - promotionDays);
+  const promoAmount = Math.min(principal, promoCap);
+  const excessAmount = Math.max(0, principal - promoCap);
+  const promoValue = promoAmount * Math.pow(1 + promoRate / 100 / 365, promoDays);
+  const excessValue = excessAmount * Math.pow(1 + excessRate / 100 / 365, promoDays);
+  return promoValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) +
+    excessValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) - principal;
+};
+
+export const daysInMonth = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+
+export const completedMonthsBetween = (startDate: Date, calculationDate: Date) => {
+  let months =
+    (calculationDate.getFullYear() - startDate.getFullYear()) * 12 +
+    calculationDate.getMonth() -
+    startDate.getMonth();
+  if (calculationDate.getDate() < startDate.getDate()) months -= 1;
+  return Math.max(0, months);
+};
+
+export const getCalculatedUpdatedBalance = (
+  availableBalance: number,
+  totalAccumulated: number,
+  calculationMethod: string,
+  monthlyYield: number,
+  completedMonths: number,
+) => {
+  const fallback = availableBalance + (calculationMethod === "compound" || calculationMethod === "kubo" || calculationMethod === "openbank" || calculationMethod === "mifel360"
+    ? totalAccumulated
+    : monthlyYield * completedMonths);
+  return Math.max(0, fallback);
+};
