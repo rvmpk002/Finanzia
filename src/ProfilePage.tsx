@@ -374,28 +374,24 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="profile-divider" />
-          <div className="config-tabs">
-            {(() => {
-              let currentInstitution = "";
-              return orderedConfigs.map((config, index) => {
-                const showDivider = currentInstitution && currentInstitution !== config.institutionId;
-                currentInstitution = config.institutionId;
-                const institutionName = formatInstitutionName(config.institutionId, institutionNames[config.institutionId]);
-                const productName = formatProductName(config.productId, productNames[config.institutionId]?.[config.productId]);
-                
-                return (
-                  <button
-                    key={`${config.institutionId}-${config.productId}`}
-                    className={`config-tab ${selectedConfigIndex === index ? "active" : ""}${showDivider ? " with-divider" : ""}`}
-                    onClick={() => setSelectedConfigIndex(index)}
-                    style={showDivider ? { marginLeft: "0.75rem", paddingLeft: "0.75rem", borderLeft: "1px solid var(--color-border, #e5e7eb)" } : {}}
-                  >
-                    <strong>{institutionName}</strong>
-                    <span>{productName}</span>
-                  </button>
-                );
-              });
-            })()}
+          <div className="config-selector">
+            <label className="config-selector-label">
+              <span>Producto a ajustar</span>
+              <select
+                value={selectedConfigIndex}
+                onChange={(event) => setSelectedConfigIndex(Number(event.target.value))}
+              >
+                {orderedConfigs.map((config, index) => {
+                  const institutionName = formatInstitutionName(config.institutionId, institutionNames[config.institutionId]);
+                  const productName = formatProductName(config.productId, productNames[config.institutionId]?.[config.productId]);
+                  return (
+                    <option key={`${config.institutionId}-${config.productId}`} value={index}>
+                      {institutionName} · {productName}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
           </div>
           {selectedConfig && (
             <div className="config-form">
