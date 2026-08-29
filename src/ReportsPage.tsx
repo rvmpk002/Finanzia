@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3, Download, FileText } from "lucide-react";
 import NavigationHeader from "./NavigationHeader";
 import { authHeaders, investmentStorageKey } from "./auth";
+import { normalizeInvestmentType } from "./tabRules";
 
 type Type = "vista" | "plazo" | "etf";
 type Institution = { id: string; name: string; products?: Product[] };
@@ -463,12 +464,24 @@ export default function ReportsPage({
   useEffect(() => {
     const loadInvestments = () => {
       const validInstitutionIds = new Set(institutions.map((institution) => institution.id));
+      const normalizeLoadedInvestment = (item: Investment) => {
+        const type = normalizeInvestmentType(item.institutionId, item.type);
+        return { ...item, type };
+      };
       fetch("/api/investments", { headers: authHeaders() })
         .then((response) => (response.ok ? response.json() : Promise.reject()))
-        .then((data) => setInvestments(data.filter((item: Investment) => validInstitutionIds.has(item.institutionId))))
+        .then((data) =>
+          setInvestments(
+            data
+              .map((item: Investment) => normalizeLoadedInvestment(item))
+              .filter((item: Investment) => validInstitutionIds.has(item.institutionId)),
+          ),
+        )
         .catch(() =>
           setInvestments(
-            JSON.parse(localStorage.getItem(investmentStorageKey()) ?? "[]").filter((item: Investment) => validInstitutionIds.has(item.institutionId)),
+            JSON.parse(localStorage.getItem(investmentStorageKey()) ?? "[]")
+              .map((item: Investment) => normalizeLoadedInvestment(item))
+              .filter((item: Investment) => validInstitutionIds.has(item.institutionId)),
           ),
         );
     };
@@ -484,20 +497,23 @@ export default function ReportsPage({
   }, [institutions]);
   const filterOptions = useMemo(() => {
     const options = investments
-      .filter((item) => item.type === filter)
-      .map((item) => ({
-        value:
-          filter === "etf"
-            ? (item.etfName ?? item.productId)
-            : item.institutionId,
-        label:
-          filter === "etf"
-            ? (item.etfName ?? item.productId)
-            : (institutions.find(
-                (institution) => institution.id === item.institutionId,
-              )?.name ?? item.institutionId),
-      }))
-      .filter((option) => option.value && option.label);
+      .map((item) => {
+        const normalizedType = normalizeInvestmentType(item.institutionId, item.type);
+        if (normalizedType !== filter) return null;
+        return {
+          value:
+            filter === "etf"
+              ? (item.etfName ?? item.productId)
+              : item.institutionId,
+          label:
+            filter === "etf"
+              ? (item.etfName ?? item.productId)
+              : (institutions.find(
+                  (institution) => institution.id === item.institutionId,
+                )?.name ?? item.institutionId),
+        };
+      })
+      .filter((option): option is { value: string; label: string } => Boolean(option && option.value && option.label));
     return Array.from(
       new Map(options.map((option) => [option.value, option])).values(),
     ).sort((first, second) => first.label.localeCompare(second.label, "es"));
@@ -518,15 +534,17 @@ export default function ReportsPage({
   }, [filter, filterOptions, institutionId]);
   const filtered = useMemo(
     () =>
-      investments.filter(
-        (item) =>
-          item.type === filter &&
+      investments.filter((item) => {
+        const normalizedType = normalizeInvestmentType(item.institutionId, item.type);
+        return (
+          normalizedType === filter &&
           (!institutionId ||
             ((filter === "etf"
               ? (item.etfName ?? item.productId) === institutionId
               : item.institutionId === institutionId) &&
-              periodMatches(item, period))),
-      ),
+              periodMatches(item, period)))
+        );
+      }),
     [filter, institutionId, investments, period],
   );
   const summary = useMemo(

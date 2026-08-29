@@ -23,6 +23,7 @@ import {
 } from "./calculationEngine";
 import NavigationHeader from "./NavigationHeader";
 import { authHeaders, investmentStorageKey } from "./auth";
+import { normalizeInvestmentType } from "./tabRules";
 
 type Product = {
   id: string;
@@ -285,7 +286,7 @@ export default function DashboardPage({
   const formulasFor = (investment: Investment) =>
     formulaStore[formulaKey(investment.institutionId, investment.productId)] ?? defaultFormulaConfig;
   const isKuboLiquidity = (investment: Investment) =>
-    investment.institutionId === "kubo" && investment.type === "vista";
+    investment.institutionId === "kubo" && normalizeInvestmentType(investment.institutionId, investment.type) === "plazo" && investment.type === "vista";
   const rolloverKuboLiquidity = (
     investment: Investment,
     calculatedInvestment: Investment,
@@ -442,7 +443,7 @@ export default function DashboardPage({
     }
   };
   const visible = investments
-    .filter((investment) => (investment.institutionId === "kubo" ? "plazo" : investment.type) === activeTab)
+    .filter((investment) => normalizeInvestmentType(investment.institutionId, investment.type) === activeTab)
     .sort((first, second) => {
       const firstInstitution = institutions.find(
         (institution) => institution.id === first.institutionId,

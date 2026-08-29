@@ -53,6 +53,10 @@ const canonicalizeProductId = (institutionId, productId) => {
   if (institutionId === 'mercado-pago' && legacyMercadoPagoProductIds.has(normalized)) return 'mercado-pago'
   return normalized
 }
+const normalizeInvestmentType = (institutionId, type) => {
+  if (String(institutionId ?? '').trim() === 'kubo') return 'plazo'
+  return ['vista', 'plazo', 'etf'].includes(String(type ?? '')) ? String(type) : 'vista'
+}
 const isValidInstitutionProduct = (institutionId, productId) => {
   const normalizedInstitutionId = String(institutionId ?? '').trim()
   const normalizedProductId = String(productId ?? '').trim()
@@ -121,6 +125,7 @@ async function ensureSchema() {
 async function normalizeLegacyDidiData() {
   if (!pool) return
   try {
+    await pool.query("UPDATE investments SET type = 'plazo', data = jsonb_set(data, '{type}', '\"plazo\"'::jsonb, true) WHERE institution_id = 'kubo' AND type <> 'plazo'")
     await pool.query("UPDATE user_product_configs SET product_id = 'ahorro-flexible' WHERE institution_id = 'banco-plata' AND product_id = 'plata-cuenta'")
     await pool.query("UPDATE user_product_configs SET product_id = 'ahorro-fijo' WHERE institution_id = 'banco-plata' AND product_id = 'ahorro-fijo'")
     await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'banco-plata' AND product_id NOT IN ('ahorro-flexible', 'ahorro-fijo')")
@@ -560,7 +565,14 @@ app.get('/api/investments', async (request, response) => {
   if (!user) return response.status(401).json({ error: 'Sesión no válida.' })
   try {
     const result = await pool.query('SELECT id, data, created_at FROM investments WHERE user_id = $1 ORDER BY created_at DESC', [user.id])
-    return response.json(result.rows.map((row) => ({ ...row.data, id: row.id, createdAt: row.created_at })))
+    return response.json(result.rows.map((row) => ({
+      ...row.data,
+      id: row.id,
+      createdAt: row.created_at,
+      institutionId: row.data?.institutionId ?? row.data?.institution_id,
+      productId: row.data?.productId ?? row.data?.product_id,
+      type: normalizeInvestmentType(row.data?.institutionId ?? row.data?.institution_id, row.data?.type),
+    })))
   } catch (error) {
     console.error(error)
     return response.status(500).json({ error: 'No fue posible consultar las inversiones.' })
@@ -575,7 +587,7 @@ app.post('/api/investments', async (request, response) => {
   if (!investment?.type || !investment?.institutionId || !investment?.productId) return response.status(400).json({ error: 'Faltan datos requeridos.' })
   const { institutionId, productId, isValid } = sanitizeInstitutionProduct(investment.institutionId, investment.productId)
   if (!isValid) return response.status(400).json({ error: 'La inversión tiene un producto inválido para la institución.' })
-  const normalizedInvestment = { ...investment, institutionId, productId }
+  const normalizedInvestment = { ...investment, institutionId, productId, type: normalizeInvestmentType(institutionId, investment.type) }
   try {
     const result = await pool.query('INSERT INTO investments (type, institution_id, product_id, data, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at', [normalizedInvestment.type, normalizedInvestment.institutionId, normalizedInvestment.productId, normalizedInvestment, user.id])
     return response.status(201).json({ ...normalizedInvestment, id: result.rows[0].id, createdAt: result.rows[0].created_at })
@@ -593,7 +605,7 @@ app.put('/api/investments/:id', async (request, response) => {
   if (!investment?.type || !investment?.institutionId || !investment?.productId) return response.status(400).json({ error: 'Faltan datos requeridos.' })
   const { institutionId, productId, isValid } = sanitizeInstitutionProduct(investment.institutionId, investment.productId)
   if (!isValid) return response.status(400).json({ error: 'La inversión tiene un producto inválido para la institución.' })
-  const normalizedInvestment = { ...investment, institutionId, productId }
+  const normalizedInvestment = { ...investment, institutionId, productId, type: normalizeInvestmentType(institutionId, investment.type) }
   try {
     const result = await pool.query('UPDATE investments SET type = $1, institution_id = $2, product_id = $3, data = $4 WHERE id = $5 AND user_id = $6 RETURNING id, created_at', [normalizedInvestment.type, normalizedInvestment.institutionId, normalizedInvestment.productId, normalizedInvestment, request.params.id, user.id])
     if (!result.rowCount) return response.status(404).json({ error: 'Inversión no encontrada.' })

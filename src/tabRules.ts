@@ -42,7 +42,16 @@ export const isSelectableInstitution = (institutionId: string, tab: Tab = "vista
   return true;
 };
 
-export const getInvestmentTab = (institutionId: string, currentTab: Tab = "vista") => {
+export const normalizeInvestmentType = (
+  institutionId: string,
+  currentType: Tab | "" | string = "vista",
+): Tab => {
   if (institutionId === "kubo") return "plazo";
-  return currentTab;
+  return (currentType === "vista" || currentType === "plazo" || currentType === "etf")
+    ? currentType
+    : "vista";
+};
+
+export const getInvestmentTab = (institutionId: string, currentTab: Tab = "vista") => {
+  return normalizeInvestmentType(institutionId, currentTab);
 };
