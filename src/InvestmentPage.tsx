@@ -13,29 +13,7 @@ type RateProduct = {
 };
 type Institution = { id: string; name: string; products: RateProduct[] };
 type Tab = "vista" | "plazo" | "etf";
-const isSelectableProduct = (
-  institutionId: string,
-  product: RateProduct,
-  tab: Tab = "vista",
-) =>
-  (institutionId !== "didi-cuenta" || product.id === "didi-cuenta") &&
-  (institutionId !== "kubo" ||
-    (tab === "plazo"
-      ? product.id !== "kubo-liquidez"
-      : product.id === "kubo-liquidez")) &&
-  (institutionId !== "mifel" || product.id === "mifel-cuenta-digital") &&
-  (institutionId !== "nu" || product.id === "nu-cajita-turbo") &&
-  (institutionId !== "openbank" || product.id === "openbank") &&
-  (institutionId !== "banco-plata" || ["ahorro-flexible", "ahorro-fijo"].includes(product.id)) &&
-  (tab !== "plazo" ||
-    ["cetesdirecto-cetes", "cetesdirecto-udibonos", "ahorro-fijo"].includes(
-      product.id,
-    )) &&
-  !(institutionId === "banco-plata" && product.id === "ahorro-fijo" && tab !== "plazo");
-const isSelectableInstitution = (institutionId: string, tab: Tab = "vista") =>
-  tab === "plazo"
-    ? ["cetesdirecto", "banco-plata", "kubo"].includes(institutionId)
-    : institutionId !== "cetesdirecto";
+import { isSelectableInstitution, isSelectableProduct } from "./tabRules";
 type SavedInvestment = {
   id?: number;
   type: Tab;
