@@ -26,15 +26,12 @@ const isSelectableProduct = (
   (institutionId !== "mifel" || product.id === "mifel-cuenta-digital") &&
   (institutionId !== "nu" || product.id === "nu-cajita-turbo") &&
   (institutionId !== "openbank" || product.id === "openbank") &&
+  (institutionId !== "banco-plata" || ["ahorro-flexible", "ahorro-fijo"].includes(product.id)) &&
   (tab !== "plazo" ||
     ["cetesdirecto-cetes", "cetesdirecto-udibonos", "ahorro-fijo"].includes(
       product.id,
     )) &&
-  !(
-    institutionId === "banco-plata" &&
-    product.id === "ahorro-fijo" &&
-    tab !== "plazo"
-  );
+  !(institutionId === "banco-plata" && product.id === "ahorro-fijo" && tab !== "plazo");
 const isSelectableInstitution = (institutionId: string, tab: Tab = "vista") =>
   tab === "plazo"
     ? ["cetesdirecto", "banco-plata", "kubo"].includes(institutionId)
@@ -159,13 +156,12 @@ const sameInvestment = (first: SavedInvestment, second: SavedInvestment) =>
 const defaultRateFor = (
   institutionId: string,
   product: RateProduct | undefined,
-  plataPlus: boolean,
 ) => {
   if (institutionId !== "banco-plata" || !product)
     return product?.annualRate ?? 0;
-  if (product.id === "plata-cuenta") return plataPlus ? 7 : 0;
-  if (product.id === "ahorro-flexible") return plataPlus ? 15 : 7;
-  return plataPlus ? 9 : 7;
+  if (product.id === "ahorro-flexible") return 15;
+  if (product.id === "ahorro-fijo") return 11;
+  return product?.annualRate ?? 0;
 };
 
 export default function InvestmentPage({
@@ -365,7 +361,7 @@ export default function InvestmentPage({
         isSelectableProduct(value, product, activeTab),
       );
     setProductId(nextProduct?.id ?? "");
-    setFixedRate(String(defaultRateFor(value, nextProduct, plataPlus)));
+    setFixedRate(String(defaultRateFor(value, nextProduct)));
     setPromoCapInput(String(nextProduct?.promoCap ?? (value === "mifel" ? 500000 : 0)));
     setExcessRateInput(String(nextProduct?.excessRate ?? 0));
     setSavedMessage("");
@@ -408,7 +404,7 @@ export default function InvestmentPage({
     setInvestmentName(investment.investmentName ?? "");
     setPlataPlus(investment.plataPlus ?? false);
     setFixedRate(
-      String(investment.annualRate ?? (investment.plataPlus ? 9 : 7)),
+      String(investment.annualRate ?? 11),
     );
     setPromoCapInput(String(investment.promoCap ?? (investment.institutionId === "mifel" ? 500000 : 0)));
     setExcessRateInput(String(investment.excessRate ?? 0));
@@ -776,7 +772,7 @@ export default function InvestmentPage({
                       );
                       setFixedRate(
                         String(
-                          defaultRateFor(institutionId, nextProduct, plataPlus),
+                          defaultRateFor(institutionId, nextProduct),
                         ),
                       );
                       setPromoCapInput(String(nextProduct?.promoCap ?? 0));
