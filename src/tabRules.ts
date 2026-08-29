@@ -23,8 +23,7 @@ export const isSelectableProduct = (
   if (institutionId === "openbank") return product.id === "openbank";
 
   if (institutionId === "kubo") {
-    if (tab === "plazo") return product.id !== "kubo-liquidez";
-    return product.id === "kubo-liquidez";
+    return tab === "vista" && product.id === "kubo-liquidez";
   }
 
   if (institutionId === "banco-plata") {
@@ -38,6 +37,7 @@ export const isSelectableProduct = (
 export const isSelectableInstitution = (institutionId: string, tab: Tab = "vista") => {
   if (institutionId === "banco-plata") return tab === "plazo";
   if (institutionId === "cetesdirecto") return tab !== "vista";
-  if (tab === "plazo") return ["cetesdirecto", "kubo"].includes(institutionId);
+  if (institutionId === "kubo") return tab === "vista";
+  if (tab === "plazo") return ["cetesdirecto"].includes(institutionId);
   return true;
 };
