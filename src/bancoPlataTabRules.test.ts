@@ -11,8 +11,9 @@ test('Banco Plata products are only selectable in the plazo tab and both product
   assert.equal(isSelectableInstitution('banco-plata', 'plazo'), true);
 });
 
-test('Kubo is excluded from the plazo flow', () => {
-  assert.equal(isSelectableInstitution('kubo', 'plazo'), false);
-  assert.equal(isSelectableProduct('kubo', { id: 'kubo-liquidez' }, 'plazo'), false);
-  assert.equal(isSelectableInstitution('kubo', 'vista'), true);
+test('Kubo is a single plazo product priced at 10% for 1-4 day terms', () => {
+  assert.equal(isSelectableInstitution('kubo', 'plazo'), true);
+  assert.equal(isSelectableInstitution('kubo', 'vista'), false);
+  assert.equal(isSelectableProduct('kubo', { id: 'kubo-liquidez' }, 'plazo'), true);
+  assert.equal(isSelectableProduct('kubo', { id: 'kubo-liquidez' }, 'vista'), false);
 });
