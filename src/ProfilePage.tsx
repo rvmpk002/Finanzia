@@ -102,7 +102,20 @@ export default function ProfilePage() {
     fetch("/api/user-config", { headers: { Authorization: `Bearer ${token}` } })
       .then((response) => (response.ok ? response.json() : Promise.reject()))
       .then((data: UserProductConfig[]) => {
-        const configs = data.length ? data : userConfigExamples.map((example) => normalizeUserProductConfig(example));
+        // Siempre usar todos los ejemplos como base
+        const exampleMap = new Map<string, UserProductConfig>();
+        userConfigExamples.forEach((example) => {
+          const key = `${example.institutionId}::${example.productId}`;
+          exampleMap.set(key, normalizeUserProductConfig(example));
+        });
+        
+        // Sobrescribir con datos del usuario si existen
+        data.forEach((userConfig) => {
+          const key = `${userConfig.institutionId}::${userConfig.productId}`;
+          exampleMap.set(key, userConfig);
+        });
+        
+        const configs = Array.from(exampleMap.values());
         setUserConfigs(configs);
         setSelectedConfigIndex(0);
       })
@@ -137,7 +150,32 @@ export default function ProfilePage() {
         : "No fue posible guardar los datos.",
     );
   };
-  const selectedConfig = userConfigs[selectedConfigIndex] ?? userConfigExamples[0];
+  const orderedConfigs = [...userConfigs].sort((left, right) => {
+    // Orden preferido de instituciones
+    const institutionOrder: Record<string, number> = {
+      "mifel": 1,
+      "openbank": 2,
+      "nu": 3,
+      "didi-cuenta": 4,
+      "kubo": 5,
+    };
+    
+    const leftOrder = institutionOrder[left.institutionId.toLowerCase()] ?? 99;
+    const rightOrder = institutionOrder[right.institutionId.toLowerCase()] ?? 99;
+    
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    return left.productId.localeCompare(right.productId, "es", { sensitivity: "base" });
+  });
+  const resolveConfigLabel = (config: UserProductConfig) => {
+    const institutionName = config.institutionId
+      .replace(/[-_]/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    const productName = config.productId
+      .replace(/[-_]/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    return `${institutionName} / ${productName}`;
+  };
+  const selectedConfig = orderedConfigs[selectedConfigIndex] ?? orderedConfigs[0] ?? userConfigExamples[0];
   const updateSelectedConfig = <K extends keyof UserProductConfig>(key: K, value: UserProductConfig[K]) => {
     setUserConfigs((current) => current.map((config, index) => index === selectedConfigIndex ? { ...config, [key]: value } : config));
   };
@@ -250,16 +288,25 @@ export default function ProfilePage() {
           </div>
           <div className="profile-divider" />
           <div className="config-tabs">
-            {userConfigs.map((config, index) => (
-              <button
-                key={`${config.institutionId}-${config.productId}`}
-                className={`config-tab ${selectedConfigIndex === index ? "active" : ""}`}
-                onClick={() => setSelectedConfigIndex(index)}
-              >
-                <strong>{config.institutionId}</strong>
-                <span>{config.productId}</span>
-              </button>
-            ))}
+            {(() => {
+              let currentInstitution = "";
+              return orderedConfigs.map((config, index) => {
+                const showDivider = currentInstitution && currentInstitution !== config.institutionId;
+                currentInstitution = config.institutionId;
+                
+                return (
+                  <button
+                    key={`${config.institutionId}-${config.productId}`}
+                    className={`config-tab ${selectedConfigIndex === index ? "active" : ""}${showDivider ? " with-divider" : ""}`}
+                    onClick={() => setSelectedConfigIndex(index)}
+                    style={showDivider ? { marginLeft: "0.75rem", paddingLeft: "0.75rem", borderLeft: "1px solid var(--color-border, #e5e7eb)" } : {}}
+                  >
+                    <strong>{config.institutionId}</strong>
+                    <span>{resolveConfigLabel(config).replace(`${config.institutionId} / `, "")}</span>
+                  </button>
+                );
+              });
+            })()}
           </div>
           {selectedConfig && (
             <div className="config-form">
