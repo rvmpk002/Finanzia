@@ -257,7 +257,13 @@ export default function ProfilePage() {
   };
   const selectedConfig = orderedConfigs[selectedConfigIndex] ?? orderedConfigs[0] ?? userConfigExamples[0];
   const updateSelectedConfig = <K extends keyof UserProductConfig>(key: K, value: UserProductConfig[K]) => {
-    setUserConfigs((current) => current.map((config, index) => index === selectedConfigIndex ? { ...config, [key]: value } : config));
+    setUserConfigs((current) => current.map((config, index) => {
+      if (index !== selectedConfigIndex) return config;
+      if (config.institutionId.toLowerCase() === "mifel" && key === "promoCap") {
+        return { ...config, [key]: 500000 };
+      }
+      return { ...config, [key]: value };
+    }));
   };
   const saveUserConfig = async () => {
     if (!selectedConfig) return;
@@ -412,7 +418,7 @@ export default function ProfilePage() {
                     <input
                       type="number"
                       step="100"
-                      value={selectedConfig?.promoCap ?? 0}
+                      value={selectedConfig?.institutionId.toLowerCase() === "mifel" ? 500000 : (selectedConfig?.promoCap ?? 0)}
                       onChange={(event) => updateSelectedConfig("promoCap", Number(event.target.value) || 0)}
                     />
                   </label>

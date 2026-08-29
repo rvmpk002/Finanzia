@@ -416,12 +416,12 @@ app.put('/api/user-config', async (request, response) => {
   delete data.institutionId
   delete data.productId
   const normalized = {
-    annualRate: Number.isFinite(Number(data.annualRate)) ? Number(data.annualRate) : 0,
-    promoCap: Math.max(0, Number.isFinite(Number(data.promoCap)) ? Number(data.promoCap) : 0),
+    annualRate: institutionId === 'mifel' ? 10 : (Number.isFinite(Number(data.annualRate)) ? Number(data.annualRate) : 0),
+    promoCap: institutionId === 'mifel' ? 500000 : Math.max(0, Number.isFinite(Number(data.promoCap)) ? Number(data.promoCap) : 0),
     excessRate: Math.max(0, Number.isFinite(Number(data.excessRate)) ? Number(data.excessRate) : 0),
-    calculationMethod: data.calculationMethod ?? 'compound',
-    taxRate: Math.max(0, Number.isFinite(Number(data.taxRate)) ? Number(data.taxRate) : 0),
-    daysBase: Math.max(1, Number.isFinite(Number(data.daysBase)) ? Number(data.daysBase) : 365),
+    calculationMethod: institutionId === 'mifel' ? 'mifel360' : (data.calculationMethod ?? 'compound'),
+    taxRate: institutionId === 'mifel' ? 9 : Math.max(0, Number.isFinite(Number(data.taxRate)) ? Number(data.taxRate) : 0),
+    daysBase: institutionId === 'mifel' ? 360 : Math.max(1, Number.isFinite(Number(data.daysBase)) ? Number(data.daysBase) : 365),
     promotionDays: Math.max(0, Number.isFinite(Number(data.promotionDays)) ? Number(data.promotionDays) : 60),
     isActive: data.isActive ?? true,
     updatedAt: new Date().toISOString(),

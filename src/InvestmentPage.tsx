@@ -235,7 +235,8 @@ export default function InvestmentPage({
   const isMifel = institutionId === "mifel";
   const isNu = institutionId === "nu";
   const isOpenbank = institutionId === "openbank";
-  const promoCap = Math.max(0, Number(promoCapInput) || 0);
+  const canonicalMifelPromoCap = 500000;
+  const promoCap = isMifel ? canonicalMifelPromoCap : Math.max(0, Number(promoCapInput) || 0);
   const annualRate = selectedProduct ? Number(fixedRate) : 0;
   const excessRate = Math.max(0, Number(excessRateInput) || 0);
   const daysElapsed = Math.max(
@@ -365,7 +366,7 @@ export default function InvestmentPage({
       );
     setProductId(nextProduct?.id ?? "");
     setFixedRate(String(defaultRateFor(value, nextProduct, plataPlus)));
-    setPromoCapInput(String(nextProduct?.promoCap ?? 0));
+    setPromoCapInput(String(nextProduct?.promoCap ?? (value === "mifel" ? 500000 : 0)));
     setExcessRateInput(String(nextProduct?.excessRate ?? 0));
     setSavedMessage("");
   };
@@ -409,7 +410,7 @@ export default function InvestmentPage({
     setFixedRate(
       String(investment.annualRate ?? (investment.plataPlus ? 9 : 7)),
     );
-    setPromoCapInput(String(investment.promoCap ?? 0));
+    setPromoCapInput(String(investment.promoCap ?? (investment.institutionId === "mifel" ? 500000 : 0)));
     setExcessRateInput(String(investment.excessRate ?? 0));
     setBalance(String(investment.balance));
     setWithdrawn(String(investment.withdrawn));
