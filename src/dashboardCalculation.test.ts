@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { calculateInvestment, fromLocalDateString, toLocalDateString } from './DashboardPage.tsx';
 import { kuboInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
-import { fromLocalDateString, toLocalDateString } from './DashboardPage.tsx';
 
 const emulateRollover = (rows: Array<{ endDate: string; balance: number; updatedBalance: number; termDays?: number; reinvestmentRule?: 'no' | 'capital' | 'capital_e_intereses'; }>, today: Date) => {
   return rows.flatMap((investment) => {
@@ -77,4 +77,48 @@ test('date-only values stay in local calendar time and do not jump by one day', 
   assert.equal(parsed.getFullYear(), 2026);
   assert.equal(parsed.getMonth(), 7);
   assert.equal(parsed.getDate(), 29);
+});
+
+test('Nu recalculates its updated balance automatically even when a stale override exists', () => {
+  const institutions = [{
+    id: 'nu',
+    name: 'Nu',
+    products: [{
+      id: 'nu-cajita-turbo',
+      name: 'Cajita Turbo',
+      annualRate: 13,
+      calculationMethod: 'compound',
+      promoCap: 0,
+      excessRate: 0,
+    }],
+  }];
+  const investment = {
+    type: 'vista' as const,
+    institutionId: 'nu',
+    productId: 'nu-cajita-turbo',
+    balance: 25126.68,
+    promoCap: 0,
+    annualRate: 13,
+    monthlyYield: 0,
+    nextMonthBalance: 0,
+    updatedBalance: 25000,
+    updatedBalanceOverride: 25000,
+    nextMonthExcess: 0,
+    calculatedAt: '2026-08-30',
+    daysElapsed: 14,
+    estimatedToday: 0,
+    startDate: '2026-08-16',
+    promotionalYield: 0,
+    excessYield: 0,
+    totalAccumulated: 125.58,
+    dailyYield: 8.95,
+    taxWithheld: 0,
+    netDailyYield: 8.95,
+    withdrawn: 0,
+  };
+
+  const result = calculateInvestment(investment as any, institutions as any);
+
+  assert.ok(result.updatedBalance > 25000);
+  assert.ok(Math.abs(result.updatedBalance - (25126.68 + 125.58)) < 0.01);
 });

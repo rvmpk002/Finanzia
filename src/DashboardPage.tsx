@@ -184,7 +184,8 @@ export const calculateInvestment = (
   const excessRate = investment.excessRate ?? catalogExcessRate;
   const balance = Math.max(0, Number(investment.balance) || 0);
   const withdrawn = Math.max(0, Number(investment.withdrawn) || 0);
-  const manualUpdatedBalance = Number(investment.updatedBalanceOverride);
+  const isNuAutoBalance = investment.institutionId === "nu" && investment.productId === "nu-cajita-turbo";
+  const manualUpdatedBalance = isNuAutoBalance ? Number.NaN : Number(investment.updatedBalanceOverride);
   const availableBalance = Number.isFinite(manualUpdatedBalance)
     ? Math.max(0, manualUpdatedBalance)
     : Math.max(0, balance - withdrawn);
@@ -287,6 +288,9 @@ export const calculateInvestment = (
       calculatedUpdatedBalance,
     ),
   );
+  const resolvedUpdatedBalance = isNuAutoBalance
+    ? updatedBalance
+    : investment.updatedBalanceOverride ?? updatedBalance;
   const nextMonthBalance = Math.max(
     0,
     availableBalance + monthlyYield,
@@ -298,7 +302,7 @@ export const calculateInvestment = (
     annualRate,
     monthlyYield,
     nextMonthBalance,
-    updatedBalance: investment.updatedBalanceOverride ?? updatedBalance,
+    updatedBalance: resolvedUpdatedBalance,
     nextMonthExcess: Math.max(0, nextMonthBalance - promoCap),
     calculatedAt: toLocalDateString(calculationDate),
     daysElapsed,
@@ -472,14 +476,15 @@ export default function DashboardPage({
     const value = Number(inputValue ?? editingBalances[key]);
     if (!Number.isFinite(value) || value < 0) return;
     const isEtf = investment.type === "etf";
+    const isNuAutoBalance = investment.institutionId === "nu" && investment.productId === "nu-cajita-turbo";
     const reduction = Math.max(0, investment.updatedBalance - value);
     const updatedInvestment = {
       ...investment,
       ...(isEtf
         ? { etfCurrentValue: value, balance: value, updatedBalance: value }
         : {
-            updatedBalanceOverride: value,
-            updatedBalance: value,
+            updatedBalanceOverride: isNuAutoBalance ? undefined : value,
+            updatedBalance: isNuAutoBalance ? value : value,
             withdrawn: Number(investment.withdrawn || 0) + reduction,
           }),
       updatedAt: new Date().toISOString(),
