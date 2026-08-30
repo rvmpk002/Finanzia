@@ -199,7 +199,7 @@ export const calculateInvestment = (
   const product = institutions
     .find((institution) => institution.id === investment.institutionId)
     ?.products.find((item) => item.id === investment.productId);
-  const isNuInvestment = investment.institutionId === "nu" && investment.productId === "nu-cajita-turbo";
+  const isNuInvestment = investment.institutionId === "nu";
   const allowManualUpdatedBalanceOverride = product?.allowManualUpdatedBalanceOverride ?? (isNuInvestment ? true : false);
   const hasManualUpdatedBalanceOverride = allowManualUpdatedBalanceOverride && Number.isFinite(Number(investment.updatedBalanceOverride));
   const isFlexibleUltra = product?.calculationMethod === "flexible";

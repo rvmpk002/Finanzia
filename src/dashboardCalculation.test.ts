@@ -133,6 +133,37 @@ test('Nu grows daily from the edited updated balance and keeps current and updat
   assert.ok(Math.abs(result.updatedBalance - 25135.63) < 0.05, `expected ~25135.63 updatedBalance, got ${result.updatedBalance}`);
 });
 
+test('Nu keeps both balances synchronized for legacy product IDs', () => {
+  const investment = {
+    type: 'vista' as const,
+    institutionId: 'nu',
+    productId: 'legacy-nu-product',
+    balance: 24746.64,
+    updatedBalance: 25000,
+    updatedBalanceOverride: 25000,
+    annualRate: 13,
+    promoCap: 0,
+    monthlyYield: 0,
+    nextMonthBalance: 0,
+    nextMonthExcess: 0,
+    calculatedAt: '2026-08-30',
+    daysElapsed: 0,
+    estimatedToday: 0,
+    startDate: '2026-08-30',
+    promotionalYield: 0,
+    excessYield: 0,
+    totalAccumulated: 0,
+    dailyYield: 0,
+    taxWithheld: 0,
+    netDailyYield: 0,
+    withdrawn: 0,
+  };
+  const result = calculateInvestment(investment as any, [{ id: 'nu', name: 'Nu', products: [] }] as any);
+
+  assert.equal(result.balance, 25000);
+  assert.equal(result.updatedBalance, 25000);
+});
+
 test('editing updated balance adds the reduction to total withdrawn', () => {
   assert.equal(withdrawnAfterUpdatedBalanceEdit(1000, 750, 100), 350);
   assert.equal(withdrawnAfterUpdatedBalanceEdit(1000, 1250, 100), 100);
