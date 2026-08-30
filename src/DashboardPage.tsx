@@ -781,7 +781,7 @@ export default function DashboardPage({
                     </div>
                   </div>
                   <div className="dashboard-mobile-metrics">
-                    <div><span>{isEtf || isKubo ? "Monto invertido" : "Saldo actual"}</span><strong>{amount(isEtf ? etf?.capitalInvested : investment.balance)}</strong></div>
+                    <div><span>{isEtf || isKubo ? "Monto invertido" : "Saldo actual"}</span><strong>{amount(isEtf ? etf?.capitalInvested : isKubo ? investment.balance : investment.updatedBalance)}</strong></div>
                     <div><span>{isEtf ? "Valor actual" : isKubo ? "Monto a recibir" : "Saldo actualizado"}</span><strong>{amount(current)}</strong></div>
                     <div><span>{isEtf ? "Rendimiento" : isKubo ? "Intereses a recibir" : "Retirado"}</span><strong>{isEtf ? percentage(etf?.returnRate ?? 0) : isKubo ? amount(investment.totalAccumulated) : amount(investment.withdrawn)}</strong></div>
                   </div>
