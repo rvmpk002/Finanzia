@@ -200,6 +200,9 @@ export const calculateInvestment = (
     ?.products.find((item) => item.id === investment.productId);
   const isNuInvestment = investment.institutionId === "nu";
   const isOpenbankInvestment = investment.institutionId === "openbank";
+  const openbankAnnualRate = 13;
+  const openbankExcessRate = 7;
+  const openbankDaysBase = 360;
   const allowManualUpdatedBalanceOverride = product?.allowManualUpdatedBalanceOverride ?? (isNuInvestment ? true : false);
   const hasManualUpdatedBalanceOverride = allowManualUpdatedBalanceOverride && Number.isFinite(Number(investment.updatedBalanceOverride));
   const isFlexibleUltra = product?.calculationMethod === "flexible";
@@ -210,9 +213,10 @@ export const calculateInvestment = (
   const catalogPromoCap = product?.promoCap ?? 0;
   const promoCap = investment.promoCap ?? catalogPromoCap;
   const catalogAnnualRate = product?.annualRate ?? 0;
-  const annualRate = isOpenbankInvestment ? catalogAnnualRate : investment.annualRate ?? catalogAnnualRate;
+  const annualRate = isOpenbankInvestment ? openbankAnnualRate : investment.annualRate ?? catalogAnnualRate;
   const catalogExcessRate = product?.excessRate ?? annualRate;
-  const excessRate = isOpenbankInvestment ? catalogExcessRate : investment.excessRate ?? catalogExcessRate;
+  const excessRate = isOpenbankInvestment ? openbankExcessRate : investment.excessRate ?? catalogExcessRate;
+  const calculationDaysBase = isOpenbankInvestment ? openbankDaysBase : daysBase;
   const balance = Math.max(0, Number(investment.balance) || 0);
   const withdrawn = Math.max(0, Number(investment.withdrawn) || 0);
   const manualUpdatedBalance = hasManualUpdatedBalanceOverride ? Number(investment.updatedBalanceOverride) : Number.NaN;
@@ -269,7 +273,7 @@ export const calculateInvestment = (
             : calculationMethod === "mifel360"
               ? mifelInterest(availableBalance, annualRate, 1)
               : calculationMethod === "openbank"
-                ? openbankInterest(availableBalance, annualRate, excessRate, 1, daysBase)
+                ? openbankInterest(availableBalance, annualRate, excessRate, 1, calculationDaysBase)
                 : configuredCompoundInterest(promoBalance, annualRate, 1) +
                   configuredCompoundInterest(excessBalance, effectiveExcessRate, 1);
   const monthlyYield = isNuInvestment
@@ -283,7 +287,7 @@ export const calculateInvestment = (
           : calculationMethod === "mifel360"
             ? mifelInterest(availableBalance, annualRate, monthlyDays)
             : calculationMethod === "openbank"
-              ? openbankInterest(availableBalance, annualRate, excessRate, monthlyDays, daysBase)
+              ? openbankInterest(availableBalance, annualRate, excessRate, monthlyDays, calculationDaysBase)
               : configuredCompoundInterest(promoBalance, annualRate, monthlyDays) +
                 configuredCompoundInterest(excessBalance, effectiveExcessRate, monthlyDays);
   const totalAccumulated = Math.max(
@@ -301,7 +305,7 @@ export const calculateInvestment = (
               : calculationMethod === "mifel360"
                 ? mifelInterest(availableBalance, annualRate, daysElapsed)
                 : calculationMethod === "openbank"
-                  ? openbankInterest(availableBalance, annualRate, excessRate, daysElapsed, daysBase)
+                  ? openbankInterest(availableBalance, annualRate, excessRate, daysElapsed, calculationDaysBase)
                   : completedMonthsBetween(startDate, calculationDate) > 0
                     ? monthlyYield * completedMonthsBetween(startDate, calculationDate)
                     : isFlexibleUltra
@@ -619,9 +623,9 @@ export default function DashboardPage({
     const product = institutions
       .find((institution) => institution.id === investment.institutionId)
       ?.products.find((item) => item.id === investment.productId);
-    if (product?.calculationMethod === "openbank") {
+    if (investment.institutionId === "openbank") {
       const principal = Math.max(0, Number(investment.balance) - Number(investment.withdrawn || 0));
-      return openbankInterest(principal, investment.annualRate, product.excessRate ?? 7, days, product.daysBase ?? 360);
+      return openbankInterest(principal, 13, 7, days, 360);
     }
     return investment.dailyYield * days;
   };
