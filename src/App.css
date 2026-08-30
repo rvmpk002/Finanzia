@@ -42,6 +42,7 @@
 }
 .term-warning-pill,
 .mifel-warning-pill,
+.nu-warning-pill,
 .etf-warning-pill {
   position: relative;
   display: inline-flex;
@@ -74,8 +75,15 @@
   color: #d6ebff;
   box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.15), 0 6px 18px rgba(96, 165, 250, 0.15);
 }
+.nu-warning-pill {
+	background: radial-gradient(circle at 30% 30%, rgba(45, 212, 191, 0.28), rgba(45, 212, 191, 0.12));
+	border-color: rgba(45, 212, 191, 0.9);
+	color: #b8fff3;
+	box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.15), 0 6px 18px rgba(45, 212, 191, 0.15);
+}
 .term-warning-pill:hover,
 .mifel-warning-pill:hover,
+.nu-warning-pill:hover,
 .mercado-pago-warning-pill:hover,
 .etf-warning-pill:hover {
   transform: translateY(-1px) scale(1.06);
@@ -88,6 +96,9 @@
 .mifel-warning-pill:hover .etf-warning-tooltip-bubble,
 .mifel-warning-pill:focus-visible .etf-warning-tooltip-bubble,
 .mifel-warning-pill:focus .etf-warning-tooltip-bubble,
+.nu-warning-pill:hover .etf-warning-tooltip-bubble,
+.nu-warning-pill:focus-visible .etf-warning-tooltip-bubble,
+.nu-warning-pill:focus .etf-warning-tooltip-bubble,
 .mercado-pago-warning-pill:hover .etf-warning-tooltip-bubble,
 .mercado-pago-warning-pill:focus-visible .etf-warning-tooltip-bubble,
 .mercado-pago-warning-pill:focus .etf-warning-tooltip-bubble,

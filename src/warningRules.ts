@@ -9,5 +9,5 @@ export const shouldShowMercadoPagoMinimumBalanceWarning = (date: Date) => {
   return day >= lastDayOfMonth - 2 && day <= lastDayOfMonth;
 };
 
-export const nuMinimumPurchaseWarningLabel = "Has una compra minima para mantener el 13%";
+export const nuMinimumPurchaseWarningLabel = "Has una compra para mantener la tasa del 13%";
 export const mercadoPagoMinimumBalanceWarningLabel = "Ingresa 3000 para mantener el 12%";
