@@ -186,7 +186,9 @@ export const calculateInvestment = (
   const excessRate = investment.excessRate ?? catalogExcessRate;
   const balance = Math.max(0, Number(investment.balance) || 0);
   const withdrawn = Math.max(0, Number(investment.withdrawn) || 0);
-  const manualUpdatedBalance = allowManualUpdatedBalanceOverride ? Number(investment.updatedBalanceOverride) : Number.NaN;
+  const manualUpdatedBalance = allowManualUpdatedBalanceOverride
+    ? Number(investment.updatedBalanceOverride ?? investment.updatedBalance)
+    : Number.NaN;
   const availableBalance = Number.isFinite(manualUpdatedBalance)
     ? Math.max(0, manualUpdatedBalance)
     : Math.max(0, balance - withdrawn);
@@ -486,11 +488,18 @@ export default function DashboardPage({
       ...investment,
       ...(isEtf
         ? { etfCurrentValue: value, balance: value, updatedBalance: value }
-        : {
-            updatedBalanceOverride: allowManualOverride ? value : undefined,
-            updatedBalance: value,
-            withdrawn: Number(investment.withdrawn || 0) + reduction,
-          }),
+        : allowManualOverride
+          ? {
+              balance: value,
+              updatedBalanceOverride: value,
+              updatedBalance: value,
+              withdrawn: Number(investment.withdrawn || 0),
+            }
+          : {
+              updatedBalanceOverride: value,
+              updatedBalance: value,
+              withdrawn: Number(investment.withdrawn || 0) + reduction,
+            }),
       updatedAt: new Date().toISOString(),
     };
     try {

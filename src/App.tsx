@@ -138,7 +138,7 @@ const nu: Institution = {
         "Sin regla de compra mensual.",
         "Disponible para crecer tu saldo de forma continua.",
       ],
-      allowManualUpdatedBalanceOverride: false,
+      allowManualUpdatedBalanceOverride: true,
       icon: "flexible",
     },
   ],

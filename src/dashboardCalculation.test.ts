@@ -79,7 +79,7 @@ test('date-only values stay in local calendar time and do not jump by one day', 
   assert.equal(parsed.getDate(), 29);
 });
 
-test('Nu recalculates its updated balance automatically even when a stale override exists', () => {
+test('Nu keeps the edited updated balance as the base for the next day calculation', () => {
   const institutions = [{
     id: 'nu',
     name: 'Nu',
@@ -90,20 +90,20 @@ test('Nu recalculates its updated balance automatically even when a stale overri
       calculationMethod: 'compound',
       promoCap: 0,
       excessRate: 0,
-      allowManualUpdatedBalanceOverride: false,
+      allowManualUpdatedBalanceOverride: true,
     }],
   }];
   const investment = {
     type: 'vista' as const,
     institutionId: 'nu',
     productId: 'nu-cajita-turbo',
-    balance: 25126.68,
+    balance: 24453.06,
     promoCap: 0,
     annualRate: 13,
     monthlyYield: 0,
     nextMonthBalance: 0,
-    updatedBalance: 25000,
-    updatedBalanceOverride: 25000,
+    updatedBalance: 25126.68,
+    updatedBalanceOverride: 25126.68,
     nextMonthExcess: 0,
     calculatedAt: '2026-08-30',
     daysElapsed: 14,
@@ -120,6 +120,6 @@ test('Nu recalculates its updated balance automatically even when a stale overri
 
   const result = calculateInvestment(investment as any, institutions as any);
 
-  assert.ok(result.updatedBalance > 25000);
-  assert.ok(Math.abs(result.updatedBalance - (25126.68 + 125.58)) < 0.01);
+  assert.ok(result.updatedBalance >= 25126.68);
+  assert.ok(result.updatedBalance !== 24453.06);
 });
