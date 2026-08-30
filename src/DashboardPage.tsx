@@ -169,6 +169,17 @@ export const reinvestMaturedInvestments = (
   } as Investment];
 });
 
+export const resolveLatestInvestmentRecord = (
+  databaseInvestment: Investment | undefined,
+  localInvestment: Investment | undefined,
+): Investment | undefined => {
+  if (!databaseInvestment) return localInvestment;
+  if (!localInvestment) return databaseInvestment;
+  const localUpdatedAt = localInvestment.updatedAt ? new Date(localInvestment.updatedAt).getTime() : Number.NEGATIVE_INFINITY;
+  const databaseUpdatedAt = databaseInvestment.updatedAt ? new Date(databaseInvestment.updatedAt).getTime() : Number.NEGATIVE_INFINITY;
+  return localUpdatedAt > databaseUpdatedAt ? localInvestment : databaseInvestment;
+};
+
 export const calculateInvestment = (
   investment: Investment,
   institutions: Institution[],
@@ -422,12 +433,9 @@ export default function DashboardPage({
             const localInvestment = localInvestments.find(
               (investment) => investment.id === databaseInvestment.id,
             );
-            return localInvestment?.updatedAt &&
-              (!databaseInvestment.updatedAt ||
-                localInvestment.updatedAt > databaseInvestment.updatedAt)
-              ? localInvestment
-              : databaseInvestment;
-          });
+            return resolveLatestInvestmentRecord(databaseInvestment, localInvestment);
+          })
+          .filter((investment): investment is Investment => Boolean(investment));
         const recalculatedInvestments = latestInvestments.map((investment) => {
           const normalized = investment.institutionId === "kubo" ? { ...investment, type: "plazo" as const } : investment;
           return rolloverKuboLiquidity(
@@ -530,6 +538,7 @@ export default function DashboardPage({
       );
       setInvestments(nextInvestments);
       localStorage.setItem(investmentStorageKey(), JSON.stringify(nextInvestments));
+      window.dispatchEvent(new Event("finanzia-investment-saved"));
       setEditingBalances((current) => ({ ...current, [key]: value.toFixed(2) }));
       setActiveBalanceId(null);
     } catch {
@@ -540,6 +549,7 @@ export default function DashboardPage({
       );
       setInvestments(nextInvestments);
       localStorage.setItem(investmentStorageKey(), JSON.stringify(nextInvestments));
+      window.dispatchEvent(new Event("finanzia-investment-saved"));
     }
   };
   const visible = investments

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateInvestment, fromLocalDateString, toLocalDateString } from './DashboardPage.tsx';
+import { calculateInvestment, fromLocalDateString, resolveLatestInvestmentRecord, toLocalDateString } from './DashboardPage.tsx';
 import { kuboInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
 import {
   shouldShowMercadoPagoMinimumBalanceWarning,
@@ -185,6 +185,34 @@ test('Nu keeps a manual updated balance across a recalculation round trip', () =
 
   assert.equal(roundTrip.updatedBalance, 25126.68);
   assert.equal(roundTrip.updatedBalanceOverride ?? roundTrip.updatedBalance, 25126.68);
+});
+
+test('a local manual Nu override wins over a stale API snapshot', () => {
+  const databaseInvestment = {
+    id: 42,
+    type: 'vista' as const,
+    institutionId: 'nu',
+    productId: 'nu-cajita-turbo',
+    balance: 24453.06,
+    updatedBalance: 24453.06,
+    updatedBalanceOverride: 24453.06,
+    updatedAt: '2026-08-29T10:00:00.000Z',
+  };
+  const localInvestment = {
+    id: 42,
+    type: 'vista' as const,
+    institutionId: 'nu',
+    productId: 'nu-cajita-turbo',
+    balance: 25126.68,
+    updatedBalance: 25126.68,
+    updatedBalanceOverride: 25126.68,
+    updatedAt: '2026-08-30T12:00:00.000Z',
+  };
+
+  const resolved = resolveLatestInvestmentRecord(databaseInvestment as any, localInvestment as any);
+
+  assert.equal(resolved?.updatedBalanceOverride, 25126.68);
+  assert.equal(resolved?.updatedBalance, 25126.68);
 });
 
 test('the Mercado Pago minimum balance warning appears only on the last three days of each month', () => {
