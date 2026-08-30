@@ -480,16 +480,35 @@ export default function InvestmentPage({
   const saveInvestment = async () => {
     if (!canSave) return;
 
-    const validationErrors = validateInvestmentInput({
-      type: activeTab,
-      balance: activeTab === "etf" ? currentEtfValue : currentBalance,
-      withdrawn: totalWithdrawn,
-      startDate,
-    });
+    if (activeTab === "etf") {
+      if (!etfName.trim()) {
+        window.alert("Ingresa el nombre del ETF.");
+        return;
+      }
+      if (Number(etfTitles) <= 0) {
+        window.alert("La cantidad de títulos debe ser mayor a 0.");
+        return;
+      }
+      if (currentEtfValue <= 0) {
+        window.alert("El valor actual del ETF debe ser mayor a 0.");
+        return;
+      }
+      if (totalWithdrawn < 0) {
+        window.alert("El total retirado no puede ser negativo.");
+        return;
+      }
+    } else {
+      const validationErrors = validateInvestmentInput({
+        type: activeTab,
+        balance: currentBalance,
+        withdrawn: totalWithdrawn,
+        startDate,
+      });
 
-    if (validationErrors.length > 0) {
-      window.alert(validationErrors[0]);
-      return;
+      if (validationErrors.length > 0) {
+        window.alert(validationErrors[0]);
+        return;
+      }
     }
 
     if (activeTab !== "etf" && totalWithdrawn > currentBalance) {

@@ -38,6 +38,7 @@ export const validateInvestmentInput = (input: InvestmentValidationInput) => {
   const errors: string[] = [];
   const balance = Number(input.balance ?? 0);
   const withdrawn = Number(input.withdrawn ?? 0);
+  const isEtf = input.type === 'etf';
   const startDate = input.startDate ? new Date(`${input.startDate}T00:00:00`) : null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -50,7 +51,7 @@ export const validateInvestmentInput = (input: InvestmentValidationInput) => {
     errors.push('El monto retirado no puede ser negativo.');
   }
 
-  if (input.startDate && startDate && Number.isFinite(startDate.getTime())) {
+  if (!isEtf && input.startDate && startDate && Number.isFinite(startDate.getTime())) {
     if (startDate > today) {
       errors.push('La fecha de inicio no puede ser futura.');
     }
