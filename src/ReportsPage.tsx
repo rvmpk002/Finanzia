@@ -403,7 +403,20 @@ function TypeChart({
               }
             >
               <div className="reports-type-row-heading">
-                <strong>{investmentName(item, institutions)}</strong>
+                <div className="reports-type-row-title-wrap">
+                  <strong>{investmentName(item, institutions)}</strong>
+                  {type === "etf" && profit(item, institutions) < 0 && (
+                    <span
+                      className="etf-warning-pill etf-warning-pill-inline"
+                      role="img"
+                      aria-label="No vender: ganancia negativa"
+                      title="No vender: ganancia negativa"
+                    >
+                      <AlertTriangle size={14} />
+                      <span className="etf-warning-tooltip-bubble">No vender: ganancia negativa</span>
+                    </span>
+                  )}
+                </div>
                 <span>
                   {type === "etf"
                     ? "ETF"
@@ -424,17 +437,6 @@ function TypeChart({
                       <strong>
                         {metric.display ?? compactMoney(metric.amount)}
                       </strong>
-                      {type === "etf" && metric.key === "profit" && metric.amount < 0 && (
-                        <span
-                          className="etf-warning-pill"
-                          role="img"
-                          aria-label="No vender: ganancia negativa"
-                          title="No vender: ganancia negativa"
-                        >
-                          <AlertTriangle size={14} />
-                          <span className="etf-warning-tooltip-bubble">No vender: ganancia negativa</span>
-                        </span>
-                      )}
                     </div>
                   </div>
                 ))}
