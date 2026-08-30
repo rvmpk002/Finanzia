@@ -333,13 +333,12 @@ export const calculateInvestment = (
     availableBalance + monthlyYield,
   );
   const taxWithheld = dailyYield * (taxRate / 100);
-  const resolvedBalance = isNuInvestment && hasManualUpdatedBalanceOverride ? Math.max(0, Number(investment.updatedBalanceOverride ?? balance)) : balance;
   const resolvedUpdatedBalance = isNuInvestment
     ? Math.max(0, availableBalance + totalAccumulated)
     : updatedBalance;
   return {
     ...investment,
-    balance: isNuInvestment ? resolvedBalance : balance,
+    balance: isNuInvestment ? resolvedUpdatedBalance : balance,
     promoCap,
     annualRate,
     monthlyYield,
