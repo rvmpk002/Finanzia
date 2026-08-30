@@ -87,6 +87,8 @@ const openbankInterest = (
     (days / 360)
   );
 };
+const mercadoPagoInterest = (principal: number, days: number) =>
+  Math.min(Math.max(0, principal), 25000) * 0.12 * (days / 365);
 const kuboInterest = (principal: number, annualRate: number, days: number) => {
   const kuboEffectiveTaxRate = 0.077;
   return principal * (annualRate / 100) * (days / 365) * (1 - kuboEffectiveTaxRate);
@@ -206,6 +208,7 @@ export default function InvestmentPage({
   const isKuboTerm = isKubo && activeTab === "plazo";
   const isMifel = institutionId === "mifel";
   const isOpenbank = institutionId === "openbank";
+  const isMercadoPago = institutionId === "mercado-pago";
   const canonicalMifelPromoCap = 500000;
   const promoCap = isMifel ? canonicalMifelPromoCap : Math.max(0, Number(promoCapInput) || 0);
   const annualRate = selectedProduct ? Number(fixedRate) : 0;
@@ -236,7 +239,9 @@ export default function InvestmentPage({
       ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
       : isMifel
         ? mifelInterest(availableBalance, annualRate, 1)
-        : isOpenbank
+        : isMercadoPago
+          ? mercadoPagoInterest(availableBalance, 1)
+          : isOpenbank
           ? openbankInterest(
               availableBalance,
               annualRate,
@@ -255,7 +260,9 @@ export default function InvestmentPage({
       )
     : isMifel
       ? mifelInterest(availableBalance, annualRate, monthlyDays)
-      : isOpenbank
+      : isMercadoPago
+        ? mercadoPagoInterest(availableBalance, monthlyDays)
+        : isOpenbank
         ? openbankInterest(availableBalance, annualRate, excessRate, monthlyDays)
         : officialMonthlyInterest(promoBalance, annualRate, monthlyDays) +
           officialMonthlyInterest(excessBalance, excessRate, monthlyDays);
@@ -270,7 +277,9 @@ export default function InvestmentPage({
           ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
           : isMifel
             ? mifelInterest(availableBalance, annualRate, daysElapsed)
-            : isOpenbank
+            : isMercadoPago
+              ? mercadoPagoInterest(availableBalance, daysElapsed)
+              : isOpenbank
               ? openbankInterest(
                   availableBalance,
                   annualRate,

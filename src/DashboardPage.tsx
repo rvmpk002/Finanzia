@@ -19,6 +19,7 @@ import {
   getCalculatedUpdatedBalance,
   kuboInterest,
   mifelInterest,
+  mercadoPagoInterest,
   openbankInterest,
   compoundInterest,
   resolveRateSplit,
@@ -200,6 +201,7 @@ export const calculateInvestment = (
     ?.products.find((item) => item.id === investment.productId);
   const isNuInvestment = investment.institutionId === "nu";
   const isOpenbankInvestment = investment.institutionId === "openbank";
+  const isMercadoPagoInvestment = investment.institutionId === "mercado-pago";
   const openbankAnnualRate = 13;
   const openbankExcessRate = 7;
   const openbankDaysBase = 360;
@@ -278,7 +280,9 @@ export const calculateInvestment = (
               ? mifelInterest(availableBalance, annualRate, 1)
               : calculationMethod === "openbank"
                 ? openbankInterest(availableBalance, annualRate, excessRate, 1, calculationDaysBase)
-                : configuredCompoundInterest(promoBalance, annualRate, 1) +
+                : isMercadoPagoInvestment
+                  ? mercadoPagoInterest(availableBalance, 12, 1)
+                  : configuredCompoundInterest(promoBalance, annualRate, 1) +
                   configuredCompoundInterest(excessBalance, effectiveExcessRate, 1);
   const monthlyYield = isNuInvestment
     ? nuMonthlyYield
@@ -292,7 +296,9 @@ export const calculateInvestment = (
             ? mifelInterest(availableBalance, annualRate, monthlyDays)
             : calculationMethod === "openbank"
               ? openbankInterest(availableBalance, annualRate, excessRate, monthlyDays, calculationDaysBase)
-              : configuredCompoundInterest(promoBalance, annualRate, monthlyDays) +
+              : isMercadoPagoInvestment
+                ? mercadoPagoInterest(availableBalance, 12, monthlyDays)
+                : configuredCompoundInterest(promoBalance, annualRate, monthlyDays) +
                 configuredCompoundInterest(excessBalance, effectiveExcessRate, monthlyDays);
   const totalAccumulated = Math.max(
     isNuInvestment
@@ -314,7 +320,9 @@ export const calculateInvestment = (
                     ? monthlyYield * completedMonthsBetween(startDate, calculationDate)
                     : isFlexibleUltra
                       ? flexibleUltraInterest(availableBalance, promoCap, daysElapsed, annualRate, excessRate, promotionDays)
-                      : configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
+                      : isMercadoPagoInvestment
+                        ? mercadoPagoInterest(availableBalance, 12, daysElapsed)
+                        : configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
                         configuredCompoundInterest(excessBalance, effectiveExcessRate, daysElapsed),
   );
   const completedMonths = completedMonthsBetween(startDate, calculationDate);
@@ -627,6 +635,9 @@ export default function DashboardPage({
     if (investment.institutionId === "openbank") {
       const principal = Math.max(0, Number(investment.balance) || 0);
       return openbankInterest(principal, 13, 7, days, 360);
+    }
+    if (investment.institutionId === "mercado-pago") {
+      return mercadoPagoInterest(Number(investment.balance) || 0, 12, days);
     }
     return investment.dailyYield * days;
   };

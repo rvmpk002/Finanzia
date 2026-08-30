@@ -230,18 +230,19 @@ const mercadoPago: Institution = {
   category: "Cuenta digital",
   website: "https://www.mercadopago.com.mx/",
   notes:
-    "Cuenta Mercado Pago con rendimiento anual fijo del 12%, sin variación por compras ni transferencias mensuales.",
+    "Cuenta Mercado Pago con tasa preferencial del 12% anual hasta $25,000 y depósito mensual de $3,000 para conservarla.",
   products: [
     {
       id: "mercado-pago",
       name: "Rendimiento",
-      description: "12% anual fijo con ganancias diarias.",
+      description: "12% anual hasta $25,000 con ganancias diarias.",
       annualRate: 12,
-      promoCap: 0,
+      promoCap: 25000,
       excessRate: 0,
       calculationMethod: "compound",
       conditions: [
-        "Tasa anual fija del 12%.",
+        "Tasa anual del 12% sobre los primeros $25,000.",
+        "Se requiere un depósito mensual de $3,000 para conservar la tasa preferencial.",
         "Rendimientos diarios acumulados sobre el saldo disponible.",
         "Sin regla de compras ni transferencias mensuales.",
       ],
@@ -668,7 +669,7 @@ function App() {
                 <span>
                   {selected.id === "mifel"
                     ? "Los rendimientos y el ISR se calculan diariamente; si el día cae en fin de semana, el registro se refleja en el siguiente día hábil."
-                    : "Tasa anual fija del 12%, con ganancias diarias y sin regla de compra mensual ni tope promocional."}
+                    : "La tasa preferencial del 12% aplica hasta $25,000 y requiere un depósito mensual de $3,000 para conservarse."}
                 </span>
               </div>
             )}

@@ -71,6 +71,13 @@ export const openbankInterest = (
   return openbankTieredInterest(principal, annualRate, excessRate, days, daysBase);
 };
 
+export const mercadoPagoInterest = (
+  principal: number,
+  annualRate = 12,
+  days: number,
+  daysBase = 365,
+) => Math.min(Math.max(0, principal), 25000) * (annualRate / 100) * (days / daysBase);
+
 export const openbankPostingDays = (date: Date) => {
   const day = date.getDay();
   if (day === 0) return 0;
