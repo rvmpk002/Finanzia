@@ -159,7 +159,7 @@ export const reinvestMaturedInvestments = (
   } as Investment];
 });
 
-const calculateInvestment = (
+export const calculateInvestment = (
   investment: Investment,
   institutions: Institution[],
   formulas: FormulaConfig = defaultFormulaConfig,
@@ -259,7 +259,7 @@ const calculateInvestment = (
         ? configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
           configuredCompoundInterest(excessBalance, effectiveExcessRate, daysElapsed)
       : calculationMethod === "kubo"
-        ? kuboInterest(availableBalance, annualRate, daysElapsed)
+        ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
       : calculationMethod === "mifel360"
         ? mifelInterest(availableBalance, annualRate, daysElapsed)
       : calculationMethod === "openbank"
