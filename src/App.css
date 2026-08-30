@@ -89,8 +89,13 @@
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+  display: block;
   width: max-content;
-  max-width: 220px;
+  min-width: 130px;
+  max-width: 200px;
+  white-space: normal;
+  text-align: center;
+  word-break: break-word;
   background: #181a24;
   border: 1px solid rgba(255, 154, 131, 0.5);
   color: #ffe4d9;
