@@ -463,7 +463,10 @@ export default function ReportsPage({
   const [investments, setInvestments] = useState<Investment[]>([]);
   useEffect(() => {
     const loadInvestments = () => {
-      const validInstitutionIds = new Set(institutions.map((institution) => institution.id));
+      const validInstitutionIds = new Set([
+        ...institutions.map((institution) => institution.id),
+        "etf",
+      ]);
       const normalizeLoadedInvestment = (item: Investment) => {
         const type = normalizeInvestmentType(item.institutionId, item.type);
         return { ...item, type };
