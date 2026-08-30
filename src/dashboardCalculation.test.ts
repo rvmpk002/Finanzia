@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateInvestment, fromLocalDateString, resolveLatestInvestmentRecord, toLocalDateString } from './DashboardPage.tsx';
+import { calculateInvestment, fromLocalDateString, resolveLatestInvestmentRecord, toLocalDateString, withdrawnAfterUpdatedBalanceEdit } from './DashboardPage.tsx';
 import { kuboInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
 import { shouldShowMercadoPagoMinimumBalanceWarning } from './warningRules';
 
@@ -131,6 +131,11 @@ test('Nu grows daily from the edited updated balance and keeps current and updat
 
   assert.ok(Math.abs(result.balance - 25135.63) < 0.05, `expected ~25135.63 balance, got ${result.balance}`);
   assert.ok(Math.abs(result.updatedBalance - 25135.63) < 0.05, `expected ~25135.63 updatedBalance, got ${result.updatedBalance}`);
+});
+
+test('editing updated balance adds the reduction to total withdrawn', () => {
+  assert.equal(withdrawnAfterUpdatedBalanceEdit(1000, 750, 100), 350);
+  assert.equal(withdrawnAfterUpdatedBalanceEdit(1000, 1250, 100), 100);
 });
 
 test('the Mercado Pago minimum balance warning appears only on the last three days of each month', () => {

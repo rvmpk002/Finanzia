@@ -94,6 +94,14 @@ const money = new Intl.NumberFormat("es-MX", {
 const amount = (value: number | undefined) => money.format(Number(value) || 0);
 const percentage = (value: number) => `${value.toFixed(2)}%`;
 const cents = (value: number) => Math.round(value * 100) / 100;
+export const withdrawnAfterUpdatedBalanceEdit = (
+  currentUpdatedBalance: number,
+  editedUpdatedBalance: number,
+  currentWithdrawn: number,
+) => Math.max(
+  0,
+  currentWithdrawn + Math.max(0, currentUpdatedBalance - editedUpdatedBalance),
+);
 const etfMetrics = (investment: Investment, formulas: FormulaConfig) => {
   const titles = Number(investment.etfTitles) || 0;
   const purchasePrice = cents(Number(investment.etfPurchasePrice) || 0);
@@ -511,7 +519,11 @@ export default function DashboardPage({
       .find((institution) => institution.id === investment.institutionId)
       ?.products.find((item) => item.id === investment.productId);
     const allowManualOverride = product?.allowManualUpdatedBalanceOverride ?? true;
-    const reduction = Math.max(0, investment.updatedBalance - value);
+    const updatedWithdrawn = withdrawnAfterUpdatedBalanceEdit(
+      Number(investment.updatedBalance) || 0,
+      value,
+      Number(investment.withdrawn) || 0,
+    );
     const updatedInvestment = {
       ...investment,
       ...(isEtf
@@ -521,12 +533,12 @@ export default function DashboardPage({
               balance: value,
               updatedBalanceOverride: value,
               updatedBalance: value,
-              withdrawn: Number(investment.withdrawn || 0),
+              withdrawn: updatedWithdrawn,
             }
           : {
               updatedBalanceOverride: value,
               updatedBalance: value,
-              withdrawn: Number(investment.withdrawn || 0) + reduction,
+              withdrawn: updatedWithdrawn,
             }),
       updatedAt: new Date().toISOString(),
     };
@@ -543,7 +555,7 @@ export default function DashboardPage({
           balance: value,
           updatedBalanceOverride: value,
           updatedBalance: value,
-          withdrawn: Number(investment.withdrawn || 0),
+          withdrawn: isEtf ? Number(investment.withdrawn || 0) : updatedWithdrawn,
           updatedAt: new Date().toISOString(),
         });
       }
