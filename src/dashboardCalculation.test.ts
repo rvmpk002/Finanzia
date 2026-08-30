@@ -183,6 +183,7 @@ test('Nu keeps a manual updated balance across a recalculation round trip', () =
     balance: recalculated.balance,
   } as any, institutions as any);
 
+  assert.equal(roundTrip.balance, 25126.68);
   assert.equal(roundTrip.updatedBalance, 25126.68);
   assert.equal(roundTrip.updatedBalanceOverride ?? roundTrip.updatedBalance, 25126.68);
 });

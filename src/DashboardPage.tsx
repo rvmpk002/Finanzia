@@ -320,7 +320,7 @@ export const calculateInvestment = (
   );
   const taxWithheld = dailyYield * (taxRate / 100);
   const retainedBalance = hasManualUpdatedBalanceOverride ? resolvedUpdatedBalance : balance;
-  return {
+  const baseResult = {
     ...investment,
     balance: retainedBalance,
     promoCap,
@@ -345,6 +345,18 @@ export const calculateInvestment = (
     taxWithheld,
     netDailyYield: dailyYield - taxWithheld,
   };
+
+  if (hasManualUpdatedBalanceOverride) {
+    return {
+      ...baseResult,
+      balance: resolvedUpdatedBalance,
+      nextMonthBalance: Math.max(0, resolvedUpdatedBalance + monthlyYield),
+      nextMonthExcess: Math.max(0, Math.max(0, resolvedUpdatedBalance + monthlyYield) - promoCap),
+      estimatedToday: Math.max(0, resolvedUpdatedBalance + dailyYield),
+    };
+  }
+
+  return baseResult;
 };
 export const toLocalDateString = (date: Date) => {
   const year = date.getFullYear();
@@ -529,7 +541,14 @@ export default function DashboardPage({
           body: JSON.stringify(updatedInvestment),
         });
         if (!response.ok) throw new Error("API unavailable");
-        Object.assign(updatedInvestment, await response.json());
+        const serverInvestment = await response.json();
+        Object.assign(updatedInvestment, serverInvestment, {
+          balance: value,
+          updatedBalanceOverride: value,
+          updatedBalance: value,
+          withdrawn: Number(investment.withdrawn || 0),
+          updatedAt: new Date().toISOString(),
+        });
       }
       const nextInvestments = investments.map((item) =>
         investmentKey(item) === key
