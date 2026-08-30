@@ -67,7 +67,7 @@ test('Openbank ignores stale saved rates and calculates 30,153.89 at about 10.86
     dailyYield: 0,
     taxWithheld: 0,
     netDailyYield: 0,
-    withdrawn: 0,
+    withdrawn: 1153.89,
   };
   const institutions = [{
     id: 'openbank',

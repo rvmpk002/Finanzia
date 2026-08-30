@@ -226,6 +226,8 @@ export const calculateInvestment = (
     ? Number.isFinite(manualUpdatedBalance)
       ? Math.max(0, manualUpdatedBalance)
       : Math.max(0, balance - withdrawn)
+    : isOpenbankInvestment
+      ? balance
     : Math.max(0, balance - withdrawn);
   const startDate = fromLocalDateString(investment.startDate);
   const isKubo = calculationMethod === "kubo";
@@ -623,7 +625,7 @@ export default function DashboardPage({
     "Producto eliminado";
   const vistaGainForDays = (investment: Investment, days: number) => {
     if (investment.institutionId === "openbank") {
-      const principal = Math.max(0, Number(investment.balance) - Number(investment.withdrawn || 0));
+      const principal = Math.max(0, Number(investment.balance) || 0);
       return openbankInterest(principal, 13, 7, days, 360);
     }
     return investment.dailyYield * days;
