@@ -3,6 +3,7 @@ import { AlertTriangle, BarChart3, Download, FileText } from "lucide-react";
 import NavigationHeader from "./NavigationHeader";
 import { authHeaders, investmentStorageKey } from "./auth";
 import { normalizeInvestmentType } from "./tabRules";
+import { nuMinimumPurchaseWarningLabel, shouldShowNuMinimumPurchaseWarning } from "./nuWarning";
 
 type Type = "vista" | "plazo" | "etf";
 type Institution = { id: string; name: string; products?: Product[] };
@@ -112,6 +113,10 @@ const mifelWarning = (item: Investment) => {
   const updatedBalance = Number(item.updatedBalance ?? item.balance ?? 0);
   if (updatedBalance < 499500) return null;
   return { label: "retira 1000, ya que sobre el excedente de 500mil no genera intereses." };
+};
+const nuWarning = (item: Investment) => {
+  if (item.institutionId !== "nu" || !shouldShowNuMinimumPurchaseWarning(new Date())) return null;
+  return { label: nuMinimumPurchaseWarningLabel };
 };
 const label = (item: Investment, institutions: Institution[]) =>
   institutions.find((entry) => entry.id === item.institutionId)?.name ??
@@ -452,7 +457,7 @@ function TypeChart({
                     })()
                   )}
                   {type === "vista" && (() => {
-                    const warning = mifelWarning(item);
+                    const warning = mifelWarning(item) ?? nuWarning(item);
                     if (!warning) return null;
                     return (
                       <span
@@ -806,7 +811,7 @@ export default function ReportsPage({
                             );
                           })()}
                           {item.type === "vista" && (() => {
-                            const warning = mifelWarning(item);
+                            const warning = mifelWarning(item) ?? nuWarning(item);
                             if (!warning) return null;
                             return (
                               <span

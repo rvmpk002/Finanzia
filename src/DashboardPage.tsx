@@ -26,6 +26,7 @@ import {
 import NavigationHeader from "./NavigationHeader";
 import { authHeaders, investmentStorageKey } from "./auth";
 import { normalizeInvestmentType } from "./tabRules";
+import { nuMinimumPurchaseWarningLabel, shouldShowNuMinimumPurchaseWarning } from "./nuWarning";
 
 type Product = {
   id: string;
@@ -597,6 +598,10 @@ export default function DashboardPage({
     if (updatedBalance < 499500) return null;
     return { label: "retira 1000, ya que sobre el excedente de 500mil no genera intereses." };
   };
+  const nuWarning = (investment: Investment) => {
+    if (investment.institutionId !== "nu" || !shouldShowNuMinimumPurchaseWarning(new Date())) return null;
+    return { label: nuMinimumPurchaseWarningLabel };
+  };
   const termDaysFor = (investment: Investment) => {
     if (investment.termDays) return investment.termDays;
     if (!investment.endDate) return investment.daysElapsed;
@@ -685,7 +690,7 @@ export default function DashboardPage({
                         ) : null;
                       })()}
                       {investment.type === "vista" && (() => {
-                        const warning = mifelWarning(investment);
+                        const warning = mifelWarning(investment) ?? nuWarning(investment);
                         return warning ? (
                           <span
                             className="mifel-warning-pill mifel-warning-pill-inline"
@@ -941,7 +946,7 @@ export default function DashboardPage({
                             ) : null;
                           })()}
                           {investment.type === "vista" && (() => {
-                            const warning = mifelWarning(investment);
+                            const warning = mifelWarning(investment) ?? nuWarning(investment);
                             return warning ? (
                               <span
                                 className="mifel-warning-pill mifel-warning-pill-inline"
