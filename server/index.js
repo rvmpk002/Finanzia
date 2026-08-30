@@ -41,6 +41,7 @@ const validInstitutionProducts = {
   mifel: ['mifel-cuenta-digital'],
   kubo: ['kubo-liquidez'],
   'mercado-pago': ['mercado-pago'],
+  etf: [],
   cetesdirecto: ['cetesdirecto-cetes', 'cetesdirecto-bonos', 'cetesdirecto-bonddia', 'cetesdirecto-udibonos'],
   'cetesdirecto': ['cetesdirecto-cetes', 'cetesdirecto-bonos', 'cetesdirecto-bonddia', 'cetesdirecto-udibonos'],
 }
@@ -60,6 +61,8 @@ const normalizeInvestmentType = (institutionId, type) => {
 const isValidInstitutionProduct = (institutionId, productId) => {
   const normalizedInstitutionId = String(institutionId ?? '').trim()
   const normalizedProductId = String(productId ?? '').trim()
+  if (!normalizedInstitutionId || !normalizedProductId) return false
+  if (normalizedInstitutionId === 'etf') return true
   const allowedProducts = validInstitutionProducts[normalizedInstitutionId] ?? []
   return allowedProducts.includes(normalizedProductId)
 }
@@ -71,6 +74,7 @@ const sanitizeInstitutionProduct = (institutionId, productId) => {
   }
   return { institutionId: normalizedInstitutionId, productId: normalizedProductId, isValid: true }
 }
+export { sanitizeInstitutionProduct, normalizeInvestmentType, validInstitutionProducts }
 const smtpHost = process.env.SMTP_HOST ?? 'smtp.gmail.com'
 const smtpConnectionHost = process.env.SMTP_USER && process.env.SMTP_PASS
   ? process.env.SMTP_HOST_IP ?? (await resolve4(smtpHost).then((addresses) => addresses[0]).catch(() => smtpHost))
@@ -88,7 +92,7 @@ async function ensureSchema() {
   await pool.query(`CREATE TABLE IF NOT EXISTS institutions (id TEXT PRIMARY KEY, name TEXT NOT NULL, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS investments (id BIGSERIAL PRIMARY KEY, type VARCHAR(20) NOT NULL CHECK (type IN ('vista', 'plazo', 'etf')), institution_id TEXT NOT NULL, product_id TEXT NOT NULL, data JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`ALTER TABLE investments DROP CONSTRAINT IF EXISTS investments_product_integrity_check`)
-  await pool.query(`ALTER TABLE investments ADD CONSTRAINT investments_product_integrity_check CHECK ((institution_id, product_id) IN (('banco-plata', 'ahorro-flexible'), ('banco-plata', 'ahorro-fijo'), ('openbank', 'openbank'), ('nu', 'nu-cajita-turbo'), ('didi-cuenta', 'didi-cuenta'), ('mifel', 'mifel-cuenta-digital'), ('kubo', 'kubo-liquidez'), ('mercado-pago', 'mercado-pago'), ('cetesdirecto', 'cetesdirecto-cetes'), ('cetesdirecto', 'cetesdirecto-bonos'), ('cetesdirecto', 'cetesdirecto-bonddia'), ('cetesdirecto', 'cetesdirecto-udibonos')))`)
+  await pool.query(`ALTER TABLE investments ADD CONSTRAINT investments_product_integrity_check CHECK ((institution_id = 'etf' AND product_id <> '') OR ((institution_id, product_id) IN (('banco-plata', 'ahorro-flexible'), ('banco-plata', 'ahorro-fijo'), ('openbank', 'openbank'), ('nu', 'nu-cajita-turbo'), ('didi-cuenta', 'didi-cuenta'), ('mifel', 'mifel-cuenta-digital'), ('kubo', 'kubo-liquidez'), ('mercado-pago', 'mercado-pago'), ('cetesdirecto', 'cetesdirecto-cetes'), ('cetesdirecto', 'cetesdirecto-bonos'), ('cetesdirecto', 'cetesdirecto-bonddia'), ('cetesdirecto', 'cetesdirecto-udibonos'))))`)
   await pool.query(`CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT UNIQUE NOT NULL, password_hash TEXT, full_name TEXT, phone TEXT, two_factor_secret TEXT, two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
   await pool.query(`CREATE TABLE IF NOT EXISTS calculation_formulas (
     id TEXT NOT NULL,
@@ -112,7 +116,7 @@ async function ensureSchema() {
     PRIMARY KEY (user_id, institution_id, product_id)
   )`)
   await pool.query(`ALTER TABLE user_product_configs DROP CONSTRAINT IF EXISTS user_product_configs_product_integrity_check`)
-  await pool.query(`ALTER TABLE user_product_configs ADD CONSTRAINT user_product_configs_product_integrity_check CHECK ((institution_id, product_id) IN (('banco-plata', 'ahorro-flexible'), ('banco-plata', 'ahorro-fijo'), ('openbank', 'openbank'), ('nu', 'nu-cajita-turbo'), ('didi-cuenta', 'didi-cuenta'), ('mifel', 'mifel-cuenta-digital'), ('kubo', 'kubo-liquidez'), ('mercado-pago', 'mercado-pago'), ('cetesdirecto', 'cetesdirecto-cetes'), ('cetesdirecto', 'cetesdirecto-bonos'), ('cetesdirecto', 'cetesdirecto-bonddia'), ('cetesdirecto', 'cetesdirecto-udibonos')))`)
+  await pool.query(`ALTER TABLE user_product_configs ADD CONSTRAINT user_product_configs_product_integrity_check CHECK ((institution_id = 'etf' AND product_id <> '') OR ((institution_id, product_id) IN (('banco-plata', 'ahorro-flexible'), ('banco-plata', 'ahorro-fijo'), ('openbank', 'openbank'), ('nu', 'nu-cajita-turbo'), ('didi-cuenta', 'didi-cuenta'), ('mifel', 'mifel-cuenta-digital'), ('kubo', 'kubo-liquidez'), ('mercado-pago', 'mercado-pago'), ('cetesdirecto', 'cetesdirecto-cetes'), ('cetesdirecto', 'cetesdirecto-bonos'), ('cetesdirecto', 'cetesdirecto-bonddia'), ('cetesdirecto', 'cetesdirecto-udibonos'))))`)
   await pool.query(`ALTER TABLE investments ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE`)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT`)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`)
