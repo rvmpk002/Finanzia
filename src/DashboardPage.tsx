@@ -201,6 +201,9 @@ const calculateInvestment = (
       (calculationDate.getTime() - startDate.getTime()) / 86400000,
     ),
   );
+  const effectiveKuboDays = isKubo
+    ? Math.max(1, Number(investment.termDays) || daysElapsed)
+    : daysElapsed;
   const monthlyDays = daysInMonth(calculationDate);
   const { promoBalance: splitPromoBalance, excessBalance: splitExcessBalance, effectiveExcessRate } = resolveRateSplit(
     availableBalance,
@@ -224,7 +227,7 @@ const calculateInvestment = (
   const dailyYield = calculationMethod === "flexible"
     ? flexibleUltraInterest(availableBalance, promoCap, 1, annualRate, excessRate, promotionDays)
     : calculationMethod === "kubo"
-      ? kuboInterest(availableBalance, annualRate, 1)
+      ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
     : calculationMethod === "simple"
       ? configuredSimpleInterest(availableBalance, annualRate, 1, daysBase)
     : calculationMethod === "simple360"

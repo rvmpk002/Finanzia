@@ -217,6 +217,9 @@ export default function InvestmentPage({
   const promoCap = isMifel ? canonicalMifelPromoCap : Math.max(0, Number(promoCapInput) || 0);
   const annualRate = selectedProduct ? Number(fixedRate) : 0;
   const excessRate = Math.max(0, Number(excessRateInput) || 0);
+  const effectiveKuboDays = isKubo
+    ? Math.max(1, Number(termDays) || Math.max(1, Math.floor((parseDate(endDate).getTime() - parseDate(startDate).getTime()) / 86400000)))
+    : 0;
   const daysElapsed = Math.max(
     0,
     Math.floor(
@@ -240,7 +243,7 @@ export default function InvestmentPage({
         excessRate,
       )
     : isKubo
-      ? kuboInterest(availableBalance, annualRate, 1)
+      ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
       : isMifel
         ? mifelInterest(availableBalance, annualRate, 1)
         : isOpenbank
@@ -274,7 +277,7 @@ export default function InvestmentPage({
         ? compoundInterest(promoBalance, annualRate, daysElapsed) +
           compoundInterest(excessBalance, excessRate, daysElapsed)
         : isKubo
-          ? kuboInterest(availableBalance, annualRate, daysElapsed)
+          ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
           : isMifel
             ? mifelInterest(availableBalance, annualRate, daysElapsed)
             : isOpenbank

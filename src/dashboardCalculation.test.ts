@@ -42,6 +42,14 @@ test('Kubo short-term maturity matches the official net return for a 3-day term'
   assert.ok(Math.abs(interest - 21.18) < 0.2, `Kubo net interest should be around $21.18, got $${interest.toFixed(2)}`);
 });
 
+test('Kubo uses the configured term days instead of the calendar span when the chosen term is 3 days', () => {
+  const daysFromDates = Math.floor((new Date('2026-09-01T00:00:00').getTime() - new Date('2026-08-28T00:00:00').getTime()) / 86400000);
+  const chosenTermDays = 3;
+  const interest = kuboInterest(27925.21, 10, chosenTermDays);
+  assert.equal(daysFromDates, 4);
+  assert.ok(Math.abs(interest - 21.18) < 0.2);
+});
+
 test('matured plazo investments with automatic reinvestment rollover their principal and interest', () => {
   const matured = [{
     endDate: '2026-08-31',
