@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { kuboInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
+import { fromLocalDateString, toLocalDateString } from './DashboardPage.tsx';
 
 const emulateRollover = (rows: Array<{ endDate: string; balance: number; updatedBalance: number; termDays?: number; reinvestmentRule?: 'no' | 'capital' | 'capital_e_intereses'; }>, today: Date) => {
   return rows.flatMap((investment) => {
@@ -65,4 +66,15 @@ test('matured plazo investments with automatic reinvestment rollover their princ
   assert.equal(rolled[0].balance, 27946.39);
   assert.equal(rolled[0].updatedBalance, 27946.39);
   assert.equal(rolled[0].endDate, '2026-09-03');
+});
+
+test('date-only values stay in local calendar time and do not jump by one day', () => {
+  const original = new Date(2026, 7, 29, 23, 30, 0);
+  const dateKey = toLocalDateString(original);
+  const parsed = fromLocalDateString(dateKey);
+
+  assert.equal(dateKey, '2026-08-29');
+  assert.equal(parsed.getFullYear(), 2026);
+  assert.equal(parsed.getMonth(), 7);
+  assert.equal(parsed.getDate(), 29);
 });

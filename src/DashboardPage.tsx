@@ -118,7 +118,7 @@ const kuboAvailabilityDate = (date: Date) => {
   availability.setDate(availability.getDate() + 1);
   if (availability.getDay() === 6) availability.setDate(availability.getDate() + 2);
   if (availability.getDay() === 0) availability.setDate(availability.getDate() + 1);
-  return availability.toISOString().slice(0, 10);
+  return toLocalDateString(availability);
 };
 export const reinvestMaturedInvestments = (
   investments: Investment[],
@@ -133,7 +133,7 @@ export const reinvestMaturedInvestments = (
       ? Math.max(0, Number(investment.balance) || 0)
       : Math.max(0, Number(investment.updatedBalance) || 0);
   const nextTermDays = Math.max(1, Number(investment.termDays) || 30);
-  const nextStartDate = today.toISOString().slice(0, 10);
+  const nextStartDate = toLocalDateString(today);
   const nextEndDate = new Date(today);
   nextEndDate.setDate(today.getDate() + nextTermDays);
 
@@ -144,7 +144,7 @@ export const reinvestMaturedInvestments = (
     updatedBalance: rolloverBase,
     updatedBalanceOverride: undefined,
     startDate: nextStartDate,
-    endDate: nextEndDate.toISOString().slice(0, 10),
+    endDate: toLocalDateString(nextEndDate),
     calculatedAt: nextStartDate,
     dailyYield: 0,
     monthlyYield: 0,
@@ -188,13 +188,12 @@ export const calculateInvestment = (
   const availableBalance = Number.isFinite(manualUpdatedBalance)
     ? Math.max(0, manualUpdatedBalance)
     : Math.max(0, balance - withdrawn);
-  const startDate = new Date(`${investment.startDate}T00:00:00`);
+  const startDate = fromLocalDateString(investment.startDate);
   const isKubo = calculationMethod === "kubo";
   const isKuboTerm = isKubo && investment.type === "plazo";
-  const calculationDate = new Date(
-    `${(isKuboTerm
-      ? investment.endDate ?? new Date().toISOString().slice(0, 10)
-      : new Date().toISOString().slice(0, 10))}T00:00:00`,
+  const todayKey = toLocalDateString(new Date());
+  const calculationDate = fromLocalDateString(
+    isKuboTerm ? investment.endDate ?? todayKey : todayKey,
   );
   const daysElapsed = Math.max(
     0,
@@ -301,7 +300,7 @@ export const calculateInvestment = (
     nextMonthBalance,
     updatedBalance: investment.updatedBalanceOverride ?? updatedBalance,
     nextMonthExcess: Math.max(0, nextMonthBalance - promoCap),
-    calculatedAt: calculationDate.toISOString().slice(0, 10),
+    calculatedAt: toLocalDateString(calculationDate),
     daysElapsed,
     estimatedToday: Math.max(0, availableBalance + dailyYield),
     promotionalYield: calculationMethod === "flexible"
@@ -317,6 +316,19 @@ export const calculateInvestment = (
     taxWithheld,
     netDailyYield: dailyYield - taxWithheld,
   };
+};
+export const toLocalDateString = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+export const fromLocalDateString = (value: string) => {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return new Date();
+  }
+  return new Date(year, month - 1, day, 12, 0, 0);
 };
 const tabs: { id: Tab; label: string; icon: typeof WalletCards }[] = [
   { id: "vista", label: "A la vista", icon: WalletCards },
@@ -349,9 +361,9 @@ export default function DashboardPage({
       return calculatedInvestment;
     }
     const availability = kuboAvailabilityDate(
-      new Date(`${investment.calculatedAt}T00:00:00`),
+      fromLocalDateString(investment.calculatedAt),
     );
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalDateString(new Date());
     if (today < availability) return calculatedInvestment;
     const reinvestedInvestment = {
       ...calculatedInvestment,
@@ -690,7 +702,7 @@ export default function DashboardPage({
                     <div><span>{isEtf ? "Rendimiento" : isKubo ? "Intereses a recibir" : "Retirado"}</span><strong>{isEtf ? percentage(etf?.returnRate ?? 0) : isKubo ? amount(investment.totalAccumulated) : amount(investment.withdrawn)}</strong></div>
                   </div>
                   {isKubo && <div className="dashboard-mobile-term"><span>Tasa {percentage(investment.annualRate)} · Plazo diario</span><strong>{investment.startDate}</strong></div>}
-                  {investment.type === "plazo" && <div className="dashboard-mobile-term"><span>{investment.startDate} → {investment.endDate ?? "Sin vencimiento"}</span><strong>{investment.endDate && investment.endDate <= new Date().toISOString().slice(0, 10) ? "Finalizada" : "En curso"}</strong></div>}
+                  {investment.type === "plazo" && <div className="dashboard-mobile-term"><span>{investment.startDate} → {investment.endDate ?? "Sin vencimiento"}</span><strong>{investment.endDate && investment.endDate <= toLocalDateString(new Date()) ? "Finalizada" : "En curso"}</strong></div>}
                   {!isEtf && investment.type !== "plazo" && <label className="dashboard-mobile-edit">Saldo actualizado<input type="number" min="0" step="0.01" value={editingBalances[key] ?? Number(investment.updatedBalance).toFixed(2)} onChange={(event) => setEditingBalances((currentBalances) => ({ ...currentBalances, [key]: event.target.value }))} onFocus={() => setActiveBalanceId(key)} onBlur={(event) => { void saveUpdatedBalance(investment, event.currentTarget.value); }} /></label>}
                 </article>;
               })}
