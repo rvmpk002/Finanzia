@@ -482,7 +482,7 @@ export default function InvestmentPage({
 
     const validationErrors = validateInvestmentInput({
       type: activeTab,
-      balance: currentBalance,
+      balance: activeTab === "etf" ? currentEtfValue : currentBalance,
       withdrawn: totalWithdrawn,
       startDate,
     });

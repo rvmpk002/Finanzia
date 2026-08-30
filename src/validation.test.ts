@@ -32,7 +32,15 @@ test('validateInvestmentInput rejects invalid balances and dates', () => {
     startDate: '1899-12-31',
   });
 
+  const etfValue = validateInvestmentInput({
+    type: 'etf',
+    balance: 241799.60,
+    withdrawn: 0,
+    startDate: '2026-08-29',
+  });
+
   assert.deepEqual(negativeBalance, ['El saldo inicial debe ser mayor a 0.']);
   assert.deepEqual(futureDate, ['La fecha de inicio no puede ser futura.']);
   assert.deepEqual(tooOld, ['La fecha de inicio es demasiado antigua.']);
+  assert.deepEqual(etfValue, []);
 });
