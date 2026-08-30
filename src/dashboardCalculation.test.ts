@@ -44,6 +44,50 @@ test('Openbank applies the three displayed balance tiers', () => {
   assert.equal(interest, 30000 * 13 / 100 + 970000 * 7 / 100 + 100000 * 6.5 / 100);
 });
 
+test('Openbank ignores stale saved rates and calculates 30,153.89 at about 10.86 per day', () => {
+  const investment = {
+    type: 'vista' as const,
+    institutionId: 'openbank',
+    productId: 'openbank',
+    balance: 30153.89,
+    annualRate: 12.5,
+    excessRate: 5,
+    promoCap: 30000,
+    monthlyYield: 0,
+    nextMonthBalance: 0,
+    updatedBalance: 30153.89,
+    nextMonthExcess: 0,
+    calculatedAt: '2026-08-30',
+    daysElapsed: 0,
+    estimatedToday: 0,
+    startDate: '2026-08-30',
+    promotionalYield: 0,
+    excessYield: 0,
+    totalAccumulated: 0,
+    dailyYield: 0,
+    taxWithheld: 0,
+    netDailyYield: 0,
+    withdrawn: 0,
+  };
+  const institutions = [{
+    id: 'openbank',
+    name: 'Openbank',
+    products: [{
+      id: 'openbank',
+      name: 'Ahorro Open',
+      annualRate: 13,
+      excessRate: 7,
+      promoCap: 30000,
+      daysBase: 360,
+      calculationMethod: 'openbank',
+    }],
+  }];
+
+  const result = calculateInvestment(investment as any, institutions as any);
+
+  assert.ok(Math.abs(result.dailyYield - 10.86) < 0.01, `expected about 10.86, got ${result.dailyYield}`);
+});
+
 test('Kubo short-term maturity matches the official net return for a 3-day term', () => {
   const interest = kuboInterest(27925.21, 10, 3);
 

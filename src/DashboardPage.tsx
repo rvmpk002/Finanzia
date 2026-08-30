@@ -199,6 +199,7 @@ export const calculateInvestment = (
     .find((institution) => institution.id === investment.institutionId)
     ?.products.find((item) => item.id === investment.productId);
   const isNuInvestment = investment.institutionId === "nu";
+  const isOpenbankInvestment = investment.institutionId === "openbank";
   const allowManualUpdatedBalanceOverride = product?.allowManualUpdatedBalanceOverride ?? (isNuInvestment ? true : false);
   const hasManualUpdatedBalanceOverride = allowManualUpdatedBalanceOverride && Number.isFinite(Number(investment.updatedBalanceOverride));
   const isFlexibleUltra = product?.calculationMethod === "flexible";
@@ -209,9 +210,9 @@ export const calculateInvestment = (
   const catalogPromoCap = product?.promoCap ?? 0;
   const promoCap = investment.promoCap ?? catalogPromoCap;
   const catalogAnnualRate = product?.annualRate ?? 0;
-  const annualRate = investment.annualRate ?? catalogAnnualRate;
+  const annualRate = isOpenbankInvestment ? catalogAnnualRate : investment.annualRate ?? catalogAnnualRate;
   const catalogExcessRate = product?.excessRate ?? annualRate;
-  const excessRate = investment.excessRate ?? catalogExcessRate;
+  const excessRate = isOpenbankInvestment ? catalogExcessRate : investment.excessRate ?? catalogExcessRate;
   const balance = Math.max(0, Number(investment.balance) || 0);
   const withdrawn = Math.max(0, Number(investment.withdrawn) || 0);
   const manualUpdatedBalance = hasManualUpdatedBalanceOverride ? Number(investment.updatedBalanceOverride) : Number.NaN;
