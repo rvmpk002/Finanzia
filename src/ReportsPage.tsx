@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, Download, FileText } from "lucide-react";
+import { AlertTriangle, BarChart3, Download, FileText } from "lucide-react";
 import NavigationHeader from "./NavigationHeader";
 import { authHeaders, investmentStorageKey } from "./auth";
 import { normalizeInvestmentType } from "./tabRules";
@@ -420,9 +420,22 @@ function TypeChart({
                       }}
                     />
                     <span>{metric.label}</span>
-                    <strong>
-                      {metric.display ?? compactMoney(metric.amount)}
-                    </strong>
+                    <div className="reports-type-metric-value">
+                      <strong>
+                        {metric.display ?? compactMoney(metric.amount)}
+                      </strong>
+                      {type === "etf" && metric.key === "profit" && metric.amount < 0 && (
+                        <span
+                          className="etf-warning-pill"
+                          role="img"
+                          aria-label="No vender: ganancia negativa"
+                          title="No vender: ganancia negativa"
+                        >
+                          <AlertTriangle size={14} />
+                          <span className="etf-warning-tooltip-bubble">No vender: ganancia negativa</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

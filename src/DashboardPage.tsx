@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  AlertTriangle,
   BarChart3,
   Clock3,
   LineChart,
@@ -623,7 +624,20 @@ export default function DashboardPage({
                 return <article className="dashboard-mobile-card" key={key}>
                   <div className="dashboard-mobile-card-heading">
                     <div><span className="dashboard-mobile-label">{isEtf ? "ETF" : institutionName(investment.institutionId)}</span><h3>{title}</h3></div>
-                    <span className="mobile-value">{amount(gain)}</span>
+                    <div className="etf-gain-mobile-wrap">
+                      <span className="mobile-value">{amount(gain)}</span>
+                      {isEtf && gain < 0 && (
+                        <span
+                          className="etf-warning-pill"
+                          role="img"
+                          aria-label="No vender: ganancia negativa"
+                          title="No vender: ganancia negativa"
+                        >
+                          <AlertTriangle size={14} />
+                          <span className="etf-warning-tooltip-bubble">No vender: ganancia negativa</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="dashboard-mobile-metrics">
                     <div><span>{isEtf || isKubo ? "Monto invertido" : "Saldo actual"}</span><strong>{amount(isEtf ? etf?.capitalInvested : investment.balance)}</strong></div>
@@ -875,7 +889,22 @@ export default function DashboardPage({
                             }}
                           />
                         </td>
-                        <td>{amount(metrics.gain)}</td>
+                        <td>
+                          <div className="etf-gain-cell">
+                            <span className={metrics.gain < 0 ? "negative-gain" : ""}>{amount(metrics.gain)}</span>
+                            {metrics.gain < 0 && (
+                              <span
+                                className="etf-warning-pill"
+                                role="img"
+                                aria-label="No vender: ganancia negativa"
+                                title="No vender: ganancia negativa"
+                              >
+                                <AlertTriangle size={14} />
+                                <span className="etf-warning-tooltip-bubble">No vender: ganancia negativa</span>
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td>{percentage(metrics.returnRate)}</td>
                         <td>{percentage(metrics.dividendRate)}</td>
                         <td>{amount(metrics.annualDividendIncome)}</td>
