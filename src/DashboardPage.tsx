@@ -20,7 +20,6 @@ import {
   kuboInterest,
   mifelInterest,
   openbankInterest,
-  openbankPostingDays,
   compoundInterest,
   resolveRateSplit,
   simpleInterest,
@@ -254,9 +253,6 @@ export const calculateInvestment = (
     );
   const configuredCompoundInterest = (principal: number, rate: number, days: number) =>
     calculate(formulas.compoundInterest, { principal, annualRate: rate, days }, compoundInterest(principal, rate, days));
-  const openbankPostingDaysForDate = calculationMethod === "openbank"
-    ? openbankPostingDays(calculationDate)
-    : 0;
   const nuDailyYield = isNuInvestment ? (availableBalance * annualRate / 100) / 365 : 0;
   const nuMonthlyYield = isNuInvestment ? (availableBalance * annualRate / 100) / 12 : 0;
   const dailyYield = isNuInvestment
@@ -272,7 +268,7 @@ export const calculateInvestment = (
             : calculationMethod === "mifel360"
               ? mifelInterest(availableBalance, annualRate, 1)
               : calculationMethod === "openbank"
-                ? openbankInterest(availableBalance, annualRate, excessRate, openbankPostingDaysForDate, daysBase)
+                ? openbankInterest(availableBalance, annualRate, excessRate, 1, daysBase)
                 : configuredCompoundInterest(promoBalance, annualRate, 1) +
                   configuredCompoundInterest(excessBalance, effectiveExcessRate, 1);
   const monthlyYield = isNuInvestment
@@ -618,6 +614,16 @@ export default function DashboardPage({
       .find((institution) => institution.id === investment.institutionId)
       ?.products.find((product) => product.id === investment.productId)?.name ??
     "Producto eliminado";
+  const vistaGainForDays = (investment: Investment, days: number) => {
+    const product = institutions
+      .find((institution) => institution.id === investment.institutionId)
+      ?.products.find((item) => item.id === investment.productId);
+    if (product?.calculationMethod === "openbank") {
+      const principal = Math.max(0, Number(investment.balance) - Number(investment.withdrawn || 0));
+      return openbankInterest(principal, investment.annualRate, product.excessRate ?? 7, days, product.daysBase ?? 360);
+    }
+    return investment.dailyYield * days;
+  };
   const protectionName = (investment: Investment) =>
     investment.institutionId === "cetesdirecto" ? "Gobierno federal" : "IPAB";
   const daysUntilMaturity = (investment: Investment) => {
@@ -785,10 +791,10 @@ export default function DashboardPage({
                       <div><span>Monto inicial</span><strong>{amount(investment.balance)}</strong></div>
                       <div><span>Tope promo</span><strong>{amount(investment.promoCap)}</strong></div>
                       <div><span>Tasa anual</span><strong>{percentage(investment.annualRate)}</strong></div>
-                      <div><span>Ganancia diaria</span><strong>{amount(investment.dailyYield)}</strong></div>
-                      <div><span>Ganancia semanal</span><strong>{amount(investment.dailyYield * 7)}</strong></div>
-                      <div><span>Ganancia mensual</span><strong>{amount(investment.dailyYield * 30)}</strong></div>
-                      <div><span>Ganancia anual</span><strong>{amount(investment.dailyYield * 365)}</strong></div>
+                      <div><span>Ganancia diaria</span><strong>{amount(vistaGainForDays(investment, 1))}</strong></div>
+                      <div><span>Ganancia semanal</span><strong>{amount(vistaGainForDays(investment, 7))}</strong></div>
+                      <div><span>Ganancia mensual</span><strong>{amount(vistaGainForDays(investment, 30))}</strong></div>
+                      <div><span>Ganancia anual</span><strong>{amount(vistaGainForDays(investment, 365))}</strong></div>
                       <div><span>Total retirado</span><strong>{amount(investment.withdrawn)}</strong></div>
                     </> : <>
                       <div><span>{isEtf || isKubo ? "Monto invertido" : "Saldo actual"}</span><strong>{amount(isEtf ? etf?.capitalInvested : investment.balance)}</strong></div>
@@ -1134,10 +1140,10 @@ export default function DashboardPage({
                       <td>{amount(investment.balance)}</td>
                       <td>{amount(investment.promoCap)}</td>
                       <td>{investment.annualRate.toFixed(2)}%</td>
-                      <td>{amount(investment.dailyYield)}</td>
-                      <td>{amount(investment.dailyYield * 7)}</td>
-                      <td>{amount(investment.dailyYield * 30)}</td>
-                      <td>{amount(investment.dailyYield * 365)}</td>
+                      <td>{amount(vistaGainForDays(investment, 1))}</td>
+                      <td>{amount(vistaGainForDays(investment, 7))}</td>
+                      <td>{amount(vistaGainForDays(investment, 30))}</td>
+                      <td>{amount(vistaGainForDays(investment, 365))}</td>
                       <td>{amount(investment.withdrawn)}</td>
                       </>}
                     </tr>

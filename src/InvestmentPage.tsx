@@ -87,12 +87,6 @@ const openbankInterest = (
     (days / 360)
   );
 };
-const openbankPostingDays = (date: Date) => {
-  const day = date.getDay();
-  if (day === 0) return 0;
-  if (day === 1) return 3;
-  return 1;
-};
 const kuboInterest = (principal: number, annualRate: number, days: number) => {
   const kuboEffectiveTaxRate = 0.077;
   return principal * (annualRate / 100) * (days / 365) * (1 - kuboEffectiveTaxRate);
@@ -230,9 +224,6 @@ export default function InvestmentPage({
   const monthlyDays = daysInMonth(calculationDate);
   const promoBalance = Math.min(availableBalance, promoCap);
   const excessBalance = Math.max(0, availableBalance - promoCap);
-  const openbankPostingDaysForDate = isOpenbank
-    ? openbankPostingDays(calculationDate)
-    : 0;
   const dailyYield = isFlexibleUltra
     ? flexibleUltraInterest(
         availableBalance,
@@ -250,7 +241,7 @@ export default function InvestmentPage({
               availableBalance,
               annualRate,
               excessRate,
-              openbankPostingDaysForDate,
+              1,
             )
           : compoundInterest(promoBalance, annualRate, 1) +
             compoundInterest(excessBalance, excessRate, 1);

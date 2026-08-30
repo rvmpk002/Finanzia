@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateInvestment, fromLocalDateString, resolveLatestInvestmentRecord, toLocalDateString, withdrawnAfterUpdatedBalanceEdit } from './DashboardPage.tsx';
-import { kuboInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
+import { kuboInterest, openbankTieredInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
 import { shouldShowMercadoPagoMinimumBalanceWarning } from './warningRules';
 
 const emulateRollover = (rows: Array<{ endDate: string; balance: number; updatedBalance: number; termDays?: number; reinvestmentRule?: 'no' | 'capital' | 'capital_e_intereses'; }>, today: Date) => {
@@ -36,6 +36,12 @@ test('fixed-rate products without promo tiers keep the full balance at the annua
   assert.equal(split.promoBalance, 10000);
   assert.equal(split.excessBalance, 0);
   assert.equal(split.effectiveExcessRate, 13);
+});
+
+test('Openbank applies the three displayed balance tiers', () => {
+  const interest = openbankTieredInterest(1_100_000, 13, 7, 360);
+
+  assert.equal(interest, 30000 * 13 / 100 + 970000 * 7 / 100 + 100000 * 6.5 / 100);
 });
 
 test('Kubo short-term maturity matches the official net return for a 3-day term', () => {

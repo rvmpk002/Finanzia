@@ -43,6 +43,24 @@ export const kuboInterest = (principal: number, annualRate: number, days: number
 export const mifelInterest = (principal: number, annualRate: number, days: number, daysBase = 360) =>
   principal * (annualRate / 100) * (days / daysBase);
 
+export const openbankTieredInterest = (
+  principal: number,
+  firstTierRate: number,
+  secondTierRate: number,
+  days: number,
+  daysBase = 360,
+) => {
+  const firstTier = Math.min(Math.max(0, principal), 30000);
+  const secondTier = Math.min(Math.max(0, principal - 30000), 970000);
+  const thirdTier = Math.max(0, principal - 1000000);
+  return (
+    (firstTier * firstTierRate / 100 +
+      secondTier * secondTierRate / 100 +
+      thirdTier * 6.5 / 100) *
+    (days / daysBase)
+  );
+};
+
 export const openbankInterest = (
   principal: number,
   annualRate: number,
@@ -50,14 +68,7 @@ export const openbankInterest = (
   days: number,
   daysBase = 360,
 ) => {
-  const firstTier = Math.min(principal, 30000);
-  const secondTier = Math.min(Math.max(0, principal - 30000), 970000);
-  const thirdTier = Math.max(0, principal - 1000000);
-  const upperTierRate = 6.5;
-  return (
-    (firstTier * annualRate / 100 + secondTier * excessRate / 100 + thirdTier * upperTierRate / 100) *
-    (days / daysBase)
-  );
+  return openbankTieredInterest(principal, annualRate, excessRate, days, daysBase);
 };
 
 export const openbankPostingDays = (date: Date) => {
