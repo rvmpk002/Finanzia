@@ -136,6 +136,57 @@ test('the Nu minimum purchase warning appears only on the first three days of ea
   assert.equal(shouldShowNuMinimumPurchaseWarning(new Date('2026-08-31T12:00:00')), false);
 });
 
+test('Nu keeps a manual updated balance across a recalculation round trip', () => {
+  const institutions = [{
+    id: 'nu',
+    name: 'Nu',
+    products: [{
+      id: 'nu-cajita-turbo',
+      name: 'Cajita Turbo',
+      annualRate: 13,
+      calculationMethod: 'compound',
+      promoCap: 0,
+      excessRate: 0,
+      allowManualUpdatedBalanceOverride: true,
+    }],
+  }];
+  const investment = {
+    type: 'vista' as const,
+    institutionId: 'nu',
+    productId: 'nu-cajita-turbo',
+    balance: 24453.06,
+    promoCap: 0,
+    annualRate: 13,
+    monthlyYield: 0,
+    nextMonthBalance: 0,
+    updatedBalance: 24453.06,
+    updatedBalanceOverride: 25126.68,
+    nextMonthExcess: 0,
+    calculatedAt: '2026-08-30',
+    daysElapsed: 14,
+    estimatedToday: 0,
+    startDate: '2026-08-16',
+    promotionalYield: 0,
+    excessYield: 0,
+    totalAccumulated: 125.58,
+    dailyYield: 8.95,
+    taxWithheld: 0,
+    netDailyYield: 8.95,
+    withdrawn: 0,
+  };
+
+  const recalculated = calculateInvestment(investment as any, institutions as any);
+  const roundTrip = calculateInvestment({
+    ...recalculated,
+    updatedBalanceOverride: recalculated.updatedBalanceOverride ?? recalculated.updatedBalance,
+    updatedBalance: recalculated.updatedBalance,
+    balance: recalculated.balance,
+  } as any, institutions as any);
+
+  assert.equal(roundTrip.updatedBalance, 25126.68);
+  assert.equal(roundTrip.updatedBalanceOverride ?? roundTrip.updatedBalance, 25126.68);
+});
+
 test('the Mercado Pago minimum balance warning appears only on the last three days of each month', () => {
   assert.equal(shouldShowMercadoPagoMinimumBalanceWarning(new Date('2026-08-29T12:00:00')), true);
   assert.equal(shouldShowMercadoPagoMinimumBalanceWarning(new Date('2026-08-30T12:00:00')), true);

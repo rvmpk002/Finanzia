@@ -181,6 +181,7 @@ export const calculateInvestment = (
     .find((institution) => institution.id === investment.institutionId)
     ?.products.find((item) => item.id === investment.productId);
   const allowManualUpdatedBalanceOverride = product?.allowManualUpdatedBalanceOverride ?? true;
+  const hasManualUpdatedBalanceOverride = allowManualUpdatedBalanceOverride && Number.isFinite(Number(investment.updatedBalanceOverride));
   const isFlexibleUltra = product?.calculationMethod === "flexible";
   const calculationMethod = product?.calculationMethod ?? (investment.type === "plazo" ? "simple" : "compound");
   const taxRate = product?.taxRate ?? 0;
@@ -307,11 +308,10 @@ export const calculateInvestment = (
     availableBalance + monthlyYield,
   );
   const taxWithheld = dailyYield * (taxRate / 100);
+  const retainedBalance = hasManualUpdatedBalanceOverride ? resolvedUpdatedBalance : balance;
   return {
     ...investment,
-    balance: allowManualUpdatedBalanceOverride && investment.updatedBalanceOverride != null
-      ? resolvedUpdatedBalance
-      : balance,
+    balance: retainedBalance,
     promoCap,
     annualRate,
     monthlyYield,
