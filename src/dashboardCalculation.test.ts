@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateInvestment, fromLocalDateString, toLocalDateString } from './DashboardPage.tsx';
 import { kuboInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
-import { shouldShowNuMinimumPurchaseWarning } from './nuWarning';
+import {
+  shouldShowMercadoPagoMinimumBalanceWarning,
+  shouldShowNuMinimumPurchaseWarning,
+} from './nuWarning';
 
 const emulateRollover = (rows: Array<{ endDate: string; balance: number; updatedBalance: number; termDays?: number; reinvestmentRule?: 'no' | 'capital' | 'capital_e_intereses'; }>, today: Date) => {
   return rows.flatMap((investment) => {
@@ -131,4 +134,12 @@ test('the Nu minimum purchase warning appears only on the first three days of ea
   assert.equal(shouldShowNuMinimumPurchaseWarning(new Date('2026-08-03T12:00:00')), true);
   assert.equal(shouldShowNuMinimumPurchaseWarning(new Date('2026-08-04T12:00:00')), false);
   assert.equal(shouldShowNuMinimumPurchaseWarning(new Date('2026-08-31T12:00:00')), false);
+});
+
+test('the Mercado Pago minimum balance warning appears only on the last three days of each month', () => {
+  assert.equal(shouldShowMercadoPagoMinimumBalanceWarning(new Date('2026-08-29T12:00:00')), true);
+  assert.equal(shouldShowMercadoPagoMinimumBalanceWarning(new Date('2026-08-30T12:00:00')), true);
+  assert.equal(shouldShowMercadoPagoMinimumBalanceWarning(new Date('2026-08-31T12:00:00')), true);
+  assert.equal(shouldShowMercadoPagoMinimumBalanceWarning(new Date('2026-08-28T12:00:00')), false);
+  assert.equal(shouldShowMercadoPagoMinimumBalanceWarning(new Date('2026-09-01T12:00:00')), false);
 });

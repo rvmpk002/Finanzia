@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, BarChart3, Download, FileText } from "lucide-react";
+import { AlertTriangle, BarChart3, CircleDollarSign, Download, FileText, Landmark } from "lucide-react";
 import NavigationHeader from "./NavigationHeader";
 import { authHeaders, investmentStorageKey } from "./auth";
 import { normalizeInvestmentType } from "./tabRules";
-import { nuMinimumPurchaseWarningLabel, shouldShowNuMinimumPurchaseWarning } from "./nuWarning";
+import {
+  mercadoPagoMinimumBalanceWarningLabel,
+  nuMinimumPurchaseWarningLabel,
+  shouldShowMercadoPagoMinimumBalanceWarning,
+  shouldShowNuMinimumPurchaseWarning,
+} from "./nuWarning";
 
 type Type = "vista" | "plazo" | "etf";
 type Institution = { id: string; name: string; products?: Product[] };
@@ -117,6 +122,10 @@ const mifelWarning = (item: Investment) => {
 const nuWarning = (item: Investment) => {
   if (item.institutionId !== "nu" || !shouldShowNuMinimumPurchaseWarning(new Date())) return null;
   return { label: nuMinimumPurchaseWarningLabel };
+};
+const mercadoPagoWarning = (item: Investment) => {
+  if (item.institutionId !== "mercado-pago" || !shouldShowMercadoPagoMinimumBalanceWarning(new Date())) return null;
+  return { label: mercadoPagoMinimumBalanceWarningLabel };
 };
 const label = (item: Investment, institutions: Institution[]) =>
   institutions.find((entry) => entry.id === item.institutionId)?.name ??
@@ -457,16 +466,24 @@ function TypeChart({
                     })()
                   )}
                   {type === "vista" && (() => {
-                    const warning = mifelWarning(item) ?? nuWarning(item);
+                    const warning = mifelWarning(item) ?? nuWarning(item) ?? mercadoPagoWarning(item);
                     if (!warning) return null;
+                    const isMercadoPagoWarning = warning.label === mercadoPagoMinimumBalanceWarningLabel;
+                    const isNuWarning = warning.label === nuMinimumPurchaseWarningLabel;
                     return (
                       <span
-                        className="mifel-warning-pill mifel-warning-pill-inline"
+                        className={
+                          isMercadoPagoWarning
+                            ? "mercado-pago-warning-pill mifel-warning-pill-inline"
+                            : isNuWarning
+                              ? "nu-warning-pill mifel-warning-pill-inline"
+                              : "mifel-warning-pill mifel-warning-pill-inline"
+                        }
                         role="img"
                         aria-label={warning.label}
                         title={warning.label}
                       >
-                        <AlertTriangle size={14} />
+                        {isMercadoPagoWarning ? <CircleDollarSign size={14} /> : isNuWarning ? <Landmark size={14} /> : <AlertTriangle size={14} />}
                         <span className="etf-warning-tooltip-bubble">{warning.label}</span>
                       </span>
                     );
@@ -811,16 +828,24 @@ export default function ReportsPage({
                             );
                           })()}
                           {item.type === "vista" && (() => {
-                            const warning = mifelWarning(item) ?? nuWarning(item);
+                            const warning = mifelWarning(item) ?? nuWarning(item) ?? mercadoPagoWarning(item);
                             if (!warning) return null;
+                            const isMercadoPagoWarning = warning.label === mercadoPagoMinimumBalanceWarningLabel;
+                            const isNuWarning = warning.label === nuMinimumPurchaseWarningLabel;
                             return (
                               <span
-                                className="mifel-warning-pill mifel-warning-pill-inline"
+                                className={
+                                  isMercadoPagoWarning
+                                    ? "mercado-pago-warning-pill mifel-warning-pill-inline"
+                                    : isNuWarning
+                                      ? "nu-warning-pill mifel-warning-pill-inline"
+                                      : "mifel-warning-pill mifel-warning-pill-inline"
+                                }
                                 role="img"
                                 aria-label={warning.label}
                                 title={warning.label}
                               >
-                                <AlertTriangle size={14} />
+                                {isMercadoPagoWarning ? <CircleDollarSign size={14} /> : isNuWarning ? <Landmark size={14} /> : <AlertTriangle size={14} />}
                                 <span className="etf-warning-tooltip-bubble">{warning.label}</span>
                               </span>
                             );
