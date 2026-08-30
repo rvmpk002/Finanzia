@@ -309,6 +309,9 @@ export const calculateInvestment = (
   const taxWithheld = dailyYield * (taxRate / 100);
   return {
     ...investment,
+    balance: allowManualUpdatedBalanceOverride && investment.updatedBalanceOverride != null
+      ? resolvedUpdatedBalance
+      : balance,
     promoCap,
     annualRate,
     monthlyYield,
