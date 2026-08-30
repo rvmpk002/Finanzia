@@ -111,7 +111,7 @@ const mifelWarning = (item: Investment) => {
   if (item.institutionId !== "mifel" || item.type !== "vista") return null;
   const updatedBalance = Number(item.updatedBalance ?? item.balance ?? 0);
   if (updatedBalance < 499500) return null;
-  return { label: "retira 1000" };
+  return { label: "retira 1000, ya que sobre el excedente de 500mil no genera intereses." };
 };
 const label = (item: Investment, institutions: Institution[]) =>
   institutions.find((entry) => entry.id === item.institutionId)?.name ??

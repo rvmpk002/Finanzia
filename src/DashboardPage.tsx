@@ -577,7 +577,7 @@ export default function DashboardPage({
     if (investment.institutionId !== "mifel" || investment.type !== "vista") return null;
     const updatedBalance = Number(investment.updatedBalance ?? investment.balance ?? 0);
     if (updatedBalance < 499500) return null;
-    return { label: "retira 1000" };
+    return { label: "retira 1000, ya que sobre el excedente de 500mil no genera intereses." };
   };
   const termDaysFor = (investment: Investment) => {
     if (investment.termDays) return investment.termDays;
