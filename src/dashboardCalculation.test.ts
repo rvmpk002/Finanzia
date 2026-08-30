@@ -90,6 +90,7 @@ test('Nu recalculates its updated balance automatically even when a stale overri
       calculationMethod: 'compound',
       promoCap: 0,
       excessRate: 0,
+      allowManualUpdatedBalanceOverride: false,
     }],
   }];
   const investment = {

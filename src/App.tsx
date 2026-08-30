@@ -41,6 +41,7 @@ type RateProduct = {
   taxRate?: number;
   daysBase?: number;
   promotionDays?: number;
+  allowManualUpdatedBalanceOverride?: boolean;
 };
 type Institution = {
   id: string;
@@ -137,6 +138,7 @@ const nu: Institution = {
         "Sin regla de compra mensual.",
         "Disponible para crecer tu saldo de forma continua.",
       ],
+      allowManualUpdatedBalanceOverride: false,
       icon: "flexible",
     },
   ],

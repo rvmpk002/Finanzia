@@ -37,6 +37,7 @@ type Product = {
   taxRate?: number;
   daysBase?: number;
   promotionDays?: number;
+  allowManualUpdatedBalanceOverride?: boolean;
 };
 type Institution = { id: string; name: string; products: Product[] };
 type Investment = {
@@ -171,6 +172,7 @@ export const calculateInvestment = (
   const product = institutions
     .find((institution) => institution.id === investment.institutionId)
     ?.products.find((item) => item.id === investment.productId);
+  const allowManualUpdatedBalanceOverride = product?.allowManualUpdatedBalanceOverride ?? true;
   const isFlexibleUltra = product?.calculationMethod === "flexible";
   const calculationMethod = product?.calculationMethod ?? (investment.type === "plazo" ? "simple" : "compound");
   const taxRate = product?.taxRate ?? 0;
@@ -184,8 +186,7 @@ export const calculateInvestment = (
   const excessRate = investment.excessRate ?? catalogExcessRate;
   const balance = Math.max(0, Number(investment.balance) || 0);
   const withdrawn = Math.max(0, Number(investment.withdrawn) || 0);
-  const isNuAutoBalance = investment.institutionId === "nu" && investment.productId === "nu-cajita-turbo";
-  const manualUpdatedBalance = isNuAutoBalance ? Number.NaN : Number(investment.updatedBalanceOverride);
+  const manualUpdatedBalance = allowManualUpdatedBalanceOverride ? Number(investment.updatedBalanceOverride) : Number.NaN;
   const availableBalance = Number.isFinite(manualUpdatedBalance)
     ? Math.max(0, manualUpdatedBalance)
     : Math.max(0, balance - withdrawn);
@@ -288,9 +289,9 @@ export const calculateInvestment = (
       calculatedUpdatedBalance,
     ),
   );
-  const resolvedUpdatedBalance = isNuAutoBalance
-    ? updatedBalance
-    : investment.updatedBalanceOverride ?? updatedBalance;
+  const resolvedUpdatedBalance = allowManualUpdatedBalanceOverride
+    ? investment.updatedBalanceOverride ?? updatedBalance
+    : updatedBalance;
   const nextMonthBalance = Math.max(
     0,
     availableBalance + monthlyYield,
@@ -476,15 +477,18 @@ export default function DashboardPage({
     const value = Number(inputValue ?? editingBalances[key]);
     if (!Number.isFinite(value) || value < 0) return;
     const isEtf = investment.type === "etf";
-    const isNuAutoBalance = investment.institutionId === "nu" && investment.productId === "nu-cajita-turbo";
+    const product = institutions
+      .find((institution) => institution.id === investment.institutionId)
+      ?.products.find((item) => item.id === investment.productId);
+    const allowManualOverride = product?.allowManualUpdatedBalanceOverride ?? true;
     const reduction = Math.max(0, investment.updatedBalance - value);
     const updatedInvestment = {
       ...investment,
       ...(isEtf
         ? { etfCurrentValue: value, balance: value, updatedBalance: value }
         : {
-            updatedBalanceOverride: isNuAutoBalance ? undefined : value,
-            updatedBalance: isNuAutoBalance ? value : value,
+            updatedBalanceOverride: allowManualOverride ? value : undefined,
+            updatedBalance: value,
             withdrawn: Number(investment.withdrawn || 0) + reduction,
           }),
       updatedAt: new Date().toISOString(),
