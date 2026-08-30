@@ -512,14 +512,15 @@ app.post('/api/institutions/sync', async (request, response) => {
   try {
     await client.query('BEGIN')
     const institutionIds = sanitizedInstitutions.map((institution) => institution?.id).filter(Boolean)
+    const protectedInstitutionIds = [...new Set([...institutionIds, 'etf'])]
 
     await client.query(
       'DELETE FROM user_product_configs WHERE NOT (institution_id = ANY($1::text[]))',
-      [institutionIds],
+      [protectedInstitutionIds],
     )
     await client.query(
       'DELETE FROM investments WHERE NOT (institution_id = ANY($1::text[]))',
-      [institutionIds],
+      [protectedInstitutionIds],
     )
     await client.query(
       'DELETE FROM institutions WHERE NOT (id = ANY($1::text[]))',
