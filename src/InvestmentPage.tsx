@@ -273,34 +273,36 @@ export default function InvestmentPage({
     0,
     activeTab === "plazo"
       ? simpleInterest(availableBalance, annualRate, daysElapsed)
-      : isDidi || isNu
-        ? compoundInterest(promoBalance, annualRate, daysElapsed) +
-          compoundInterest(excessBalance, excessRate, daysElapsed)
-        : isKubo
-          ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
-          : isMifel
-            ? mifelInterest(availableBalance, annualRate, daysElapsed)
-            : isOpenbank
-              ? openbankInterest(
-                  availableBalance,
-                  annualRate,
-                  excessRate,
-                  daysElapsed,
-                )
-              : completedMonthsBetween(parseDate(startDate), calculationDate) >
-                  0
-                ? monthlyYield *
-                  completedMonthsBetween(parseDate(startDate), calculationDate)
-                : isFlexibleUltra
-                  ? flexibleUltraInterest(
-                      availableBalance,
-                      promoCap,
-                      daysElapsed,
-                      annualRate,
-                      excessRate,
-                    )
-                  : compoundInterest(promoBalance, annualRate, daysElapsed) +
-                    compoundInterest(excessBalance, excessRate, daysElapsed),
+      : isNu
+        ? (availableBalance * annualRate / 100) * (daysElapsed / 365)
+        : isDidi
+          ? compoundInterest(promoBalance, annualRate, daysElapsed) +
+            compoundInterest(excessBalance, excessRate, daysElapsed)
+          : isKubo
+            ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
+            : isMifel
+              ? mifelInterest(availableBalance, annualRate, daysElapsed)
+              : isOpenbank
+                ? openbankInterest(
+                    availableBalance,
+                    annualRate,
+                    excessRate,
+                    daysElapsed,
+                  )
+                : completedMonthsBetween(parseDate(startDate), calculationDate) >
+                    0
+                  ? monthlyYield *
+                    completedMonthsBetween(parseDate(startDate), calculationDate)
+                  : isFlexibleUltra
+                    ? flexibleUltraInterest(
+                        availableBalance,
+                        promoCap,
+                        daysElapsed,
+                        annualRate,
+                        excessRate,
+                      )
+                    : compoundInterest(promoBalance, annualRate, daysElapsed) +
+                      compoundInterest(excessBalance, excessRate, daysElapsed),
   );
   const completedMonths = completedMonthsBetween(
     parseDate(startDate),

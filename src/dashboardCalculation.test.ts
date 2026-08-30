@@ -188,6 +188,97 @@ test('Nu keeps a manual updated balance across a recalculation round trip', () =
   assert.equal(roundTrip.updatedBalanceOverride ?? roundTrip.updatedBalance, 25126.68);
 });
 
+test('Nu matches the public calculator linear daily and monthly returns', () => {
+  const institutions = [{
+    id: 'nu',
+    name: 'Nu',
+    products: [{
+      id: 'nu-cajita-turbo',
+      name: 'Cajita Turbo',
+      annualRate: 13,
+      calculationMethod: 'compound',
+      promoCap: 0,
+      excessRate: 0,
+      allowManualUpdatedBalanceOverride: true,
+    }],
+  }];
+  const investment = {
+    type: 'vista' as const,
+    institutionId: 'nu',
+    productId: 'nu-cajita-turbo',
+    balance: 25126.68,
+    promoCap: 0,
+    annualRate: 13,
+    monthlyYield: 0,
+    nextMonthBalance: 0,
+    updatedBalance: 25126.68,
+    updatedBalanceOverride: 25126.68,
+    nextMonthExcess: 0,
+    calculatedAt: '2026-08-30',
+    daysElapsed: 1,
+    estimatedToday: 0,
+    startDate: '2026-08-29',
+    promotionalYield: 0,
+    excessYield: 0,
+    totalAccumulated: 0,
+    dailyYield: 0,
+    taxWithheld: 0,
+    netDailyYield: 0,
+    withdrawn: 0,
+  };
+
+  const result = calculateInvestment(investment as any, institutions as any);
+
+  assert.ok(Math.abs(result.dailyYield - 8.95) < 0.1, `expected ~8.95 per day, got ${result.dailyYield}`);
+  assert.ok(Math.abs(result.monthlyYield - 272.21) < 1, `expected ~272.21 per month, got ${result.monthlyYield}`);
+  assert.ok(Math.abs(result.totalAccumulated - 8.95) < 0.1, `expected ~8.95 accumulated for 1 day, got ${result.totalAccumulated}`);
+});
+
+test('Nu grows the current and updated balances by the daily rate after a manual override', () => {
+  const institutions = [{
+    id: 'nu',
+    name: 'Nu',
+    products: [{
+      id: 'nu-cajita-turbo',
+      name: 'Cajita Turbo',
+      annualRate: 13,
+      calculationMethod: 'compound',
+      promoCap: 0,
+      excessRate: 0,
+      allowManualUpdatedBalanceOverride: true,
+    }],
+  }];
+  const investment = {
+    type: 'vista' as const,
+    institutionId: 'nu',
+    productId: 'nu-cajita-turbo',
+    balance: 25126.68,
+    promoCap: 0,
+    annualRate: 13,
+    monthlyYield: 0,
+    nextMonthBalance: 0,
+    updatedBalance: 25126.68,
+    updatedBalanceOverride: 25126.68,
+    nextMonthExcess: 0,
+    calculatedAt: '2026-08-30',
+    daysElapsed: 1,
+    estimatedToday: 0,
+    startDate: '2026-08-29',
+    promotionalYield: 0,
+    excessYield: 0,
+    totalAccumulated: 8.95,
+    dailyYield: 8.95,
+    taxWithheld: 0,
+    netDailyYield: 8.95,
+    withdrawn: 0,
+  };
+
+  const result = calculateInvestment(investment as any, institutions as any);
+
+  assert.ok(Math.abs(result.balance - 25135.63) < 0.05, `expected ~25135.63 balance, got ${result.balance}`);
+  assert.ok(Math.abs(result.updatedBalance - 25135.63) < 0.05, `expected ~25135.63 updatedBalance, got ${result.updatedBalance}`);
+});
+
 test('a local manual Nu override wins over a stale API snapshot', () => {
   const databaseInvestment = {
     id: 42,
