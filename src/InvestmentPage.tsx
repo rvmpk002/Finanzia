@@ -904,17 +904,19 @@ export default function InvestmentPage({
                     </label>
                   )}
                 </div>
-                <label>
-                  Regla de reinversión
-                  <select
-                    value={reinvestmentRule}
-                    onChange={(event) => setReinvestmentRule(event.target.value as "no" | "capital" | "capital_e_intereses")}
-                  >
-                    <option value="no">No reinvertir</option>
-                    <option value="capital">Reinvertir solo capital</option>
-                    <option value="capital_e_intereses">Reinvertir capital e intereses</option>
-                  </select>
-                </label>
+                {activeTab === "plazo" && (
+                  <label>
+                    Regla de reinversión
+                    <select
+                      value={reinvestmentRule}
+                      onChange={(event) => setReinvestmentRule(event.target.value as "no" | "capital" | "capital_e_intereses")}
+                    >
+                      <option value="no">No reinvertir</option>
+                      <option value="capital">Reinvertir solo capital</option>
+                      <option value="capital_e_intereses">Reinvertir capital e intereses</option>
+                    </select>
+                  </label>
+                )}
               </div>
             )}
             {activeTab !== "etf" && (
