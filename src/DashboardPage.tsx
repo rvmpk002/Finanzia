@@ -553,6 +553,14 @@ export default function DashboardPage({
       ),
     );
   };
+  const plazoWarning = (investment: Investment) => {
+    const remainingDays = daysUntilMaturity(investment);
+    if (investment.type !== "plazo" || remainingDays > 10 || !investment.endDate) return null;
+    return {
+      remainingDays,
+      label: `Quedan ${remainingDays} días para terminar inversión`,
+    };
+  };
   const termDaysFor = (investment: Investment) => {
     if (investment.termDays) return investment.termDays;
     if (!investment.endDate) return investment.daysElapsed;
@@ -623,7 +631,24 @@ export default function DashboardPage({
                 const gain = isEtf ? etf?.gain ?? 0 : investment.totalAccumulated;
                 return <article className="dashboard-mobile-card" key={key}>
                   <div className="dashboard-mobile-card-heading">
-                    <div><span className="dashboard-mobile-label">{isEtf ? "ETF" : institutionName(investment.institutionId)}</span><h3>{title}</h3></div>
+                    <div className="dashboard-mobile-name-wrap">
+                      <span className="dashboard-mobile-label">{isEtf ? "ETF" : institutionName(investment.institutionId)}</span>
+                      <h3>{title}</h3>
+                      {investment.type === "plazo" && (() => {
+                        const warning = plazoWarning(investment);
+                        return warning ? (
+                          <span
+                            className="term-warning-pill term-warning-pill-inline"
+                            role="img"
+                            aria-label={warning.label}
+                            title={warning.label}
+                          >
+                            <Clock3 size={14} />
+                            <span className="etf-warning-tooltip-bubble">{warning.label}</span>
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
                     <div className="etf-gain-mobile-wrap">
                       <span className="mobile-value">{amount(gain)}</span>
                       {isEtf && gain < 0 && (
@@ -847,9 +872,25 @@ export default function DashboardPage({
                       return (
                     <tr key={key}>
                       {activeTab === "etf" ? null : <td>
-                        <strong>
-                          {institutionName(investment.institutionId)}
-                        </strong>
+                        <div className="dashboard-plazo-name-wrap">
+                          <strong>
+                            {institutionName(investment.institutionId)}
+                          </strong>
+                          {investment.type === "plazo" && (() => {
+                            const warning = plazoWarning(investment);
+                            return warning ? (
+                              <span
+                                className="term-warning-pill term-warning-pill-inline"
+                                role="img"
+                                aria-label={warning.label}
+                                title={warning.label}
+                              >
+                                <Clock3 size={14} />
+                                <span className="etf-warning-tooltip-bubble">{warning.label}</span>
+                              </span>
+                            ) : null;
+                          })()}
+                        </div>
                       </td>}
                       {activeTab === "etf" ? (() => {
                         const metrics = etfMetrics(investment, formulasFor(investment));

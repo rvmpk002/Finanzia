@@ -96,6 +96,17 @@ const profit = (item: Investment, institutions: Institution[] = []) =>
   item.type === "etf"
     ? current(item, institutions) - capital(item)
     : value(item.totalAccumulated);
+const daysUntilMaturity = (item: Investment) => {
+  if (!item.endDate) return 0;
+  return Math.max(
+    0,
+    Math.ceil(
+      (new Date(`${item.endDate}T00:00:00`).getTime() -
+        new Date(`${today()}T00:00:00`).getTime()) /
+        86400000,
+    ),
+  );
+};
 const label = (item: Investment, institutions: Institution[]) =>
   institutions.find((entry) => entry.id === item.institutionId)?.name ??
   item.etfName ??
@@ -415,6 +426,24 @@ function TypeChart({
                       <AlertTriangle size={14} />
                       <span className="etf-warning-tooltip-bubble">No vender: ganancia negativa</span>
                     </span>
+                  )}
+                  {type === "plazo" && (
+                    (() => {
+                      const remainingDays = daysUntilMaturity(item);
+                      if (remainingDays > 10 || !item.endDate) return null;
+                      const labelText = `Quedan ${remainingDays} días para terminar inversión`;
+                      return (
+                        <span
+                          className="term-warning-pill term-warning-pill-inline"
+                          role="img"
+                          aria-label={labelText}
+                          title={labelText}
+                        >
+                          <AlertTriangle size={14} />
+                          <span className="etf-warning-tooltip-bubble">{labelText}</span>
+                        </span>
+                      );
+                    })()
                   )}
                 </div>
                 <span>
@@ -736,7 +765,27 @@ export default function ReportsPage({
                     <tr
                       key={item.id ?? `${item.institutionId}-${item.startDate}`}
                     >
-                      <td>{investmentName(item, institutions)}</td>
+                      <td>
+                        <div className="reports-plazo-name-wrap">
+                          <span>{investmentName(item, institutions)}</span>
+                          {item.type === "plazo" && (() => {
+                            const remainingDays = daysUntilMaturity(item);
+                            if (remainingDays > 10 || !item.endDate) return null;
+                            const labelText = `Quedan ${remainingDays} días para terminar inversión`;
+                            return (
+                              <span
+                                className="term-warning-pill term-warning-pill-inline"
+                                role="img"
+                                aria-label={labelText}
+                                title={labelText}
+                              >
+                                <AlertTriangle size={14} />
+                                <span className="etf-warning-tooltip-bubble">{labelText}</span>
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </td>
                       <td>{label(item, institutions)}</td>
                       <td>{money.format(capital(item))}</td>
                       <td>{item.startDate}</td>
