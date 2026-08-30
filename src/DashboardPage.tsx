@@ -381,7 +381,10 @@ export default function DashboardPage({
         if (!response.ok) throw new Error("API unavailable");
         const databaseInvestments: Investment[] = await response.json();
         const localInvestments = readLocalInvestments();
-        const validInstitutionIds = new Set(institutions.map((institution) => institution.id));
+        const validInstitutionIds = new Set([
+          ...institutions.map((institution) => institution.id),
+          "etf",
+        ]);
         const latestInvestments = databaseInvestments
           .filter((investment) => validInstitutionIds.has(investment.institutionId))
           .map((databaseInvestment) => {
