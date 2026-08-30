@@ -620,9 +620,6 @@ export default function DashboardPage({
       ?.products.find((product) => product.id === investment.productId)?.name ??
     "Producto eliminado";
   const vistaGainForDays = (investment: Investment, days: number) => {
-    const product = institutions
-      .find((institution) => institution.id === investment.institutionId)
-      ?.products.find((item) => item.id === investment.productId);
     if (investment.institutionId === "openbank") {
       const principal = Math.max(0, Number(investment.balance) - Number(investment.withdrawn || 0));
       return openbankInterest(principal, 13, 7, days, 360);
