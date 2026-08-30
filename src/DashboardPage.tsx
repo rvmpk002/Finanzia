@@ -634,6 +634,11 @@ export default function DashboardPage({
     if (updatedBalance < 499500) return null;
     return { label: "retira 1000, ya que sobre el excedente de 500mil no genera intereses." };
   };
+  const nuWarning = (investment: Investment) => {
+    if (investment.institutionId !== "nu" || investment.type !== "vista") return null;
+    if (!shouldShowNuMinimumPurchaseWarning(new Date())) return null;
+    return { label: nuMinimumPurchaseWarningLabel };
+  };
   const mercadoPagoWarning = (investment: Investment) => {
     if (investment.institutionId !== "mercado-pago" || !shouldShowMercadoPagoMinimumBalanceWarning(new Date())) return null;
     return { label: mercadoPagoMinimumBalanceWarningLabel };
@@ -991,21 +996,24 @@ export default function DashboardPage({
                             ) : null;
                           })()}
                           {investment.type === "vista" && (() => {
-                            const warning = mifelWarning(investment) ?? mercadoPagoWarning(investment);
+                            const warning = mifelWarning(investment) ?? nuWarning(investment) ?? mercadoPagoWarning(investment);
                             if (!warning) return null;
                             const isMercadoPagoWarning = warning.label === mercadoPagoMinimumBalanceWarningLabel;
+                            const isNuWarning = warning.label === nuMinimumPurchaseWarningLabel;
                             return (
                               <span
                                 className={
                                   isMercadoPagoWarning
                                     ? "mercado-pago-warning-pill mifel-warning-pill-inline"
-                                    : "mifel-warning-pill mifel-warning-pill-inline"
+                                    : isNuWarning
+                                      ? "nu-warning-pill mifel-warning-pill-inline"
+                                      : "mifel-warning-pill mifel-warning-pill-inline"
                                 }
                                 role="img"
                                 aria-label={warning.label}
                                 title={warning.label}
                               >
-                                {isMercadoPagoWarning ? <CircleDollarSign size={14} /> : <AlertTriangle size={14} />}
+                                {isMercadoPagoWarning ? <CircleDollarSign size={14} /> : isNuWarning ? <Landmark size={14} /> : <AlertTriangle size={14} />}
                                 <span className="etf-warning-tooltip-bubble">{warning.label}</span>
                               </span>
                             );
