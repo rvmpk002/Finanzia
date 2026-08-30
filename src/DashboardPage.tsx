@@ -30,9 +30,7 @@ import { authHeaders, investmentStorageKey } from "./auth";
 import { normalizeInvestmentType } from "./tabRules";
 import {
   mercadoPagoMinimumBalanceWarningLabel,
-  nuMinimumPurchaseWarningLabel,
   shouldShowMercadoPagoMinimumBalanceWarning,
-  shouldShowNuMinimumPurchaseWarning,
 } from "./warningRules";
 
 type Product = {
@@ -645,11 +643,6 @@ export default function DashboardPage({
     if (updatedBalance < 499500) return null;
     return { label: "retira 1000, ya que sobre el excedente de 500mil no genera intereses." };
   };
-  const nuWarning = (investment: Investment) => {
-    if (investment.institutionId !== "nu" || investment.type !== "vista") return null;
-    if (!shouldShowNuMinimumPurchaseWarning(new Date())) return null;
-    return { label: nuMinimumPurchaseWarningLabel };
-  };
   const mercadoPagoWarning = (investment: Investment) => {
     if (investment.institutionId !== "mercado-pago" || !shouldShowMercadoPagoMinimumBalanceWarning(new Date())) return null;
     return { label: mercadoPagoMinimumBalanceWarningLabel };
@@ -742,24 +735,21 @@ export default function DashboardPage({
                         ) : null;
                       })()}
                       {investment.type === "vista" && (() => {
-                        const warning = mifelWarning(investment) ?? nuWarning(investment) ?? mercadoPagoWarning(investment);
+                        const warning = mifelWarning(investment) ?? mercadoPagoWarning(investment);
                         if (!warning) return null;
                         const isMercadoPagoWarning = warning.label === mercadoPagoMinimumBalanceWarningLabel;
-                        const isNuWarning = warning.label === nuMinimumPurchaseWarningLabel;
                         return (
                           <span
                             className={
                               isMercadoPagoWarning
                                 ? "mercado-pago-warning-pill mifel-warning-pill-inline"
-                                : isNuWarning
-                                  ? "nu-warning-pill mifel-warning-pill-inline"
-                                  : "mifel-warning-pill mifel-warning-pill-inline"
+                                : "mifel-warning-pill mifel-warning-pill-inline"
                             }
                             role="img"
                             aria-label={warning.label}
                             title={warning.label}
                           >
-                            {isMercadoPagoWarning ? <CircleDollarSign size={14} /> : isNuWarning ? <Landmark size={14} /> : <AlertTriangle size={14} />}
+                            {isMercadoPagoWarning ? <CircleDollarSign size={14} /> : <AlertTriangle size={14} />}
                             <span className="etf-warning-tooltip-bubble">{warning.label}</span>
                           </span>
                         );
@@ -781,13 +771,23 @@ export default function DashboardPage({
                     </div>
                   </div>
                   <div className="dashboard-mobile-metrics">
-                    <div><span>{isEtf || isKubo ? "Monto invertido" : "Saldo actual"}</span><strong>{amount(isEtf ? etf?.capitalInvested : isKubo ? investment.balance : investment.updatedBalance)}</strong></div>
-                    <div><span>{isEtf ? "Valor actual" : isKubo ? "Monto a recibir" : "Saldo actualizado"}</span><strong>{amount(current)}</strong></div>
-                    <div><span>{isEtf ? "Rendimiento" : isKubo ? "Intereses a recibir" : "Retirado"}</span><strong>{isEtf ? percentage(etf?.returnRate ?? 0) : isKubo ? amount(investment.totalAccumulated) : amount(investment.withdrawn)}</strong></div>
+                    {investment.type === "vista" && !isKubo ? <>
+                      <div><span>Monto inicial</span><strong>{amount(investment.balance)}</strong></div>
+                      <div><span>Tope promo</span><strong>{amount(investment.promoCap)}</strong></div>
+                      <div><span>Tasa anual</span><strong>{percentage(investment.annualRate)}</strong></div>
+                      <div><span>Ganancia diaria</span><strong>{amount(investment.dailyYield)}</strong></div>
+                      <div><span>Ganancia semanal</span><strong>{amount(investment.dailyYield * 7)}</strong></div>
+                      <div><span>Ganancia mensual</span><strong>{amount(investment.dailyYield * 30)}</strong></div>
+                      <div><span>Ganancia anual</span><strong>{amount(investment.dailyYield * 365)}</strong></div>
+                      <div><span>Total retirado</span><strong>{amount(investment.withdrawn)}</strong></div>
+                    </> : <>
+                      <div><span>{isEtf || isKubo ? "Monto invertido" : "Saldo actual"}</span><strong>{amount(isEtf ? etf?.capitalInvested : investment.balance)}</strong></div>
+                      <div><span>{isEtf ? "Valor actual" : isKubo ? "Monto a recibir" : "Saldo actualizado"}</span><strong>{amount(current)}</strong></div>
+                      <div><span>{isEtf ? "Rendimiento" : isKubo ? "Intereses a recibir" : "Retirado"}</span><strong>{isEtf ? percentage(etf?.returnRate ?? 0) : isKubo ? amount(investment.totalAccumulated) : amount(investment.withdrawn)}</strong></div>
+                    </>}
                   </div>
                   {isKubo && <div className="dashboard-mobile-term"><span>Tasa {percentage(investment.annualRate)} · Plazo diario</span><strong>{investment.startDate}</strong></div>}
                   {investment.type === "plazo" && <div className="dashboard-mobile-term"><span>{investment.startDate} → {investment.endDate ?? "Sin vencimiento"}</span><strong>{investment.endDate && investment.endDate <= toLocalDateString(new Date()) ? "Finalizada" : "En curso"}</strong></div>}
-                  {!isEtf && investment.type !== "plazo" && <label className="dashboard-mobile-edit">Saldo actualizado<input type="number" min="0" step="0.01" value={editingBalances[key] ?? Number(investment.updatedBalance).toFixed(2)} onChange={(event) => setEditingBalances((currentBalances) => ({ ...currentBalances, [key]: event.target.value }))} onFocus={() => setActiveBalanceId(key)} onBlur={(event) => { void saveUpdatedBalance(investment, event.currentTarget.value); }} /></label>}
                 </article>;
               })}
             </div>
@@ -962,21 +962,13 @@ export default function DashboardPage({
                     </> : <>
                       <th>Institución</th>
                       <th>Producto</th>
-                      <th>Saldo actual</th>
+                      <th>Monto inicial</th>
                       <th>Tope promo</th>
                       <th>Tasa anual</th>
-                      <th>Rend. mensual</th>
-                      <th>Saldo próx. mes</th>
-                      <th>Saldo actualizado</th>
-                      <th>Excedente próx. mes</th>
-                      <th>Fecha cálculo</th>
-                      <th>Días transcurridos</th>
-                      <th>Fecha inicio</th>
-                      <th>Rend. promocional</th>
-                      <th>Total acumulado</th>
-                      <th>Rend. diario</th>
-                      <th>ISR retenido</th>
-                      <th>Rend. diario neto</th>
+                      <th>Ganancia diaria</th>
+                      <th>Ganancia semanal</th>
+                      <th>Ganancia mensual</th>
+                      <th>Ganancia anual</th>
                       <th>Total retirado</th>
                     </>}
                   </tr>
@@ -1007,24 +999,21 @@ export default function DashboardPage({
                             ) : null;
                           })()}
                           {investment.type === "vista" && (() => {
-                            const warning = mifelWarning(investment) ?? nuWarning(investment) ?? mercadoPagoWarning(investment);
+                            const warning = mifelWarning(investment) ?? mercadoPagoWarning(investment);
                             if (!warning) return null;
                             const isMercadoPagoWarning = warning.label === mercadoPagoMinimumBalanceWarningLabel;
-                            const isNuWarning = warning.label === nuMinimumPurchaseWarningLabel;
                             return (
                               <span
                                 className={
                                   isMercadoPagoWarning
                                     ? "mercado-pago-warning-pill mifel-warning-pill-inline"
-                                    : isNuWarning
-                                      ? "nu-warning-pill mifel-warning-pill-inline"
-                                      : "mifel-warning-pill mifel-warning-pill-inline"
+                                    : "mifel-warning-pill mifel-warning-pill-inline"
                                 }
                                 role="img"
                                 aria-label={warning.label}
                                 title={warning.label}
                               >
-                                {isMercadoPagoWarning ? <CircleDollarSign size={14} /> : isNuWarning ? <Landmark size={14} /> : <AlertTriangle size={14} />}
+                                {isMercadoPagoWarning ? <CircleDollarSign size={14} /> : <AlertTriangle size={14} />}
                                 <span className="etf-warning-tooltip-bubble">{warning.label}</span>
                               </span>
                             );
@@ -1129,56 +1118,13 @@ export default function DashboardPage({
                         })()}
                       </> : <>
                       <td>{productName(investment)}</td>
-                      <td>{amount(investment.updatedBalance)}</td>
+                      <td>{amount(investment.balance)}</td>
                       <td>{amount(investment.promoCap)}</td>
                       <td>{investment.annualRate.toFixed(2)}%</td>
-                      <td>{amount(investment.monthlyYield)}</td>
-                      <td>
-                        {amount(
-                          institutions.find((institution) => institution.id === investment.institutionId)?.products.find((product) => product.id === investment.productId)?.calculationMethod === "kubo"
-                            ? investment.updatedBalance
-                            : investment.nextMonthBalance,
-                        )}
-                      </td>
-                      <td className="editable-dashboard-cell">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          readOnly={activeBalanceId !== key}
-                          value={editingBalances[key] ?? Number(investment.updatedBalance).toFixed(2)}
-                          onClick={() => {
-                            setActiveBalanceId(key);
-                            setEditingBalances((current) => ({
-                              ...current,
-                              [key]: current[key] ?? Number(investment.updatedBalance).toFixed(2),
-                            }));
-                          }}
-                          onChange={(event) =>
-                            setEditingBalances((current) => ({
-                              ...current,
-                              [key]: event.target.value,
-                            }))
-                          }
-                          onBlur={(event) => {
-                            const inputValue = event.currentTarget.value;
-                            setEditingBalances((current) => ({
-                              ...current,
-                              [key]: Number(inputValue).toFixed(2),
-                            }));
-                            void saveUpdatedBalance(investment, inputValue);
-                          }}
-                        />
-                      </td>
-                      <td>{amount(investment.nextMonthExcess)}</td>
-                      <td>{investment.calculatedAt}</td>
-                      <td>{investment.daysElapsed}</td>
-                      <td>{investment.startDate}</td>
-                      <td>{amount(investment.promotionalYield)}</td>
-                      <td>{amount(investment.totalAccumulated)}</td>
                       <td>{amount(investment.dailyYield)}</td>
-                      <td>{amount(investment.taxWithheld)}</td>
-                      <td>{amount(investment.netDailyYield)}</td>
+                      <td>{amount(investment.dailyYield * 7)}</td>
+                      <td>{amount(investment.dailyYield * 30)}</td>
+                      <td>{amount(investment.dailyYield * 365)}</td>
                       <td>{amount(investment.withdrawn)}</td>
                       </>}
                     </tr>
