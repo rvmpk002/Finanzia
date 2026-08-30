@@ -123,7 +123,7 @@ const nu: Institution = {
   category: "Banca digital",
   website: "https://nubank.com.mx/cuenta/",
   notes:
-    "Cajita Turbo con rendimiento fijo del 13% anual y disponibilidad para crecer tu dinero sin compras mensuales.",
+    "Cajita Turbo con rendimiento fijo del 13% anual y base diaria lineal para tu saldo disponible.",
   products: [
     {
       id: "nu-cajita-turbo",
@@ -133,12 +133,12 @@ const nu: Institution = {
       promoCap: 0,
       excessRate: 0,
       calculationMethod: "compound",
+      allowManualUpdatedBalanceOverride: true,
       conditions: [
         "Rendimiento anual fijo del 13%.",
-        "Sin regla de compra mensual.",
-        "Disponible para crecer tu saldo de forma continua.",
+        "La base crece de forma lineal cada día.",
+        "Se mantiene el saldo actualizado editado por el usuario.",
       ],
-      allowManualUpdatedBalanceOverride: true,
       icon: "flexible",
     },
   ],

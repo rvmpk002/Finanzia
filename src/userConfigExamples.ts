@@ -61,18 +61,6 @@ export const userConfigExamples: UserProductConfigExample[] = [
     isActive: true,
   },
   {
-    institutionId: "nu",
-    productId: "nu-cajita-turbo",
-    annualRate: 13,
-    promoCap: 0,
-    excessRate: 0,
-    calculationMethod: "compound",
-    taxRate: 0,
-    daysBase: 365,
-    promotionDays: 60,
-    isActive: true,
-  },
-  {
     institutionId: "mercado-pago",
     productId: "mercado-pago",
     annualRate: 12,

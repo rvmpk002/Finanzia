@@ -229,9 +229,8 @@ export default function ProfilePage() {
     const institutionOrder: Record<string, number> = {
       "mifel": 1,
       "openbank": 2,
-      "nu": 3,
-      "didi-cuenta": 4,
-      "kubo": 5,
+      "didi-cuenta": 3,
+      "kubo": 4,
     };
     
     const leftOrder = institutionOrder[left.institutionId.toLowerCase()] ?? 99;

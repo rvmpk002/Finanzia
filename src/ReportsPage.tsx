@@ -8,7 +8,7 @@ import {
   nuMinimumPurchaseWarningLabel,
   shouldShowMercadoPagoMinimumBalanceWarning,
   shouldShowNuMinimumPurchaseWarning,
-} from "./nuWarning";
+} from "./warningRules";
 
 type Type = "vista" | "plazo" | "etf";
 type Institution = { id: string; name: string; products?: Product[] };

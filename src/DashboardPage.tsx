@@ -33,7 +33,7 @@ import {
   nuMinimumPurchaseWarningLabel,
   shouldShowMercadoPagoMinimumBalanceWarning,
   shouldShowNuMinimumPurchaseWarning,
-} from "./nuWarning";
+} from "./warningRules";
 
 type Product = {
   id: string;
@@ -192,7 +192,7 @@ export const calculateInvestment = (
     .find((institution) => institution.id === investment.institutionId)
     ?.products.find((item) => item.id === investment.productId);
   const isNuInvestment = investment.institutionId === "nu" && investment.productId === "nu-cajita-turbo";
-  const allowManualUpdatedBalanceOverride = product?.allowManualUpdatedBalanceOverride ?? true;
+  const allowManualUpdatedBalanceOverride = product?.allowManualUpdatedBalanceOverride ?? (isNuInvestment ? true : false);
   const hasManualUpdatedBalanceOverride = allowManualUpdatedBalanceOverride && Number.isFinite(Number(investment.updatedBalanceOverride));
   const isFlexibleUltra = product?.calculationMethod === "flexible";
   const calculationMethod = product?.calculationMethod ?? (investment.type === "plazo" ? "simple" : "compound");
@@ -207,11 +207,11 @@ export const calculateInvestment = (
   const excessRate = investment.excessRate ?? catalogExcessRate;
   const balance = Math.max(0, Number(investment.balance) || 0);
   const withdrawn = Math.max(0, Number(investment.withdrawn) || 0);
-  const manualUpdatedBalance = allowManualUpdatedBalanceOverride
-    ? Number(investment.updatedBalanceOverride ?? investment.updatedBalance)
-    : Number.NaN;
-  const availableBalance = Number.isFinite(manualUpdatedBalance)
-    ? Math.max(0, manualUpdatedBalance)
+  const manualUpdatedBalance = hasManualUpdatedBalanceOverride ? Number(investment.updatedBalanceOverride) : Number.NaN;
+  const availableBalance = isNuInvestment
+    ? Number.isFinite(manualUpdatedBalance)
+      ? Math.max(0, manualUpdatedBalance)
+      : Math.max(0, balance - withdrawn)
     : Math.max(0, balance - withdrawn);
   const startDate = fromLocalDateString(investment.startDate);
   const isKubo = calculationMethod === "kubo";
@@ -257,52 +257,52 @@ export const calculateInvestment = (
       ? flexibleUltraInterest(availableBalance, promoCap, 1, annualRate, excessRate, promotionDays)
       : calculationMethod === "kubo"
         ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
-      : calculationMethod === "simple"
-        ? configuredSimpleInterest(availableBalance, annualRate, 1, daysBase)
-      : calculationMethod === "simple360"
-        ? configuredSimpleInterest(availableBalance, annualRate, 1, 360)
-      : calculationMethod === "mifel360"
-        ? mifelInterest(availableBalance, annualRate, 1)
-      : calculationMethod === "openbank"
-        ? openbankInterest(availableBalance, annualRate, excessRate, openbankPostingDaysForDate, daysBase)
-      : configuredCompoundInterest(promoBalance, annualRate, 1) +
-        configuredCompoundInterest(excessBalance, effectiveExcessRate, 1);
+        : calculationMethod === "simple"
+          ? configuredSimpleInterest(availableBalance, annualRate, 1, daysBase)
+          : calculationMethod === "simple360"
+            ? configuredSimpleInterest(availableBalance, annualRate, 1, 360)
+            : calculationMethod === "mifel360"
+              ? mifelInterest(availableBalance, annualRate, 1)
+              : calculationMethod === "openbank"
+                ? openbankInterest(availableBalance, annualRate, excessRate, openbankPostingDaysForDate, daysBase)
+                : configuredCompoundInterest(promoBalance, annualRate, 1) +
+                  configuredCompoundInterest(excessBalance, effectiveExcessRate, 1);
   const monthlyYield = isNuInvestment
     ? nuMonthlyYield
     : isFlexibleUltra
       ? flexibleUltraInterest(availableBalance, promoCap, monthlyDays, annualRate, excessRate, promotionDays)
       : calculationMethod === "simple"
         ? configuredSimpleInterest(availableBalance, annualRate, monthlyDays, daysBase)
-      : calculationMethod === "simple360"
-        ? configuredSimpleInterest(availableBalance, annualRate, monthlyDays, 360)
-      : calculationMethod === "mifel360"
-        ? mifelInterest(availableBalance, annualRate, monthlyDays)
-      : calculationMethod === "openbank"
-        ? openbankInterest(availableBalance, annualRate, excessRate, monthlyDays, daysBase)
-      : configuredCompoundInterest(promoBalance, annualRate, monthlyDays) +
-        configuredCompoundInterest(excessBalance, effectiveExcessRate, monthlyDays);
+        : calculationMethod === "simple360"
+          ? configuredSimpleInterest(availableBalance, annualRate, monthlyDays, 360)
+          : calculationMethod === "mifel360"
+            ? mifelInterest(availableBalance, annualRate, monthlyDays)
+            : calculationMethod === "openbank"
+              ? openbankInterest(availableBalance, annualRate, excessRate, monthlyDays, daysBase)
+              : configuredCompoundInterest(promoBalance, annualRate, monthlyDays) +
+                configuredCompoundInterest(excessBalance, effectiveExcessRate, monthlyDays);
   const totalAccumulated = Math.max(
     isNuInvestment
       ? (availableBalance * annualRate / 100) * (daysElapsed / 365)
       : calculationMethod === "simple"
         ? configuredSimpleInterest(availableBalance, annualRate, daysElapsed, daysBase)
-      : calculationMethod === "simple360"
-        ? configuredSimpleInterest(availableBalance, annualRate, daysElapsed, 360)
-      : calculationMethod === "compound"
-        ? configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
-          configuredCompoundInterest(excessBalance, effectiveExcessRate, daysElapsed)
-      : calculationMethod === "kubo"
-        ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
-      : calculationMethod === "mifel360"
-        ? mifelInterest(availableBalance, annualRate, daysElapsed)
-      : calculationMethod === "openbank"
-        ? openbankInterest(availableBalance, annualRate, excessRate, daysElapsed, daysBase)
-      : completedMonthsBetween(startDate, calculationDate) > 0
-          ? monthlyYield * completedMonthsBetween(startDate, calculationDate)
-          : isFlexibleUltra
-            ? flexibleUltraInterest(availableBalance, promoCap, daysElapsed, annualRate, excessRate, promotionDays)
-            : configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
-              configuredCompoundInterest(excessBalance, effectiveExcessRate, daysElapsed),
+        : calculationMethod === "simple360"
+          ? configuredSimpleInterest(availableBalance, annualRate, daysElapsed, 360)
+          : calculationMethod === "compound"
+            ? configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
+              configuredCompoundInterest(excessBalance, effectiveExcessRate, daysElapsed)
+            : calculationMethod === "kubo"
+              ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
+              : calculationMethod === "mifel360"
+                ? mifelInterest(availableBalance, annualRate, daysElapsed)
+                : calculationMethod === "openbank"
+                  ? openbankInterest(availableBalance, annualRate, excessRate, daysElapsed, daysBase)
+                  : completedMonthsBetween(startDate, calculationDate) > 0
+                    ? monthlyYield * completedMonthsBetween(startDate, calculationDate)
+                    : isFlexibleUltra
+                      ? flexibleUltraInterest(availableBalance, promoCap, daysElapsed, annualRate, excessRate, promotionDays)
+                      : configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
+                        configuredCompoundInterest(excessBalance, effectiveExcessRate, daysElapsed),
   );
   const completedMonths = completedMonthsBetween(startDate, calculationDate);
   const calculatedUpdatedBalance = getCalculatedUpdatedBalance(
@@ -320,23 +320,18 @@ export const calculateInvestment = (
       calculatedUpdatedBalance,
     ),
   );
-  const savedOverrideValue = allowManualUpdatedBalanceOverride
-    ? Number(investment.updatedBalanceOverride ?? investment.updatedBalance)
-    : Number.NaN;
-  const resolvedUpdatedBalance = allowManualUpdatedBalanceOverride
-    ? Number.isFinite(savedOverrideValue)
-      ? Math.max(savedOverrideValue, updatedBalance)
-      : updatedBalance
-    : updatedBalance;
   const nextMonthBalance = Math.max(
     0,
     availableBalance + monthlyYield,
   );
   const taxWithheld = dailyYield * (taxRate / 100);
-  const retainedBalance = hasManualUpdatedBalanceOverride ? resolvedUpdatedBalance : balance;
-  const baseResult = {
+  const resolvedBalance = isNuInvestment && hasManualUpdatedBalanceOverride ? Math.max(0, Number(investment.updatedBalanceOverride ?? balance)) : balance;
+  const resolvedUpdatedBalance = isNuInvestment
+    ? Math.max(0, availableBalance + totalAccumulated)
+    : updatedBalance;
+  return {
     ...investment,
-    balance: retainedBalance,
+    balance: isNuInvestment ? resolvedBalance : balance,
     promoCap,
     annualRate,
     monthlyYield,
@@ -359,18 +354,6 @@ export const calculateInvestment = (
     taxWithheld,
     netDailyYield: dailyYield - taxWithheld,
   };
-
-  if (hasManualUpdatedBalanceOverride) {
-    return {
-      ...baseResult,
-      balance: resolvedUpdatedBalance,
-      nextMonthBalance: Math.max(0, resolvedUpdatedBalance + monthlyYield),
-      nextMonthExcess: Math.max(0, Math.max(0, resolvedUpdatedBalance + monthlyYield) - promoCap),
-      estimatedToday: Math.max(0, resolvedUpdatedBalance + dailyYield),
-    };
-  }
-
-  return baseResult;
 };
 export const toLocalDateString = (date: Date) => {
   const year = date.getFullYear();
@@ -650,10 +633,6 @@ export default function DashboardPage({
     const updatedBalance = Number(investment.updatedBalance ?? investment.balance ?? 0);
     if (updatedBalance < 499500) return null;
     return { label: "retira 1000, ya que sobre el excedente de 500mil no genera intereses." };
-  };
-  const nuWarning = (investment: Investment) => {
-    if (investment.institutionId !== "nu" || !shouldShowNuMinimumPurchaseWarning(new Date())) return null;
-    return { label: nuMinimumPurchaseWarningLabel };
   };
   const mercadoPagoWarning = (investment: Investment) => {
     if (investment.institutionId !== "mercado-pago" || !shouldShowMercadoPagoMinimumBalanceWarning(new Date())) return null;
@@ -1012,24 +991,21 @@ export default function DashboardPage({
                             ) : null;
                           })()}
                           {investment.type === "vista" && (() => {
-                            const warning = mifelWarning(investment) ?? nuWarning(investment) ?? mercadoPagoWarning(investment);
+                            const warning = mifelWarning(investment) ?? mercadoPagoWarning(investment);
                             if (!warning) return null;
                             const isMercadoPagoWarning = warning.label === mercadoPagoMinimumBalanceWarningLabel;
-                            const isNuWarning = warning.label === nuMinimumPurchaseWarningLabel;
                             return (
                               <span
                                 className={
                                   isMercadoPagoWarning
                                     ? "mercado-pago-warning-pill mifel-warning-pill-inline"
-                                    : isNuWarning
-                                      ? "nu-warning-pill mifel-warning-pill-inline"
-                                      : "mifel-warning-pill mifel-warning-pill-inline"
+                                    : "mifel-warning-pill mifel-warning-pill-inline"
                                 }
                                 role="img"
                                 aria-label={warning.label}
                                 title={warning.label}
                               >
-                                {isMercadoPagoWarning ? <CircleDollarSign size={14} /> : isNuWarning ? <Landmark size={14} /> : <AlertTriangle size={14} />}
+                                {isMercadoPagoWarning ? <CircleDollarSign size={14} /> : <AlertTriangle size={14} />}
                                 <span className="etf-warning-tooltip-bubble">{warning.label}</span>
                               </span>
                             );

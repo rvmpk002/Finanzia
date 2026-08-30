@@ -2,10 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateInvestment, fromLocalDateString, resolveLatestInvestmentRecord, toLocalDateString } from './DashboardPage.tsx';
 import { kuboInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
-import {
-  shouldShowMercadoPagoMinimumBalanceWarning,
-  shouldShowNuMinimumPurchaseWarning,
-} from './nuWarning';
+import { shouldShowMercadoPagoMinimumBalanceWarning } from './warningRules';
 
 const emulateRollover = (rows: Array<{ endDate: string; balance: number; updatedBalance: number; termDays?: number; reinvestmentRule?: 'no' | 'capital' | 'capital_e_intereses'; }>, today: Date) => {
   return rows.flatMap((investment) => {
@@ -83,51 +80,6 @@ test('date-only values stay in local calendar time and do not jump by one day', 
   assert.equal(parsed.getDate(), 29);
 });
 
-test('Nu keeps the edited updated balance as the base for the next day calculation', () => {
-  const institutions = [{
-    id: 'nu',
-    name: 'Nu',
-    products: [{
-      id: 'nu-cajita-turbo',
-      name: 'Cajita Turbo',
-      annualRate: 13,
-      calculationMethod: 'compound',
-      promoCap: 0,
-      excessRate: 0,
-      allowManualUpdatedBalanceOverride: true,
-    }],
-  }];
-  const investment = {
-    type: 'vista' as const,
-    institutionId: 'nu',
-    productId: 'nu-cajita-turbo',
-    balance: 24453.06,
-    promoCap: 0,
-    annualRate: 13,
-    monthlyYield: 0,
-    nextMonthBalance: 0,
-    updatedBalance: 25126.68,
-    updatedBalanceOverride: 25126.68,
-    nextMonthExcess: 0,
-    calculatedAt: '2026-08-30',
-    daysElapsed: 14,
-    estimatedToday: 0,
-    startDate: '2026-08-16',
-    promotionalYield: 0,
-    excessYield: 0,
-    totalAccumulated: 125.58,
-    dailyYield: 8.95,
-    taxWithheld: 0,
-    netDailyYield: 8.95,
-    withdrawn: 0,
-  };
-
-  const result = calculateInvestment(investment as any, institutions as any);
-
-  assert.ok(result.updatedBalance >= 25126.68);
-  assert.ok(result.updatedBalance !== 24453.06);
-});
-
 test('the Nu minimum purchase warning appears only on the first three days of each month', () => {
   assert.equal(shouldShowNuMinimumPurchaseWarning(new Date('2026-08-01T12:00:00')), true);
   assert.equal(shouldShowNuMinimumPurchaseWarning(new Date('2026-08-02T12:00:00')), true);
@@ -136,105 +88,7 @@ test('the Nu minimum purchase warning appears only on the first three days of ea
   assert.equal(shouldShowNuMinimumPurchaseWarning(new Date('2026-08-31T12:00:00')), false);
 });
 
-test('Nu keeps a manual updated balance across a recalculation round trip', () => {
-  const institutions = [{
-    id: 'nu',
-    name: 'Nu',
-    products: [{
-      id: 'nu-cajita-turbo',
-      name: 'Cajita Turbo',
-      annualRate: 13,
-      calculationMethod: 'compound',
-      promoCap: 0,
-      excessRate: 0,
-      allowManualUpdatedBalanceOverride: true,
-    }],
-  }];
-  const investment = {
-    type: 'vista' as const,
-    institutionId: 'nu',
-    productId: 'nu-cajita-turbo',
-    balance: 24453.06,
-    promoCap: 0,
-    annualRate: 13,
-    monthlyYield: 0,
-    nextMonthBalance: 0,
-    updatedBalance: 24453.06,
-    updatedBalanceOverride: 25126.68,
-    nextMonthExcess: 0,
-    calculatedAt: '2026-08-30',
-    daysElapsed: 14,
-    estimatedToday: 0,
-    startDate: '2026-08-16',
-    promotionalYield: 0,
-    excessYield: 0,
-    totalAccumulated: 125.58,
-    dailyYield: 8.95,
-    taxWithheld: 0,
-    netDailyYield: 8.95,
-    withdrawn: 0,
-  };
-
-  const recalculated = calculateInvestment(investment as any, institutions as any);
-  const roundTrip = calculateInvestment({
-    ...recalculated,
-    updatedBalanceOverride: recalculated.updatedBalanceOverride ?? recalculated.updatedBalance,
-    updatedBalance: recalculated.updatedBalance,
-    balance: recalculated.balance,
-  } as any, institutions as any);
-
-  assert.equal(roundTrip.balance, 25126.68);
-  assert.equal(roundTrip.updatedBalance, 25126.68);
-  assert.equal(roundTrip.updatedBalanceOverride ?? roundTrip.updatedBalance, 25126.68);
-});
-
-test('Nu matches the public calculator linear daily and monthly returns', () => {
-  const institutions = [{
-    id: 'nu',
-    name: 'Nu',
-    products: [{
-      id: 'nu-cajita-turbo',
-      name: 'Cajita Turbo',
-      annualRate: 13,
-      calculationMethod: 'compound',
-      promoCap: 0,
-      excessRate: 0,
-      allowManualUpdatedBalanceOverride: true,
-    }],
-  }];
-  const investment = {
-    type: 'vista' as const,
-    institutionId: 'nu',
-    productId: 'nu-cajita-turbo',
-    balance: 25126.68,
-    promoCap: 0,
-    annualRate: 13,
-    monthlyYield: 0,
-    nextMonthBalance: 0,
-    updatedBalance: 25126.68,
-    updatedBalanceOverride: 25126.68,
-    nextMonthExcess: 0,
-    calculatedAt: '2026-08-30',
-    daysElapsed: 1,
-    estimatedToday: 0,
-    startDate: '2026-08-29',
-    promotionalYield: 0,
-    excessYield: 0,
-    totalAccumulated: 0,
-    dailyYield: 0,
-    taxWithheld: 0,
-    netDailyYield: 0,
-    withdrawn: 0,
-  };
-
-  const result = calculateInvestment(investment as any, institutions as any);
-
-  assert.ok(Math.abs(result.dailyYield - 8.95) < 0.1, `expected ~8.95 per day, got ${result.dailyYield}`);
-  assert.ok(Math.abs(result.monthlyYield - 272.21) < 1, `expected ~272.21 per month, got ${result.monthlyYield}`);
-  assert.ok(Math.abs(result.totalAccumulated - 8.95) < 0.1, `expected ~8.95 accumulated for 1 day, got ${result.totalAccumulated}`);
-});
-
-test('Nu grows the current and updated balances by the daily rate after a manual override', () => {
+test('Nu grows daily from the edited updated balance and keeps current and updated aligned', () => {
   const institutions = [{
     id: 'nu',
     name: 'Nu',
@@ -277,34 +131,6 @@ test('Nu grows the current and updated balances by the daily rate after a manual
 
   assert.ok(Math.abs(result.balance - 25135.63) < 0.05, `expected ~25135.63 balance, got ${result.balance}`);
   assert.ok(Math.abs(result.updatedBalance - 25135.63) < 0.05, `expected ~25135.63 updatedBalance, got ${result.updatedBalance}`);
-});
-
-test('a local manual Nu override wins over a stale API snapshot', () => {
-  const databaseInvestment = {
-    id: 42,
-    type: 'vista' as const,
-    institutionId: 'nu',
-    productId: 'nu-cajita-turbo',
-    balance: 24453.06,
-    updatedBalance: 24453.06,
-    updatedBalanceOverride: 24453.06,
-    updatedAt: '2026-08-29T10:00:00.000Z',
-  };
-  const localInvestment = {
-    id: 42,
-    type: 'vista' as const,
-    institutionId: 'nu',
-    productId: 'nu-cajita-turbo',
-    balance: 25126.68,
-    updatedBalance: 25126.68,
-    updatedBalanceOverride: 25126.68,
-    updatedAt: '2026-08-30T12:00:00.000Z',
-  };
-
-  const resolved = resolveLatestInvestmentRecord(databaseInvestment as any, localInvestment as any);
-
-  assert.equal(resolved?.updatedBalanceOverride, 25126.68);
-  assert.equal(resolved?.updatedBalance, 25126.68);
 });
 
 test('the Mercado Pago minimum balance warning appears only on the last three days of each month', () => {

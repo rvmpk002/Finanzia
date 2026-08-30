@@ -74,16 +74,9 @@
   color: #d6ebff;
   box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.15), 0 6px 18px rgba(96, 165, 250, 0.15);
 }
-.nu-warning-pill {
-  background: radial-gradient(circle at 30% 30%, rgba(74, 222, 128, 0.28), rgba(74, 222, 128, 0.12));
-  border-color: rgba(74, 222, 128, 0.82);
-  color: #d9ffe4;
-  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.15), 0 6px 18px rgba(74, 222, 128, 0.14);
-}
 .term-warning-pill:hover,
 .mifel-warning-pill:hover,
 .mercado-pago-warning-pill:hover,
-.nu-warning-pill:hover,
 .etf-warning-pill:hover {
   transform: translateY(-1px) scale(1.06);
   filter: brightness(1.08) saturate(1.08);
@@ -98,9 +91,6 @@
 .mercado-pago-warning-pill:hover .etf-warning-tooltip-bubble,
 .mercado-pago-warning-pill:focus-visible .etf-warning-tooltip-bubble,
 .mercado-pago-warning-pill:focus .etf-warning-tooltip-bubble,
-.nu-warning-pill:hover .etf-warning-tooltip-bubble,
-.nu-warning-pill:focus-visible .etf-warning-tooltip-bubble,
-.nu-warning-pill:focus .etf-warning-tooltip-bubble,
 .etf-warning-pill:hover .etf-warning-tooltip-bubble,
 .etf-warning-pill:focus-visible .etf-warning-tooltip-bubble,
 .etf-warning-pill:focus .etf-warning-tooltip-bubble {
@@ -170,11 +160,6 @@
     background: radial-gradient(circle at 30% 30%, rgba(96, 165, 250, 0.32), rgba(96, 165, 250, 0.18));
     border-color: rgba(96, 165, 250, 0.9);
     box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.18), 0 4px 12px rgba(96, 165, 250, 0.18);
-  }
-  .nu-warning-pill {
-    background: radial-gradient(circle at 30% 30%, rgba(74, 222, 128, 0.32), rgba(74, 222, 128, 0.18));
-    border-color: rgba(74, 222, 128, 0.9);
-    box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.18), 0 4px 12px rgba(74, 222, 128, 0.18);
   }
 }
 .investment-form-panel::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--orange), #f09a45 52%, transparent); }
