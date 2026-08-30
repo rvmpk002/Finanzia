@@ -107,6 +107,12 @@ const daysUntilMaturity = (item: Investment) => {
     ),
   );
 };
+const mifelWarning = (item: Investment) => {
+  if (item.institutionId !== "mifel" || item.type !== "vista") return null;
+  const updatedBalance = Number(item.updatedBalance ?? item.balance ?? 0);
+  if (updatedBalance < 499500) return null;
+  return { label: "retira 1000" };
+};
 const label = (item: Investment, institutions: Institution[]) =>
   institutions.find((entry) => entry.id === item.institutionId)?.name ??
   item.etfName ??
@@ -445,6 +451,21 @@ function TypeChart({
                       );
                     })()
                   )}
+                  {type === "vista" && (() => {
+                    const warning = mifelWarning(item);
+                    if (!warning) return null;
+                    return (
+                      <span
+                        className="mifel-warning-pill mifel-warning-pill-inline"
+                        role="img"
+                        aria-label={warning.label}
+                        title={warning.label}
+                      >
+                        <AlertTriangle size={14} />
+                        <span className="etf-warning-tooltip-bubble">{warning.label}</span>
+                      </span>
+                    );
+                  })()}
                 </div>
                 <span>
                   {type === "etf"
@@ -781,6 +802,21 @@ export default function ReportsPage({
                               >
                                 <AlertTriangle size={14} />
                                 <span className="etf-warning-tooltip-bubble">{labelText}</span>
+                              </span>
+                            );
+                          })()}
+                          {item.type === "vista" && (() => {
+                            const warning = mifelWarning(item);
+                            if (!warning) return null;
+                            return (
+                              <span
+                                className="mifel-warning-pill mifel-warning-pill-inline"
+                                role="img"
+                                aria-label={warning.label}
+                                title={warning.label}
+                              >
+                                <AlertTriangle size={14} />
+                                <span className="etf-warning-tooltip-bubble">{warning.label}</span>
                               </span>
                             );
                           })()}

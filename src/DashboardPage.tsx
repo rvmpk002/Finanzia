@@ -561,6 +561,12 @@ export default function DashboardPage({
       label: `Quedan ${remainingDays} días para terminar inversión`,
     };
   };
+  const mifelWarning = (investment: Investment) => {
+    if (investment.institutionId !== "mifel" || investment.type !== "vista") return null;
+    const updatedBalance = Number(investment.updatedBalance ?? investment.balance ?? 0);
+    if (updatedBalance < 499500) return null;
+    return { label: "retira 1000" };
+  };
   const termDaysFor = (investment: Investment) => {
     if (investment.termDays) return investment.termDays;
     if (!investment.endDate) return investment.daysElapsed;
@@ -644,6 +650,20 @@ export default function DashboardPage({
                             title={warning.label}
                           >
                             <Clock3 size={14} />
+                            <span className="etf-warning-tooltip-bubble">{warning.label}</span>
+                          </span>
+                        ) : null;
+                      })()}
+                      {investment.type === "vista" && (() => {
+                        const warning = mifelWarning(investment);
+                        return warning ? (
+                          <span
+                            className="mifel-warning-pill mifel-warning-pill-inline"
+                            role="img"
+                            aria-label={warning.label}
+                            title={warning.label}
+                          >
+                            <AlertTriangle size={14} />
                             <span className="etf-warning-tooltip-bubble">{warning.label}</span>
                           </span>
                         ) : null;
@@ -886,6 +906,20 @@ export default function DashboardPage({
                                 title={warning.label}
                               >
                                 <Clock3 size={14} />
+                                <span className="etf-warning-tooltip-bubble">{warning.label}</span>
+                              </span>
+                            ) : null;
+                          })()}
+                          {investment.type === "vista" && (() => {
+                            const warning = mifelWarning(investment);
+                            return warning ? (
+                              <span
+                                className="mifel-warning-pill mifel-warning-pill-inline"
+                                role="img"
+                                aria-label={warning.label}
+                                title={warning.label}
+                              >
+                                <AlertTriangle size={14} />
                                 <span className="etf-warning-tooltip-bubble">{warning.label}</span>
                               </span>
                             ) : null;

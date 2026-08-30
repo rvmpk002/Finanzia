@@ -41,6 +41,7 @@
   color: #ff9a83 !important;
 }
 .term-warning-pill,
+.mifel-warning-pill,
 .etf-warning-pill {
   position: relative;
   display: inline-flex;
@@ -61,9 +62,18 @@
   color: #f7d07a;
   box-shadow: 0 0 0 1px rgba(245, 179, 62, 0.12);
 }
+.mifel-warning-pill {
+  background: rgba(251, 191, 36, 0.16);
+  border-color: rgba(251, 191, 36, 0.75);
+  color: #ffd874;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.12);
+}
 .term-warning-pill:hover .etf-warning-tooltip-bubble,
 .term-warning-pill:focus-visible .etf-warning-tooltip-bubble,
 .term-warning-pill:focus .etf-warning-tooltip-bubble,
+.mifel-warning-pill:hover .etf-warning-tooltip-bubble,
+.mifel-warning-pill:focus-visible .etf-warning-tooltip-bubble,
+.mifel-warning-pill:focus .etf-warning-tooltip-bubble,
 .etf-warning-pill:hover .etf-warning-tooltip-bubble,
 .etf-warning-pill:focus-visible .etf-warning-tooltip-bubble,
 .etf-warning-pill:focus .etf-warning-tooltip-bubble {
@@ -108,6 +118,7 @@
     gap: 8px;
   }
   .term-warning-pill,
+  .mifel-warning-pill,
   .etf-warning-pill,
   .etf-warning-pill-inline {
     width: 24px;
@@ -117,6 +128,11 @@
     background: rgba(245, 179, 62, 0.22);
     border-color: rgba(245, 179, 62, 0.9);
     box-shadow: 0 0 0 1px rgba(245, 179, 62, 0.16), 0 4px 12px rgba(245, 179, 62, 0.14);
+  }
+  .mifel-warning-pill {
+    background: rgba(251, 191, 36, 0.22);
+    border-color: rgba(251, 191, 36, 0.9);
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.18), 0 4px 12px rgba(251, 191, 36, 0.16);
   }
 }
 .investment-form-panel::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--orange), #f09a45 52%, transparent); }
