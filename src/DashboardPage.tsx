@@ -206,7 +206,9 @@ export const calculateInvestment = (
   const allowManualUpdatedBalanceOverride = product?.allowManualUpdatedBalanceOverride ?? (isNuInvestment ? true : false);
   const hasManualUpdatedBalanceOverride = allowManualUpdatedBalanceOverride && Number.isFinite(Number(investment.updatedBalanceOverride));
   const isFlexibleUltra = product?.calculationMethod === "flexible";
-  const calculationMethod = product?.calculationMethod ?? (investment.type === "plazo" ? "simple" : "compound");
+  const calculationMethod = isOpenbankInvestment
+    ? "openbank"
+    : product?.calculationMethod ?? (investment.type === "plazo" ? "simple" : "compound");
   const taxRate = product?.taxRate ?? 0;
   const daysBase = product?.daysBase ?? 365;
   const promotionDays = product?.promotionDays ?? 60;

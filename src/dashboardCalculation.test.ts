@@ -79,7 +79,7 @@ test('Openbank ignores stale saved rates and calculates 30,153.89 at about 10.86
       excessRate: 5,
       promoCap: 30000,
       daysBase: 360,
-      calculationMethod: 'openbank',
+      calculationMethod: 'compound',
     }],
   }];
 
