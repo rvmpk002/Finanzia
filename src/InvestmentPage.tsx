@@ -92,6 +92,8 @@ const didiInterest = (principal: number, days: number) => {
   const excess = Math.max(0, principal - 10000);
   return (firstTier * 0.15 + excess * 0.075) * (days / 360);
 };
+const didiNetInterest = (principal: number, days: number) =>
+  didiInterest(principal, days) * (1 - 0.03335);
 const mercadoPagoInterest = (principal: number, days: number) =>
   Math.min(Math.max(0, principal), 25000) * 0.12 * (days / 365);
 const kuboInterest = (principal: number, annualRate: number, days: number) => {
@@ -245,7 +247,7 @@ export default function InvestmentPage({
       : isMifel
         ? mifelInterest(availableBalance, annualRate, 1)
         : isDidi
-          ? didiInterest(availableBalance, 1)
+          ? didiNetInterest(availableBalance, 1)
         : isMercadoPago
           ? mercadoPagoInterest(availableBalance, 1)
           : isOpenbank
@@ -268,7 +270,7 @@ export default function InvestmentPage({
     : isMifel
       ? mifelInterest(availableBalance, annualRate, monthlyDays)
       : isDidi
-        ? didiInterest(availableBalance, monthlyDays)
+        ? didiNetInterest(availableBalance, monthlyDays)
       : isMercadoPago
         ? mercadoPagoInterest(availableBalance, monthlyDays)
         : isOpenbank
@@ -287,7 +289,7 @@ export default function InvestmentPage({
           : isMifel
             ? mifelInterest(availableBalance, annualRate, daysElapsed)
             : isDidi
-              ? didiInterest(availableBalance, daysElapsed)
+              ? didiNetInterest(availableBalance, daysElapsed)
             : isMercadoPago
               ? mercadoPagoInterest(availableBalance, daysElapsed)
               : isOpenbank
@@ -331,7 +333,9 @@ export default function InvestmentPage({
   const estimatedToday = Math.max(0, availableBalance + dailyYield);
   const taxWithheld = isMifel
     ? dailyYield * 0.09
-    : 0;
+    : isDidi
+      ? didiInterest(availableBalance, 1) - dailyYield
+      : 0;
   const netDailyYield = dailyYield - taxWithheld;
   const canSave =
     activeTab === "etf"

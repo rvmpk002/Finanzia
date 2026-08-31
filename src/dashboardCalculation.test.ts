@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateInvestment, fromLocalDateString, resolveLatestInvestmentRecord, toLocalDateString, withdrawnAfterUpdatedBalanceEdit } from './DashboardPage.tsx';
-import { didiInterest, kuboInterest, mercadoPagoInterest, openbankTieredInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
+import { didiInterest, didiNetInterest, kuboInterest, mercadoPagoInterest, openbankTieredInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
 import { shouldShowMercadoPagoMinimumBalanceWarning } from './warningRules';
 
 const emulateRollover = (rows: Array<{ endDate: string; balance: number; updatedBalance: number; termDays?: number; reinvestmentRule?: 'no' | 'capital' | 'capital_e_intereses'; }>, today: Date) => {
@@ -52,6 +52,15 @@ test('Mercado Pago applies 12% only up to the 25,000 preferential cap', () => {
 test('DiDi applies 15% to the first 10,000 and 7.5% to the excess on a 360-day base', () => {
   assert.ok(Math.abs(didiInterest(30000, 15, 7.5, 1) - 8.3333333333) < 0.01);
   assert.ok(Math.abs(didiInterest(5000, 15, 7.5, 360) - 75) < 0.01);
+});
+
+test('DiDi dashboard gains use the net daily amount after withholding', () => {
+  const daily = didiNetInterest(10058.42, 1);
+
+  assert.ok(Math.abs(daily - 4.04) < 0.01);
+  assert.ok(Math.abs(daily * 7 - 28.28) < 0.01);
+  assert.ok(Math.abs(daily * 30 - 121.19) < 0.01);
+  assert.ok(Math.abs(daily * 365 - 1474.42) < 0.01);
 });
 
 test('Openbank ignores stale saved rates and calculates 30,153.89 at about 10.86 per day', () => {

@@ -18,7 +18,7 @@ import {
   flexibleUltraInterest,
   getCalculatedUpdatedBalance,
   kuboInterest,
-  didiInterest,
+  didiNetInterest,
   mifelInterest,
   mercadoPagoInterest,
   openbankInterest,
@@ -273,7 +273,7 @@ export const calculateInvestment = (
   const dailyYield = isNuInvestment
     ? nuDailyYield
     : isDidiInvestment
-      ? didiInterest(availableBalance, 15, 7.5, 1, 360)
+      ? didiNetInterest(availableBalance, 1)
     : calculationMethod === "flexible"
       ? flexibleUltraInterest(availableBalance, promoCap, 1, annualRate, excessRate, promotionDays)
       : calculationMethod === "kubo"
@@ -293,7 +293,7 @@ export const calculateInvestment = (
   const monthlyYield = isNuInvestment
     ? nuMonthlyYield
     : isDidiInvestment
-      ? didiInterest(availableBalance, 15, 7.5, monthlyDays, 360)
+      ? didiNetInterest(availableBalance, monthlyDays)
     : isFlexibleUltra
       ? flexibleUltraInterest(availableBalance, promoCap, monthlyDays, annualRate, excessRate, promotionDays)
       : calculationMethod === "simple"
@@ -312,7 +312,7 @@ export const calculateInvestment = (
     isNuInvestment
       ? (availableBalance * annualRate / 100) * (daysElapsed / 365)
       : isDidiInvestment
-        ? didiInterest(availableBalance, 15, 7.5, daysElapsed, 360)
+        ? didiNetInterest(availableBalance, daysElapsed)
       : calculationMethod === "simple"
         ? configuredSimpleInterest(availableBalance, annualRate, daysElapsed, daysBase)
         : calculationMethod === "simple360"
@@ -651,7 +651,7 @@ export default function DashboardPage({
     }
     if (investment.institutionId === "didi-cuenta") {
       const principal = Math.max(0, Number(investment.balance) - Number(investment.withdrawn || 0));
-      return didiInterest(principal, 15, 7.5, days, 360);
+      return didiNetInterest(principal, days);
     }
     return investment.dailyYield * days;
   };

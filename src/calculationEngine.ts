@@ -90,6 +90,11 @@ export const didiInterest = (
   return (firstTier * firstTierRate / 100 + excess * excessRate / 100) * (days / daysBase);
 };
 
+export const didiNetInterest = (
+  principal: number,
+  days: number,
+) => didiInterest(principal, 15, 7.5, days, 360) * (1 - 0.03335);
+
 export const openbankPostingDays = (date: Date) => {
   const day = date.getDay();
   if (day === 0) return 0;
