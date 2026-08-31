@@ -821,6 +821,8 @@ export default function DashboardPage({
                   </div>
                   <div className="dashboard-mobile-metrics">
                     {investment.type === "vista" && !isKubo ? <>
+                      <div><span>Fecha inicio</span><strong>{investment.startDate}</strong></div>
+                      <div><span>Días transcurridos</span><strong>{investment.daysElapsed} {investment.daysElapsed === 1 ? "día" : "días"}</strong></div>
                       <div><span>Monto inicial</span><strong>{amount(investment.balance)}</strong></div>
                       <div><span>Tope promo</span><strong>{amount(investment.promoCap)}</strong></div>
                       <div><span>Tasa anual</span><strong>{percentage(investment.annualRate)}</strong></div>
@@ -1012,6 +1014,8 @@ export default function DashboardPage({
                     </> : <>
                       <th>Institución</th>
                       <th>Producto</th>
+                      <th>Fecha inicio</th>
+                      <th>Días transcurridos</th>
                       <th>Monto inicial</th>
                       <th>Tope promo</th>
                       <th>Tasa anual</th>
@@ -1172,6 +1176,8 @@ export default function DashboardPage({
                         })()}
                       </> : <>
                       <td>{productName(investment)}</td>
+                      <td>{investment.startDate}</td>
+                      <td>{investment.daysElapsed} {investment.daysElapsed === 1 ? "día" : "días"}</td>
                       <td>{amount(investment.balance)}</td>
                       <td>{amount(investment.promoCap)}</td>
                       <td>{investment.annualRate.toFixed(2)}%</td>
