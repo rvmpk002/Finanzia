@@ -335,6 +335,9 @@ export default function InvestmentPage({
   const taxWithheld = isMifel ? dailyYield * 0.09 : 0;
   const netDailyYield = dailyYield - taxWithheld;
   const institutionCalculatorType = institutionId === "cetesdirecto" || institutionId === "banco-plata" || institutionId === "kubo" ? institutionId : null;
+  const institutionNameForSimulator = institutionId === "cetesdirecto" ? "Cetes Directo" : institutionId === "banco-plata" ? "Banco Plata" : institutionId === "kubo" ? "Kubo Financiero" : "";
+  const institutionSimulatorIcon = institutionId === "cetesdirecto" ? "C" : institutionId === "banco-plata" ? "B" : institutionId === "kubo" ? "K" : "";
+  const institutionSimulatorSubtitle = institutionId === "cetesdirecto" ? "Simula la ganancia por plazo y tasa anual." : institutionId === "banco-plata" ? "Considera tope promocional y saldo excedente." : institutionId === "kubo" ? "Ajusta por la retención estimada anual." : "";
   const institutionSimulatorVisible = activeTab === "plazo" && Boolean(institutionCalculatorType);
   const institutionSimulator = useMemo(() => {
     const principal = Math.max(0, Number(balance) || 0);
@@ -346,6 +349,7 @@ export default function InvestmentPage({
       const dailyGain = principal * baseDailyRate;
       const weeklyGain = principal * (annualRate / 100) * (7 / 365);
       const monthlyGain = principal * (annualRate / 100) * (30 / 365);
+      const annualGain = principal * (annualRate / 100);
       const finalAmount = principal + principal * (annualRate / 100) * (days / 365);
       return {
         title: "Cetes Directo",
@@ -353,7 +357,7 @@ export default function InvestmentPage({
         dailyGain,
         weeklyGain,
         monthlyGain,
-        annualRate,
+        annualGain,
         finalAmount,
       };
     }
@@ -363,6 +367,7 @@ export default function InvestmentPage({
       const dailyGain = (promotableAmount * (annualRate / 100) + excessAmount * (annualRate / 100)) / 365;
       const weeklyGain = dailyGain * 7;
       const monthlyGain = principal * (annualRate / 100) * (30 / 365);
+      const annualGain = principal * (annualRate / 100);
       const finalAmount = principal + principal * (annualRate / 100) * (days / 360);
       return {
         title: "Banco Plata",
@@ -370,7 +375,7 @@ export default function InvestmentPage({
         dailyGain,
         weeklyGain,
         monthlyGain,
-        annualRate,
+        annualGain,
         finalAmount,
       };
     }
@@ -379,6 +384,7 @@ export default function InvestmentPage({
       const dailyGain = principal * (effectiveRate / 100) / 365;
       const weeklyGain = principal * (effectiveRate / 100) * (7 / 365);
       const monthlyGain = principal * (effectiveRate / 100) * (30 / 365);
+      const annualGain = principal * (effectiveRate / 100);
       const finalAmount = principal + principal * (effectiveRate / 100) * (days / 365);
       return {
         title: "Kubo Financiero",
@@ -386,7 +392,7 @@ export default function InvestmentPage({
         dailyGain,
         weeklyGain,
         monthlyGain,
-        annualRate: effectiveRate,
+        annualGain,
         finalAmount,
       };
     }
@@ -1000,7 +1006,8 @@ export default function InvestmentPage({
                   className="secondary-button simulator-toggle"
                   onClick={() => setSimulatorOpen((current) => !current)}
                 >
-                  {simulatorOpen ? "Ocultar simulador" : "Simulador"}
+                  <span className="simulator-badge">{institutionSimulatorIcon}</span>
+                  {simulatorOpen ? `Ocultar simulador` : `Simulador • ${institutionNameForSimulator}`}
                 </button>
               </div>
             )}
@@ -1013,6 +1020,7 @@ export default function InvestmentPage({
                   </div>
                   <span className="cetes-pill">{institutionSimulator.title}</span>
                 </div>
+                <p className="simulator-subtitle">{institutionSimulatorSubtitle}</p>
 
                 <div className="cetes-calculator-grid">
                   <label className="cetes-field">
@@ -1087,8 +1095,8 @@ export default function InvestmentPage({
                     <strong>{money.format(institutionSimulator.monthlyGain)}</strong>
                   </div>
                   <div className="cetes-result-card">
-                    <small>Rendimiento anual</small>
-                    <strong>{percent.format(institutionSimulator.annualRate)}%</strong>
+                    <small>Ganancia anual</small>
+                    <strong>{money.format(institutionSimulator.annualGain)}</strong>
                   </div>
                   <div className="cetes-result-card cetes-result-accent">
                     <small>Monto al vencimiento</small>
