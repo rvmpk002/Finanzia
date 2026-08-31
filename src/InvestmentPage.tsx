@@ -87,6 +87,11 @@ const openbankInterest = (
     (days / 360)
   );
 };
+const didiInterest = (principal: number, days: number) => {
+  const firstTier = Math.min(Math.max(0, principal), 10000);
+  const excess = Math.max(0, principal - 10000);
+  return (firstTier * 0.15 + excess * 0.075) * (days / 360);
+};
 const mercadoPagoInterest = (principal: number, days: number) =>
   Math.min(Math.max(0, principal), 25000) * 0.12 * (days / 365);
 const kuboInterest = (principal: number, annualRate: number, days: number) => {
@@ -239,6 +244,8 @@ export default function InvestmentPage({
       ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
       : isMifel
         ? mifelInterest(availableBalance, annualRate, 1)
+        : isDidi
+          ? didiInterest(availableBalance, 1)
         : isMercadoPago
           ? mercadoPagoInterest(availableBalance, 1)
           : isOpenbank
@@ -260,6 +267,8 @@ export default function InvestmentPage({
       )
     : isMifel
       ? mifelInterest(availableBalance, annualRate, monthlyDays)
+      : isDidi
+        ? didiInterest(availableBalance, monthlyDays)
       : isMercadoPago
         ? mercadoPagoInterest(availableBalance, monthlyDays)
         : isOpenbank
@@ -277,6 +286,8 @@ export default function InvestmentPage({
           ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
           : isMifel
             ? mifelInterest(availableBalance, annualRate, daysElapsed)
+            : isDidi
+              ? didiInterest(availableBalance, daysElapsed)
             : isMercadoPago
               ? mercadoPagoInterest(availableBalance, daysElapsed)
               : isOpenbank

@@ -18,6 +18,7 @@ import {
   flexibleUltraInterest,
   getCalculatedUpdatedBalance,
   kuboInterest,
+  didiInterest,
   mifelInterest,
   mercadoPagoInterest,
   openbankInterest,
@@ -41,7 +42,7 @@ type Product = {
   promoCap?: number;
   annualRate?: number;
   excessRate?: number;
-  calculationMethod?: "compound" | "simple" | "simple360" | "flexible" | "openbank" | "mifel360" | "kubo";
+  calculationMethod?: "compound" | "simple" | "simple360" | "flexible" | "openbank" | "mifel360" | "kubo" | "didi";
   taxRate?: number;
   daysBase?: number;
   promotionDays?: number;
@@ -201,6 +202,7 @@ export const calculateInvestment = (
     ?.products.find((item) => item.id === investment.productId);
   const isNuInvestment = investment.institutionId === "nu";
   const isOpenbankInvestment = investment.institutionId === "openbank";
+  const isDidiInvestment = investment.institutionId === "didi-cuenta";
   const isMercadoPagoInvestment = investment.institutionId === "mercado-pago";
   const openbankAnnualRate = 13;
   const openbankExcessRate = 7;
@@ -210,6 +212,8 @@ export const calculateInvestment = (
   const isFlexibleUltra = product?.calculationMethod === "flexible";
   const calculationMethod = isOpenbankInvestment
     ? "openbank"
+    : isDidiInvestment
+      ? "didi"
     : product?.calculationMethod ?? (investment.type === "plazo" ? "simple" : "compound");
   const taxRate = product?.taxRate ?? 0;
   const daysBase = product?.daysBase ?? 365;
@@ -220,7 +224,7 @@ export const calculateInvestment = (
   const annualRate = isOpenbankInvestment ? openbankAnnualRate : investment.annualRate ?? catalogAnnualRate;
   const catalogExcessRate = product?.excessRate ?? annualRate;
   const excessRate = isOpenbankInvestment ? openbankExcessRate : investment.excessRate ?? catalogExcessRate;
-  const calculationDaysBase = isOpenbankInvestment ? openbankDaysBase : daysBase;
+  const calculationDaysBase = isOpenbankInvestment ? openbankDaysBase : isDidiInvestment ? 360 : daysBase;
   const balance = Math.max(0, Number(investment.balance) || 0);
   const withdrawn = Math.max(0, Number(investment.withdrawn) || 0);
   const manualUpdatedBalance = hasManualUpdatedBalanceOverride ? Number(investment.updatedBalanceOverride) : Number.NaN;
@@ -268,6 +272,8 @@ export const calculateInvestment = (
   const nuMonthlyYield = isNuInvestment ? (availableBalance * annualRate / 100) / 12 : 0;
   const dailyYield = isNuInvestment
     ? nuDailyYield
+    : isDidiInvestment
+      ? didiInterest(availableBalance, 15, 7.5, 1, 360)
     : calculationMethod === "flexible"
       ? flexibleUltraInterest(availableBalance, promoCap, 1, annualRate, excessRate, promotionDays)
       : calculationMethod === "kubo"
@@ -286,6 +292,8 @@ export const calculateInvestment = (
                   configuredCompoundInterest(excessBalance, effectiveExcessRate, 1);
   const monthlyYield = isNuInvestment
     ? nuMonthlyYield
+    : isDidiInvestment
+      ? didiInterest(availableBalance, 15, 7.5, monthlyDays, 360)
     : isFlexibleUltra
       ? flexibleUltraInterest(availableBalance, promoCap, monthlyDays, annualRate, excessRate, promotionDays)
       : calculationMethod === "simple"
@@ -303,6 +311,8 @@ export const calculateInvestment = (
   const totalAccumulated = Math.max(
     isNuInvestment
       ? (availableBalance * annualRate / 100) * (daysElapsed / 365)
+      : isDidiInvestment
+        ? didiInterest(availableBalance, 15, 7.5, daysElapsed, 360)
       : calculationMethod === "simple"
         ? configuredSimpleInterest(availableBalance, annualRate, daysElapsed, daysBase)
         : calculationMethod === "simple360"
@@ -638,6 +648,10 @@ export default function DashboardPage({
     }
     if (investment.institutionId === "mercado-pago") {
       return mercadoPagoInterest(Number(investment.balance) || 0, 12, days);
+    }
+    if (investment.institutionId === "didi-cuenta") {
+      const principal = Math.max(0, Number(investment.balance) - Number(investment.withdrawn || 0));
+      return didiInterest(principal, 15, 7.5, days, 360);
     }
     return investment.dailyYield * days;
   };

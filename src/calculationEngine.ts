@@ -78,6 +78,18 @@ export const mercadoPagoInterest = (
   daysBase = 365,
 ) => Math.min(Math.max(0, principal), 25000) * (annualRate / 100) * (days / daysBase);
 
+export const didiInterest = (
+  principal: number,
+  firstTierRate = 15,
+  excessRate = 7.5,
+  days: number,
+  daysBase = 360,
+) => {
+  const firstTier = Math.min(Math.max(0, principal), 10000);
+  const excess = Math.max(0, principal - 10000);
+  return (firstTier * firstTierRate / 100 + excess * excessRate / 100) * (days / daysBase);
+};
+
 export const openbankPostingDays = (date: Date) => {
   const day = date.getDay();
   if (day === 0) return 0;
@@ -128,6 +140,7 @@ export const getCalculatedUpdatedBalance = (
     "simple360",
     "kubo",
     "openbank",
+    "didi",
     "mifel360",
   ].includes(calculationMethod);
   const fallback = availableBalance + (
