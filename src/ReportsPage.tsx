@@ -3,6 +3,7 @@ import { AlertTriangle, BarChart3, CircleDollarSign, Download, FileText, Landmar
 import NavigationHeader from "./NavigationHeader";
 import { authHeaders, investmentStorageKey } from "./auth";
 import { normalizeInvestmentType } from "./tabRules";
+import { didiNetInterest, mercadoPagoInterest, openbankInterest } from "./calculationEngine";
 import {
   mercadoPagoMinimumBalanceWarningLabel,
   nuMinimumPurchaseWarningLabel,
@@ -102,6 +103,12 @@ const profit = (item: Investment, institutions: Institution[] = []) =>
   item.type === "etf"
     ? current(item, institutions) - capital(item)
     : value(item.totalAccumulated);
+const vistaGainForDays = (item: Investment, days: number) => {
+  if (item.institutionId === "didi-cuenta") return didiNetInterest(value(item.balance), days);
+  if (item.institutionId === "mercado-pago") return mercadoPagoInterest(value(item.balance), 12, days);
+  if (item.institutionId === "openbank") return openbankInterest(value(item.balance), 13, 7, days, 360);
+  return value(item.dailyYield) * days;
+};
 const daysUntilMaturity = (item: Investment) => {
   if (!item.endDate) return 0;
   return Math.max(
@@ -390,6 +397,18 @@ function TypeChart({
           label: "Intereses a recibir",
           amount: profit(item, institutions),
         },
+      ];
+    }
+    if (item.type === "vista") {
+      return [
+        { key: "capital", label: "Monto inicial", amount: value(item.balance) },
+        { key: "promoCap", label: "Tope promo", amount: value(item.promoCap) },
+        { key: "annualRate", label: "Tasa anual", amount: value(item.annualRate), display: `${value(item.annualRate).toFixed(2)}%` },
+        { key: "dailyYield", label: "Ganancia diaria", amount: vistaGainForDays(item, 1) },
+        { key: "weeklyYield", label: "Ganancia semanal", amount: vistaGainForDays(item, 7) },
+        { key: "monthlyYield", label: "Ganancia mensual", amount: vistaGainForDays(item, 30) },
+        { key: "annualYield", label: "Ganancia anual", amount: vistaGainForDays(item, 365) },
+        { key: "withdrawn", label: "Total retirado", amount: value(item.withdrawn) },
       ];
     }
     return [
