@@ -404,8 +404,6 @@ function TypeChart({
     if (item.type === "vista") {
       return [
         { key: "capital", label: "Monto inicial", amount: value(item.balance) },
-        { key: "promoCap", label: "Tope promo", amount: value(item.promoCap) },
-        { key: "annualRate", label: "Tasa anual", amount: value(item.annualRate), display: `${value(item.annualRate).toFixed(2)}%` },
         { key: "dailyYield", label: "Ganancia diaria", amount: vistaGainForDays(item, 1) },
         { key: "weeklyYield", label: "Ganancia semanal", amount: vistaGainForDays(item, 7) },
         { key: "monthlyYield", label: "Ganancia mensual", amount: vistaGainForDays(item, 30) },
