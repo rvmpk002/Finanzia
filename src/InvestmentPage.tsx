@@ -10,6 +10,9 @@ type RateProduct = {
   promoCap?: number;
   annualRate?: number;
   excessRate?: number;
+  calculationMethod?: "compound" | "simple" | "simple360" | "flexible" | "openbank" | "mifel360" | "kubo";
+  daysBase?: number;
+  taxRate?: number;
 };
 type Institution = { id: string; name: string; products: RateProduct[] };
 type Tab = "vista" | "plazo" | "etf";
