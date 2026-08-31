@@ -25,7 +25,9 @@ type Investment = {
   startDate: string;
   endDate?: string;
   termDays?: number;
+  promoCap?: number;
   annualRate?: number;
+  dailyYield?: number;
   monthlyYield?: number;
   updatedBalance?: number;
   totalAccumulated?: number;
