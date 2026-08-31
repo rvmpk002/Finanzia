@@ -166,7 +166,6 @@ const didiCuenta: Institution = {
       promoCap: 10000,
       annualRate: 15,
       excessRate: 7.5,
-      taxRate: 3.335,
       calculationMethod: "compound",
     },
   ],

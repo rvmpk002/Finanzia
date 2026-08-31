@@ -234,6 +234,8 @@ export const calculateInvestment = (
       : Math.max(0, balance - withdrawn)
     : isOpenbankInvestment
       ? balance
+    : isDidiInvestment
+      ? balance
     : Math.max(0, balance - withdrawn);
   const startDate = fromLocalDateString(investment.startDate);
   const isKubo = calculationMethod === "kubo";
@@ -650,7 +652,7 @@ export default function DashboardPage({
       return mercadoPagoInterest(Number(investment.balance) || 0, 12, days);
     }
     if (investment.institutionId === "didi-cuenta") {
-      const principal = Math.max(0, Number(investment.balance) - Number(investment.withdrawn || 0));
+      const principal = Math.max(0, Number(investment.balance) || 0);
       return didiNetInterest(principal, days);
     }
     return investment.dailyYield * days;

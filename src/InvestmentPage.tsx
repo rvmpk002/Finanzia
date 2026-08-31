@@ -331,11 +331,7 @@ export default function InvestmentPage({
     availableBalance + (isKubo ? totalAccumulated : monthlyYield),
   );
   const estimatedToday = Math.max(0, availableBalance + dailyYield);
-  const taxWithheld = isMifel
-    ? dailyYield * 0.09
-    : isDidi
-      ? didiInterest(availableBalance, 1) - dailyYield
-      : 0;
+  const taxWithheld = isMifel ? dailyYield * 0.09 : 0;
   const netDailyYield = dailyYield - taxWithheld;
   const canSave =
     activeTab === "etf"

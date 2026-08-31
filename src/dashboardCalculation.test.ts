@@ -54,13 +54,22 @@ test('DiDi applies 15% to the first 10,000 and 7.5% to the excess on a 360-day b
   assert.ok(Math.abs(didiInterest(5000, 15, 7.5, 360) - 75) < 0.01);
 });
 
-test('DiDi dashboard gains use the net daily amount after withholding', () => {
+test('DiDi dashboard gains use the gross daily amount', () => {
   const daily = didiNetInterest(10058.42, 1);
 
-  assert.ok(Math.abs(daily - 4.04) < 0.01);
-  assert.ok(Math.abs(daily * 7 - 28.28) < 0.01);
-  assert.ok(Math.abs(daily * 30 - 121.19) < 0.01);
-  assert.ok(Math.abs(daily * 365 - 1474.42) < 0.01);
+  assert.ok(Math.abs(daily - 4.18) < 0.01);
+  assert.ok(Math.abs(daily * 7 - 29.25) < 0.01);
+  assert.ok(Math.abs(daily * 30 - 125.36) < 0.01);
+  assert.ok(Math.abs(daily * 365 - 1525.28) < 0.01);
+});
+
+test('DiDi does not subtract historical total withdrawn from the earning principal', () => {
+  const grossPrincipal = 10058.42;
+  const grossDaily = didiNetInterest(grossPrincipal, 1);
+  const reducedDaily = didiNetInterest(grossPrincipal - 363.6, 1);
+
+  assert.ok(Math.abs(grossDaily - 4.04) < 0.01);
+  assert.ok(reducedDaily < grossDaily);
 });
 
 test('Openbank ignores stale saved rates and calculates 30,153.89 at about 10.86 per day', () => {
