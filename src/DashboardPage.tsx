@@ -828,6 +828,7 @@ export default function DashboardPage({
                       <div><span>Ganancia semanal</span><strong>{amount(vistaGainForDays(investment, 7))}</strong></div>
                       <div><span>Ganancia mensual</span><strong>{amount(vistaGainForDays(investment, 30))}</strong></div>
                       <div><span>Ganancia anual</span><strong>{amount(vistaGainForDays(investment, 365))}</strong></div>
+                      <div><span>Saldo actualizado</span><strong>{amount(investment.updatedBalance)}</strong></div>
                       <div><span>Total retirado</span><strong>{amount(investment.withdrawn)}</strong></div>
                     </> : <>
                       <div><span>{isEtf || isKubo ? "Monto invertido" : "Saldo actual"}</span><strong>{amount(isEtf ? etf?.capitalInvested : investment.balance)}</strong></div>
@@ -1018,6 +1019,7 @@ export default function DashboardPage({
                       <th>Ganancia semanal</th>
                       <th>Ganancia mensual</th>
                       <th>Ganancia anual</th>
+                      <th>Saldo actualizado</th>
                       <th>Total retirado</th>
                     </>}
                   </tr>
@@ -1177,6 +1179,36 @@ export default function DashboardPage({
                       <td>{amount(vistaGainForDays(investment, 7))}</td>
                       <td>{amount(vistaGainForDays(investment, 30))}</td>
                       <td>{amount(vistaGainForDays(investment, 365))}</td>
+                      <td className="editable-dashboard-cell">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          readOnly={activeBalanceId !== key}
+                          value={editingBalances[key] ?? Number(investment.updatedBalance).toFixed(2)}
+                          onClick={() => {
+                            setActiveBalanceId(key);
+                            setEditingBalances((current) => ({
+                              ...current,
+                              [key]: current[key] ?? Number(investment.updatedBalance).toFixed(2),
+                            }));
+                          }}
+                          onChange={(event) => {
+                            setEditingBalances((current) => ({
+                              ...current,
+                              [key]: event.target.value,
+                            }));
+                          }}
+                          onBlur={(event) => {
+                            const inputValue = event.currentTarget.value;
+                            setEditingBalances((current) => ({
+                              ...current,
+                              [key]: Number(inputValue).toFixed(2),
+                            }));
+                            void saveUpdatedBalance(investment, inputValue);
+                          }}
+                        />
+                      </td>
                       <td>{amount(investment.withdrawn)}</td>
                       </>}
                     </tr>
