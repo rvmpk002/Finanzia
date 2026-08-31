@@ -334,17 +334,141 @@ export default function InvestmentPage({
   const estimatedToday = Math.max(0, availableBalance + dailyYield);
   const taxWithheld = isMifel ? dailyYield * 0.09 : 0;
   const netDailyYield = dailyYield - taxWithheld;
-  const institutionCalculatorType = institutionId === "cetesdirecto" || institutionId === "banco-plata" || institutionId === "kubo" ? institutionId : null;
-  const institutionNameForSimulator = institutionId === "cetesdirecto" ? "Cetes Directo" : institutionId === "banco-plata" ? "Banco Plata" : institutionId === "kubo" ? "Kubo Financiero" : "";
-  const institutionSimulatorIcon = institutionId === "cetesdirecto" ? "C" : institutionId === "banco-plata" ? "B" : institutionId === "kubo" ? "K" : "";
-  const institutionSimulatorSubtitle = institutionId === "cetesdirecto" ? "Simula la ganancia por plazo y tasa anual." : institutionId === "banco-plata" ? "Considera tope promocional y saldo excedente." : institutionId === "kubo" ? "Ajusta por la retención estimada anual." : "";
-  const institutionSimulatorVisible = activeTab === "plazo" && Boolean(institutionCalculatorType);
+  
+  // Determine which simulator to show and in which tab
+  const getSimulatorInfo = () => {
+    const viewAccountSimulators = ["nu", "mercado-pago", "openbank", "mifel", "didi-cuenta"];
+    const fixedTermSimulators = ["cetesdirecto", "banco-plata", "kubo"];
+    
+    if (viewAccountSimulators.includes(institutionId)) {
+      return activeTab === "vista" ? institutionId : null;
+    }
+    if (fixedTermSimulators.includes(institutionId)) {
+      return activeTab === "plazo" ? institutionId : null;
+    }
+    return null;
+  };
+  
+  const institutionCalculatorType = getSimulatorInfo();
+  const institutionNameForSimulator = institutionId === "nu" ? "Nu" : institutionId === "mercado-pago" ? "Mercado Pago" : institutionId === "openbank" ? "Openbank" : institutionId === "mifel" ? "Mifel" : institutionId === "didi-cuenta" ? "DiDi Cuenta" : institutionId === "cetesdirecto" ? "Cetes Directo" : institutionId === "banco-plata" ? "Banco Plata" : institutionId === "kubo" ? "Kubo Financiero" : "";
+  const institutionSimulatorIcon = institutionId === "nu" ? "NU" : institutionId === "mercado-pago" ? "MP" : institutionId === "openbank" ? "OB" : institutionId === "mifel" ? "M" : institutionId === "didi-cuenta" ? "DD" : institutionId === "cetesdirecto" ? "C" : institutionId === "banco-plata" ? "B" : institutionId === "kubo" ? "K" : "";
+  const institutionSimulatorSubtitle = institutionId === "nu" ? "Rendimiento compuesto al 13% anual." : institutionId === "mercado-pago" ? "Rendimiento en primeros $25,000 a 12% anual." : institutionId === "openbank" ? "Tramos: 13% (primeros $30k), 7% ($30-$1M), 6.5% (resto)." : institutionId === "mifel" ? "Rendimiento 10% anual con impuesto estimado 9%." : institutionId === "didi-cuenta" ? "Tramos: 15% (primeros $10k), 7.5% (resto)." : institutionId === "cetesdirecto" ? "Simula la ganancia por plazo y tasa anual." : institutionId === "banco-plata" ? "Considera tope promocional y saldo excedente." : institutionId === "kubo" ? "Ajusta por la retención estimada anual." : "";
+  const institutionSimulatorVisible = Boolean(institutionCalculatorType);
   const institutionSimulator = useMemo(() => {
     const principal = Math.max(0, Number(balance) || 0);
     const annualRate = Math.max(0, Number(fixedRate) || 0);
     const days = Math.max(1, Number(termDays) || 1);
     const promo = Math.max(0, Number(promoCapInput) || 0);
     const baseDailyRate = annualRate / 100 / 365;
+    
+    // Nu - Compound interest
+    if (institutionCalculatorType === "nu") {
+      const dailyGain = principal * (Math.pow(1 + annualRate / 100 / 365, 1) - 1);
+      const weeklyGain = principal * (Math.pow(1 + annualRate / 100 / 365, 7) - 1);
+      const monthlyGain = principal * (Math.pow(1 + annualRate / 100 / 365, 30) - 1);
+      const annualGain = principal * (Math.pow(1 + annualRate / 100 / 365, 365) - 1);
+      const finalAmount = principal + principal * (Math.pow(1 + annualRate / 100 / 365, days) - 1);
+      return {
+        title: "Nu - Cajita Turbo",
+        subtitle: "Rendimiento compuesto diario",
+        dailyGain,
+        weeklyGain,
+        monthlyGain,
+        annualGain,
+        finalAmount,
+      };
+    }
+    
+    // Mercado Pago - Compound but capped at $25k
+    if (institutionCalculatorType === "mercado-pago") {
+      const cappedPrincipal = Math.min(principal, promo || 25000);
+      const dailyGain = cappedPrincipal * (Math.pow(1 + annualRate / 100 / 365, 1) - 1);
+      const weeklyGain = cappedPrincipal * (Math.pow(1 + annualRate / 100 / 365, 7) - 1);
+      const monthlyGain = cappedPrincipal * (Math.pow(1 + annualRate / 100 / 365, 30) - 1);
+      const annualGain = cappedPrincipal * (Math.pow(1 + annualRate / 100 / 365, 365) - 1);
+      const finalAmount = cappedPrincipal + cappedPrincipal * (Math.pow(1 + annualRate / 100 / 365, days) - 1);
+      return {
+        title: "Mercado Pago",
+        subtitle: "Solo primeros $25,000",
+        dailyGain,
+        weeklyGain,
+        monthlyGain,
+        annualGain,
+        finalAmount,
+      };
+    }
+    
+    // Openbank - Tiered interest
+    if (institutionCalculatorType === "openbank") {
+      const firstTier = Math.min(principal, 30000);
+      const secondTier = Math.min(Math.max(0, principal - 30000), 970000);
+      const thirdTier = Math.max(0, principal - 1000000);
+      const upperTierRate = 6.5;
+      
+      const dailyInterest = ((firstTier * annualRate) / 100 + (secondTier * (promo || 7)) / 100 + (thirdTier * upperTierRate) / 100) / 360;
+      const dailyGain = dailyInterest;
+      const weeklyGain = dailyInterest * 7;
+      const monthlyGain = dailyInterest * 30;
+      const annualGain = (firstTier * annualRate) / 100 + (secondTier * (promo || 7)) / 100 + (thirdTier * upperTierRate) / 100;
+      const finalAmount = principal + ((firstTier * annualRate) / 100 + (secondTier * (promo || 7)) / 100 + (thirdTier * upperTierRate) / 100) * (days / 360);
+      return {
+        title: "Openbank",
+        subtitle: "Tiempos escalonados",
+        dailyGain,
+        weeklyGain,
+        monthlyGain,
+        annualGain,
+        finalAmount,
+      };
+    }
+    
+    // Mifel - Simple interest with 9% tax
+    if (institutionCalculatorType === "mifel") {
+      const interestBeforeTax = principal * (annualRate / 100) * (days / 360);
+      const taxAmount = interestBeforeTax * 0.09;
+      const dailyInterestBeforeTax = principal * (annualRate / 100) / 360;
+      const dailyTax = dailyInterestBeforeTax * 0.09;
+      
+      const dailyGain = dailyInterestBeforeTax - dailyTax;
+      const weeklyGain = (principal * (annualRate / 100) * (7 / 360)) * (1 - 0.09);
+      const monthlyGain = (principal * (annualRate / 100) * (30 / 360)) * (1 - 0.09);
+      const annualGain = (principal * (annualRate / 100)) * (1 - 0.09);
+      const finalAmount = principal + interestBeforeTax - taxAmount;
+      return {
+        title: "Mifel",
+        subtitle: "Con impuesto 9%",
+        dailyGain,
+        weeklyGain,
+        monthlyGain,
+        annualGain,
+        finalAmount,
+      };
+    }
+    
+    // DiDi Cuenta - Tiered interest
+    if (institutionCalculatorType === "didi-cuenta") {
+      const firstTier = Math.min(Math.max(0, principal), promo || 10000);
+      const excess = Math.max(0, principal - (promo || 10000));
+      const excessRate = 7.5;
+      
+      const dailyInterest = ((firstTier * annualRate) / 100 + (excess * excessRate) / 100) / 360;
+      const dailyGain = dailyInterest;
+      const weeklyGain = dailyInterest * 7;
+      const monthlyGain = dailyInterest * 30;
+      const annualGain = (firstTier * annualRate) / 100 + (excess * excessRate) / 100;
+      const finalAmount = principal + ((firstTier * annualRate) / 100 + (excess * excessRate) / 100) * (days / 360);
+      return {
+        title: "DiDi Cuenta",
+        subtitle: "Tramos diferenciados",
+        dailyGain,
+        weeklyGain,
+        monthlyGain,
+        annualGain,
+        finalAmount,
+      };
+    }
+    
+    // Original calculators for fixed-term products
     if (institutionCalculatorType === "cetesdirecto") {
       const dailyGain = principal * baseDailyRate;
       const weeklyGain = principal * (annualRate / 100) * (7 / 365);
@@ -1049,7 +1173,7 @@ export default function InvestmentPage({
                   </label>
 
                   <label className="cetes-field">
-                    <span>Plazo en días</span>
+                    <span>{activeTab === "vista" ? "Días a proyectar" : "Plazo en días"}</span>
                     <input
                       type="number"
                       min="1"
@@ -1124,7 +1248,7 @@ export default function InvestmentPage({
                         <strong>{money.format(institutionSimulator.annualGain)}</strong>
                       </div>
                       <div className="cetes-result-card cetes-result-accent">
-                        <small>Monto al vencimiento</small>
+                        <small>{activeTab === "vista" ? "Saldo proyectado" : "Monto al vencimiento"}</small>
                         <strong>{money.format(institutionSimulator.finalAmount)}</strong>
                       </div>
                     </>
