@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Clock3, FilePlus2, LineChart, WalletCards } from "lucide-react";
 import NavigationHeader from "./NavigationHeader";
 import { authHeaders, investmentStorageKey } from "./auth";
@@ -333,6 +333,27 @@ export default function InvestmentPage({
   const estimatedToday = Math.max(0, availableBalance + dailyYield);
   const taxWithheld = isMifel ? dailyYield * 0.09 : 0;
   const netDailyYield = dailyYield - taxWithheld;
+  const cetesCalculator = useMemo(() => {
+    const principal = Math.max(0, Number(balance) || 0);
+    const annualRate = Math.max(0, Number(fixedRate) || 0);
+    const days = Math.max(1, Number(termDays) || 1);
+    const dailyGain = principal * (annualRate / 100) / 365;
+    const weeklyGain = principal * (annualRate / 100) * (7 / 365);
+    const monthlyGain = principal * (annualRate / 100) * (30 / 365);
+    const annualGain = principal * (annualRate / 100);
+    const finalAmount = principal + principal * (annualRate / 100) * (days / 365);
+    return {
+      principal,
+      annualRate,
+      days,
+      dailyGain,
+      weeklyGain,
+      monthlyGain,
+      annualGain,
+      finalAmount,
+    };
+  }, [balance, fixedRate, termDays]);
+  const showCetesCalculator = institutionId === "cetesdirecto" && activeTab === "plazo";
   const canSave =
     activeTab === "etf"
       ? Boolean(etfName.trim() && Number(etfTitles) > 0 && currentEtfValue > 0)
@@ -928,6 +949,78 @@ export default function InvestmentPage({
                     </select>
                   </label>
                 )}
+              </div>
+            )}
+            {showCetesCalculator && (
+              <div className="cetes-calculator-panel">
+                <div className="cetes-calculator-header">
+                  <div>
+                    <span className="eyebrow orange">Simulador</span>
+                    <h3>Calculadora de rendimiento</h3>
+                  </div>
+                  <span className="cetes-pill">Cetes Directo</span>
+                </div>
+
+                <div className="cetes-calculator-grid">
+                  <label className="cetes-field">
+                    <span>Monto inicial</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={balance}
+                      onChange={(event) => setBalance(event.target.value)}
+                    />
+                  </label>
+
+                  <label className="cetes-field">
+                    <span>Tasa anual</span>
+                    <div className="cetes-input-with-suffix">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={fixedRate}
+                        onChange={(event) => setFixedRate(event.target.value)}
+                      />
+                      <em>%</em>
+                    </div>
+                  </label>
+
+                  <label className="cetes-field">
+                    <span>Plazo en días</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={termDays}
+                      onChange={(event) => setTermDays(event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="cetes-results-grid">
+                  <div className="cetes-result-card">
+                    <small>Ganancia diaria</small>
+                    <strong>{money.format(cetesCalculator.dailyGain)}</strong>
+                  </div>
+                  <div className="cetes-result-card">
+                    <small>Ganancia semanal</small>
+                    <strong>{money.format(cetesCalculator.weeklyGain)}</strong>
+                  </div>
+                  <div className="cetes-result-card">
+                    <small>Ganancia mensual</small>
+                    <strong>{money.format(cetesCalculator.monthlyGain)}</strong>
+                  </div>
+                  <div className="cetes-result-card">
+                    <small>Rendimiento anual</small>
+                    <strong>{percent.format(cetesCalculator.annualRate)}%</strong>
+                  </div>
+                  <div className="cetes-result-card cetes-result-accent">
+                    <small>Monto al vencimiento</small>
+                    <strong>{money.format(cetesCalculator.finalAmount)}</strong>
+                  </div>
+                </div>
               </div>
             )}
             {activeTab !== "etf" && (
