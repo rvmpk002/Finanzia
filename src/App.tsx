@@ -867,7 +867,16 @@ function InstitutionForm({
             {products.map((product, index) => (
               <div className="product-input-card" key={product.id}>
                 <div className="product-input-header">
-                  <strong>Producto #{index + 1}</strong>
+                  <span className="product-badge">{index + 1}</span>
+                  <input
+                    className="product-name-inline"
+                    required
+                    value={product.name}
+                    onChange={(event) =>
+                      updateProduct(product.id, "name", event.target.value)
+                    }
+                    placeholder="Nombre del producto"
+                  />
                   <button
                     type="button"
                     className="danger-icon-button"
@@ -875,23 +884,12 @@ function InstitutionForm({
                     aria-label="Eliminar producto"
                     title="Eliminar producto"
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
-                <div className="product-fields-grid">
-                  <label>
-                    Nombre del producto
-                    <input
-                      required
-                      value={product.name}
-                      onChange={(event) =>
-                        updateProduct(product.id, "name", event.target.value)
-                      }
-                      placeholder="Ej. Pagaré 28 días / Cuenta de Ahorro"
-                    />
-                  </label>
-                  <label>
-                    Modalidad de inversión
+                <div className="product-fields-row">
+                  <label className="product-field">
+                    <span className="product-field-label">Modalidad</span>
                     <select
                       value={product.icon === "fixed" ? "plazo" : product.icon === "flexible" ? "flexible" : "vista"}
                       onChange={(event) => {
@@ -908,60 +906,64 @@ function InstitutionForm({
                         }
                       }}
                     >
-                      <option value="vista">A la vista (Compuesto diario)</option>
-                      <option value="plazo">A plazo fijo (Interés simple)</option>
-                      <option value="flexible">A la vista flexible con tope</option>
+                      <option value="vista">Compuesto diario</option>
+                      <option value="plazo">Interés simple</option>
+                      <option value="flexible">Flexible con tope</option>
                     </select>
                   </label>
-                  <label>
-                    Tasa anual (%)
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={product.annualRate ?? 0}
-                      onChange={(event) =>
-                        updateProduct(product.id, "annualRate", Number(event.target.value))
-                      }
-                      placeholder="Ej. 11.5"
-                    />
+                  <label className="product-field">
+                    <span className="product-field-label">Tasa anual</span>
+                    <div className="input-with-suffix">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={product.annualRate ?? 0}
+                        onChange={(event) =>
+                          updateProduct(product.id, "annualRate", Number(event.target.value))
+                        }
+                        placeholder="0"
+                      />
+                      <span className="input-suffix">%</span>
+                    </div>
                   </label>
-                  <label>
-                    Tope promocional ($)
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={product.promoCap ?? 0}
-                      onChange={(event) =>
-                        updateProduct(product.id, "promoCap", Number(event.target.value))
-                      }
-                      placeholder="0 = Sin tope"
-                    />
+                  <label className="product-field">
+                    <span className="product-field-label">Tope promo</span>
+                    <div className="input-with-suffix">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={product.promoCap ?? 0}
+                        onChange={(event) =>
+                          updateProduct(product.id, "promoCap", Number(event.target.value))
+                        }
+                        placeholder="0"
+                      />
+                      <span className="input-suffix">$</span>
+                    </div>
                   </label>
-                  <label>
-                    Base de días
+                  <label className="product-field">
+                    <span className="product-field-label">Base días</span>
                     <select
                       value={product.daysBase ?? 365}
                       onChange={(event) =>
                         updateProduct(product.id, "daysBase", Number(event.target.value))
                       }
                     >
-                      <option value={365}>365 días (Estándar)</option>
-                      <option value={360}>360 días (Bancario)</option>
+                      <option value={365}>365</option>
+                      <option value={360}>360</option>
                     </select>
                   </label>
-                  <label className="span-full">
-                    Descripción / Condiciones
-                    <input
-                      value={product.description}
-                      onChange={(event) =>
-                        updateProduct(product.id, "description", event.target.value)
-                      }
-                      placeholder="Ej. Rendimiento diario garantizado, liquidez en días hábiles..."
-                    />
-                  </label>
                 </div>
+                <input
+                  className="product-description-input"
+                  value={product.description}
+                  onChange={(event) =>
+                    updateProduct(product.id, "description", event.target.value)
+                  }
+                  placeholder="Condiciones: ej. Rendimiento diario garantizado, liquidez en días hábiles..."
+                />
               </div>
             ))}
             {products.length === 0 && (

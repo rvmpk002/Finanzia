@@ -702,42 +702,163 @@ input:focus, textarea:focus, select:focus, .search-box:focus-within { border-col
 	.profile-alert { align-items: flex-start; padding: 18px; font-size: 14px; }
 }
 
+/* ── Product card in institution form ── */
 .product-input-card {
-	background: #141613;
-	border: 1px solid #373a36;
-	border-radius: 6px;
-	padding: 14px;
-	margin-top: 12px;
+	background: linear-gradient(135deg, #151714 0%, #171a16 100%);
+	border: 1px solid #2e312c;
+	border-radius: 10px;
+	padding: 14px 16px 12px;
+	margin-top: 10px;
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
+	transition: border-color 0.2s ease;
+}
+.product-input-card:hover {
+	border-color: #44473f;
 }
 .product-input-header {
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
-	color: var(--orange);
-	font-size: 12px;
+	gap: 8px;
 }
-.product-fields-grid {
+.product-badge {
+	background: var(--orange);
+	color: #111;
+	width: 20px;
+	height: 20px;
+	border-radius: 5px;
+	display: inline-grid;
+	place-items: center;
+	font-size: 10px;
+	font-weight: 700;
+	flex-shrink: 0;
+}
+.product-name-inline {
+	flex: 1;
+	background: transparent !important;
+	border: none !important;
+	border-bottom: 1px solid #2e312c !important;
+	border-radius: 0 !important;
+	color: var(--paper);
+	font-size: 13px !important;
+	font-weight: 600;
+	padding: 4px 2px !important;
+	outline: none;
+	transition: border-color 0.2s ease;
+}
+.product-name-inline:focus {
+	border-bottom-color: var(--orange) !important;
+}
+.product-name-inline::placeholder {
+	color: #555;
+	font-weight: 400;
+}
+/* Fields row — 4 compact columns */
+.product-fields-row {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-	gap: 10px;
+	grid-template-columns: 1.3fr 0.7fr 0.7fr 0.55fr;
+	gap: 8px;
+	align-items: end;
 }
-.product-fields-grid .span-full {
-	grid-column: 1 / -1;
+.product-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
+.product-field-label {
+	color: #6b6e66;
+	font-size: 9px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	font-weight: 600;
+}
+/* Select + input unified styling inside product cards */
+.product-fields-row select,
+.product-fields-row input {
+	width: 100%;
+	color: var(--paper);
+	background: #0e100d;
+	border: 1px solid #2e312c;
+	border-radius: 5px;
+	padding: 8px 9px;
+	font-size: 11px;
+	outline: none;
+	transition: border-color 0.2s ease;
+	-webkit-appearance: none;
+	appearance: none;
+}
+.product-fields-row select {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23696c67' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 8px center;
+	padding-right: 24px;
+}
+.product-fields-row select:focus,
+.product-fields-row input:focus {
+	border-color: var(--orange);
+}
+/* Input with suffix (%, $) */
+.input-with-suffix {
+	position: relative;
+	display: flex;
+}
+.input-with-suffix input {
+	padding-right: 24px;
+}
+.input-suffix {
+	position: absolute;
+	right: 9px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #555;
+	font-size: 10px;
+	pointer-events: none;
+	font-weight: 600;
+}
+/* Description input below the row */
+.product-description-input {
+	width: 100%;
+	color: #888;
+	background: transparent !important;
+	border: none !important;
+	border-bottom: 1px dashed #2a2d28 !important;
+	border-radius: 0 !important;
+	padding: 5px 2px !important;
+	font-size: 10px !important;
+	font-style: italic;
+	outline: none;
+	transition: border-color 0.2s ease, color 0.2s ease;
+}
+.product-description-input:focus {
+	border-bottom-color: var(--orange) !important;
+	color: var(--paper);
+}
+.product-description-input::placeholder {
+	color: #444;
+}
+/* Delete button */
 .danger-icon-button {
 	background: transparent;
 	border: none;
-	color: #e98065;
+	color: #555;
 	cursor: pointer;
-	padding: 4px 6px;
+	padding: 4px;
 	border-radius: 4px;
 	display: inline-flex;
 	align-items: center;
-	transition: background 0.2s ease;
+	margin-left: auto;
+	flex-shrink: 0;
+	transition: color 0.2s ease, background 0.2s ease;
 }
 .danger-icon-button:hover {
-	background: rgba(233, 128, 101, 0.18);
+	color: #e98065;
+	background: rgba(233, 128, 101, 0.12);
+}
+
+/* Mobile responsive */
+@media (max-width: 550px) {
+	.product-fields-row {
+		grid-template-columns: 1fr 1fr;
+	}
 }
