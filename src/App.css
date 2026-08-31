@@ -701,3 +701,43 @@ input:focus, textarea:focus, select:focus, .search-box:focus-within { border-col
 	.device-row .danger-button { grid-column: 1 / -1; justify-content: center; }
 	.profile-alert { align-items: flex-start; padding: 18px; font-size: 14px; }
 }
+
+.product-input-card {
+	background: #141613;
+	border: 1px solid #373a36;
+	border-radius: 6px;
+	padding: 14px;
+	margin-top: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.product-input-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	color: var(--orange);
+	font-size: 12px;
+}
+.product-fields-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+	gap: 10px;
+}
+.product-fields-grid .span-full {
+	grid-column: 1 / -1;
+}
+.danger-icon-button {
+	background: transparent;
+	border: none;
+	color: #e98065;
+	cursor: pointer;
+	padding: 4px 6px;
+	border-radius: 4px;
+	display: inline-flex;
+	align-items: center;
+	transition: background 0.2s ease;
+}
+.danger-icon-button:hover {
+	background: rgba(233, 128, 101, 0.18);
+}

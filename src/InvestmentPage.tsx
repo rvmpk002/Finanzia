@@ -1083,7 +1083,7 @@ export default function InvestmentPage({
                     <option value="">Selecciona una institución</option>
                     {sortedInstitutions
                       .filter((institution) =>
-                        isSelectableInstitution(institution.id, activeTab),
+                        isSelectableInstitution(institution.id, activeTab, institution.products),
                       )
                       .map((institution) => (
                         <option value={institution.id} key={institution.id}>

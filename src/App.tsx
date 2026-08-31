@@ -730,19 +730,26 @@ function InstitutionForm({
         description: "",
         conditions: [],
         icon: "account",
+        calculationMethod: "compound",
+        annualRate: 0,
+        promoCap: 0,
+        daysBase: 365,
       },
     ]);
   }
   function updateProduct(
     id: string,
-    field: "name" | "description",
-    value: string,
+    field: keyof RateProduct,
+    value: string | number | string[] | boolean | undefined,
   ) {
     setProducts(
       products.map((product) =>
         product.id === id ? { ...product, [field]: value } : product,
       ),
     );
+  }
+  function removeProduct(id: string) {
+    setProducts(products.filter((product) => product.id !== id));
   }
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -755,7 +762,16 @@ function InstitutionForm({
       notes: notes || "Sin notas adicionales.",
       products: products
         .filter((product) => product.name.trim())
-        .map((product) => ({ ...product, name: product.name.trim() })),
+        .map((product) => ({
+          ...product,
+          name: product.name.trim(),
+          annualRate: Number(product.annualRate) || 0,
+          promoCap: Number(product.promoCap) || 0,
+          daysBase: Number(product.daysBase) || 365,
+          icon: product.icon || "account",
+          calculationMethod: product.calculationMethod || (product.icon === "fixed" ? "simple" : "compound"),
+          conditions: product.conditions?.length ? product.conditions : (product.description ? [product.description] : []),
+        })),
     };
 
     const validationErrors = validateInstitutionInput({
@@ -848,22 +864,104 @@ function InstitutionForm({
                 <Plus size={15} /> Añadir producto
               </button>
             </div>
-            {products.map((product) => (
-              <div className="product-input" key={product.id}>
-                <input
-                  value={product.name}
-                  onChange={(event) =>
-                    updateProduct(product.id, "name", event.target.value)
-                  }
-                  placeholder="Nombre del producto"
-                />
-                <input
-                  value={product.description}
-                  onChange={(event) =>
-                    updateProduct(product.id, "description", event.target.value)
-                  }
-                  placeholder="Descripción de la tasa"
-                />
+            {products.map((product, index) => (
+              <div className="product-input-card" key={product.id}>
+                <div className="product-input-header">
+                  <strong>Producto #{index + 1}</strong>
+                  <button
+                    type="button"
+                    className="danger-icon-button"
+                    onClick={() => removeProduct(product.id)}
+                    aria-label="Eliminar producto"
+                    title="Eliminar producto"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+                <div className="product-fields-grid">
+                  <label>
+                    Nombre del producto
+                    <input
+                      required
+                      value={product.name}
+                      onChange={(event) =>
+                        updateProduct(product.id, "name", event.target.value)
+                      }
+                      placeholder="Ej. Pagaré 28 días / Cuenta de Ahorro"
+                    />
+                  </label>
+                  <label>
+                    Modalidad de inversión
+                    <select
+                      value={product.icon === "fixed" ? "plazo" : product.icon === "flexible" ? "flexible" : "vista"}
+                      onChange={(event) => {
+                        const val = event.target.value;
+                        if (val === "plazo") {
+                          updateProduct(product.id, "icon", "fixed");
+                          updateProduct(product.id, "calculationMethod", "simple");
+                        } else if (val === "flexible") {
+                          updateProduct(product.id, "icon", "flexible");
+                          updateProduct(product.id, "calculationMethod", "flexible");
+                        } else {
+                          updateProduct(product.id, "icon", "account");
+                          updateProduct(product.id, "calculationMethod", "compound");
+                        }
+                      }}
+                    >
+                      <option value="vista">A la vista (Compuesto diario)</option>
+                      <option value="plazo">A plazo fijo (Interés simple)</option>
+                      <option value="flexible">A la vista flexible con tope</option>
+                    </select>
+                  </label>
+                  <label>
+                    Tasa anual (%)
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={product.annualRate ?? 0}
+                      onChange={(event) =>
+                        updateProduct(product.id, "annualRate", Number(event.target.value))
+                      }
+                      placeholder="Ej. 11.5"
+                    />
+                  </label>
+                  <label>
+                    Tope promocional ($)
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={product.promoCap ?? 0}
+                      onChange={(event) =>
+                        updateProduct(product.id, "promoCap", Number(event.target.value))
+                      }
+                      placeholder="0 = Sin tope"
+                    />
+                  </label>
+                  <label>
+                    Base de días
+                    <select
+                      value={product.daysBase ?? 365}
+                      onChange={(event) =>
+                        updateProduct(product.id, "daysBase", Number(event.target.value))
+                      }
+                    >
+                      <option value={365}>365 días (Estándar)</option>
+                      <option value={360}>360 días (Bancario)</option>
+                    </select>
+                  </label>
+                  <label className="span-full">
+                    Descripción / Condiciones
+                    <input
+                      value={product.description}
+                      onChange={(event) =>
+                        updateProduct(product.id, "description", event.target.value)
+                      }
+                      placeholder="Ej. Rendimiento diario garantizado, liquidez en días hábiles..."
+                    />
+                  </label>
+                </div>
               </div>
             ))}
             {products.length === 0 && (
