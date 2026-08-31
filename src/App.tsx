@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import InvestmentPage from "./InvestmentPage";
 import DashboardPage from "./DashboardPage";
-import ConfigurationPage from "./ConfigurationPage";
 import AuthPage from "./AuthPage";
 import ProfilePage from "./ProfilePage";
 import ReportsPage from "./ReportsPage";
@@ -445,8 +444,6 @@ function App() {
     return <InvestmentPage institutions={institutions} />;
   if (window.location.pathname === "/dashboard")
     return <DashboardPage institutions={institutions} />;
-  if (window.location.pathname === "/configuracion")
-    return <ConfigurationPage institutions={institutions} />;
   if (window.location.pathname === "/reportes")
     return <ReportsPage institutions={institutions} />;
   function saveInstitution(institution: Institution) {

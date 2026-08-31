@@ -9,7 +9,6 @@ export default function NavigationHeader({ pageLabel }: NavigationHeaderProps) {
     ["/inversiones", "Nueva inversión"],
     ["/dashboard", "Dashboard"],
     ["/reportes", "Reportes"],
-    ["/configuracion", "Configuración"],
     ["/proteccion", "Protección"],
   ];
   return (
