@@ -381,19 +381,19 @@ export default function InvestmentPage({
     }
     if (institutionCalculatorType === "kubo") {
       const effectiveRate = annualRate * (1 - 0.077);
-      const dailyGain = principal * (effectiveRate / 100) / 365;
-      const weeklyGain = principal * (effectiveRate / 100) * (7 / 365);
-      const monthlyGain = principal * (effectiveRate / 100) * (30 / 365);
-      const annualGain = principal * (effectiveRate / 100);
-      const finalAmount = principal + principal * (effectiveRate / 100) * (days / 365);
+      const cycleGain = principal * (effectiveRate / 100) * (days / 365);
+      const finalAmount = principal + cycleGain;
+      const nextCycleAmount = finalAmount * (1 + (effectiveRate / 100) * (days / 365));
+      const annualizedProjection = principal * Math.pow(1 + effectiveRate / 100, 1);
       return {
         title: "Kubo Financiero",
-        subtitle: "Tasa efectiva neta estimada",
-        dailyGain,
-        weeklyGain,
-        monthlyGain,
-        annualGain,
+        subtitle: "Reinversión automática con tasa vigente",
+        dailyGain: principal * (effectiveRate / 100) / 365,
+        weeklyGain: cycleGain * (7 / days),
+        monthlyGain: cycleGain * (30 / days),
+        annualGain: annualizedProjection - principal,
         finalAmount,
+        nextCycleAmount,
       };
     }
     return null;
@@ -1082,26 +1082,53 @@ export default function InvestmentPage({
                 )}
 
                 <div className="cetes-results-grid">
-                  <div className="cetes-result-card">
-                    <small>Ganancia diaria</small>
-                    <strong>{money.format(institutionSimulator.dailyGain)}</strong>
-                  </div>
-                  <div className="cetes-result-card">
-                    <small>Ganancia semanal</small>
-                    <strong>{money.format(institutionSimulator.weeklyGain)}</strong>
-                  </div>
-                  <div className="cetes-result-card">
-                    <small>Ganancia mensual</small>
-                    <strong>{money.format(institutionSimulator.monthlyGain)}</strong>
-                  </div>
-                  <div className="cetes-result-card">
-                    <small>Ganancia anual</small>
-                    <strong>{money.format(institutionSimulator.annualGain)}</strong>
-                  </div>
-                  <div className="cetes-result-card cetes-result-accent">
-                    <small>Monto al vencimiento</small>
-                    <strong>{money.format(institutionSimulator.finalAmount)}</strong>
-                  </div>
+                  {institutionCalculatorType === "kubo" ? (
+                    <>
+                      <div className="cetes-result-card">
+                        <small>Ganancia del ciclo</small>
+                        <strong>{money.format((institutionSimulator.finalAmount ?? 0) - (Number(balance) || 0))}</strong>
+                      </div>
+                      <div className="cetes-result-card">
+                        <small>Siguiente reinversión</small>
+                        <strong>{money.format((institutionSimulator.nextCycleAmount ?? institutionSimulator.finalAmount) - (institutionSimulator.finalAmount ?? 0))}</strong>
+                      </div>
+                      <div className="cetes-result-card">
+                        <small>Proyección anual</small>
+                        <strong>{money.format(institutionSimulator.annualGain)}</strong>
+                      </div>
+                      <div className="cetes-result-card">
+                        <small>Saldo estimado</small>
+                        <strong>{money.format(institutionSimulator.nextCycleAmount ?? institutionSimulator.finalAmount)}</strong>
+                      </div>
+                      <div className="cetes-result-card cetes-result-accent">
+                        <small>Monto al vencimiento</small>
+                        <strong>{money.format(institutionSimulator.finalAmount)}</strong>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="cetes-result-card">
+                        <small>Ganancia diaria</small>
+                        <strong>{money.format(institutionSimulator.dailyGain)}</strong>
+                      </div>
+                      <div className="cetes-result-card">
+                        <small>Ganancia semanal</small>
+                        <strong>{money.format(institutionSimulator.weeklyGain)}</strong>
+                      </div>
+                      <div className="cetes-result-card">
+                        <small>Ganancia mensual</small>
+                        <strong>{money.format(institutionSimulator.monthlyGain)}</strong>
+                      </div>
+                      <div className="cetes-result-card">
+                        <small>Ganancia anual</small>
+                        <strong>{money.format(institutionSimulator.annualGain)}</strong>
+                      </div>
+                      <div className="cetes-result-card cetes-result-accent">
+                        <small>Monto al vencimiento</small>
+                        <strong>{money.format(institutionSimulator.finalAmount)}</strong>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
