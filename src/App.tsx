@@ -19,6 +19,7 @@ import DashboardPage from "./DashboardPage";
 import AuthPage from "./AuthPage";
 import ProfilePage from "./ProfilePage";
 import ReportsPage from "./ReportsPage";
+import ConfigurationPage from "./ConfigurationPage";
 import NavigationHeader from "./NavigationHeader";
 import { canonicalizeProductPromoCap, mergeUserProductConfig } from "./userConfig";
 import { validateInstitutionInput } from "./validation";
@@ -446,6 +447,8 @@ function App() {
     return <DashboardPage institutions={institutions} />;
   if (window.location.pathname === "/reportes")
     return <ReportsPage institutions={institutions} />;
+  if (window.location.pathname === "/configuracion")
+    return <ConfigurationPage institutions={institutions} />;
   function saveInstitution(institution: Institution) {
     const validationErrors = validateInstitutionInput({
       name: institution.name,

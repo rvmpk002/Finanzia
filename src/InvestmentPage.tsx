@@ -337,6 +337,7 @@ export default function InvestmentPage({
   
   // Determine which simulator to show and in which tab
   const getSimulatorInfo = () => {
+    if (!institutionId || activeTab === "etf") return null;
     const viewAccountSimulators = ["nu", "mercado-pago", "openbank", "mifel", "didi-cuenta"];
     const fixedTermSimulators = ["cetesdirecto", "banco-plata", "kubo"];
     
@@ -346,13 +347,45 @@ export default function InvestmentPage({
     if (fixedTermSimulators.includes(institutionId)) {
       return activeTab === "plazo" ? institutionId : null;
     }
-    return null;
+    return "generic";
   };
   
   const institutionCalculatorType = getSimulatorInfo();
-  const institutionNameForSimulator = institutionId === "nu" ? "Nu" : institutionId === "mercado-pago" ? "Mercado Pago" : institutionId === "openbank" ? "Openbank" : institutionId === "mifel" ? "Mifel" : institutionId === "didi-cuenta" ? "DiDi Cuenta" : institutionId === "cetesdirecto" ? "Cetes Directo" : institutionId === "banco-plata" ? "Banco Plata" : institutionId === "kubo" ? "Kubo Financiero" : "";
-  const institutionSimulatorIcon = institutionId === "nu" ? "NU" : institutionId === "mercado-pago" ? "MP" : institutionId === "openbank" ? "OB" : institutionId === "mifel" ? "M" : institutionId === "didi-cuenta" ? "DD" : institutionId === "cetesdirecto" ? "C" : institutionId === "banco-plata" ? "B" : institutionId === "kubo" ? "K" : "";
-  const institutionSimulatorSubtitle = institutionId === "nu" ? "Rendimiento compuesto al 13% anual." : institutionId === "mercado-pago" ? "Rendimiento en primeros $25,000 a 12% anual." : institutionId === "openbank" ? "Tramos: 13% (primeros $30k), 7% ($30-$1M), 6.5% (resto)." : institutionId === "mifel" ? "Rendimiento 10% anual con impuesto estimado 9%." : institutionId === "didi-cuenta" ? "Tramos: 15% (primeros $10k), 7.5% (resto)." : institutionId === "cetesdirecto" ? "Simula la ganancia por plazo y tasa anual." : institutionId === "banco-plata" ? "Considera tope promocional y saldo excedente." : institutionId === "kubo" ? "Ajusta por la retención estimada anual." : "";
+  const institutionNameForSimulator =
+    institutionId === "nu" ? "Nu" :
+    institutionId === "mercado-pago" ? "Mercado Pago" :
+    institutionId === "openbank" ? "Openbank" :
+    institutionId === "mifel" ? "Mifel" :
+    institutionId === "didi-cuenta" ? "DiDi Cuenta" :
+    institutionId === "cetesdirecto" ? "Cetes Directo" :
+    institutionId === "banco-plata" ? "Banco Plata" :
+    institutionId === "kubo" ? "Kubo Financiero" :
+    selectedInstitution?.name || "Institución";
+
+  const institutionSimulatorIcon =
+    institutionId === "nu" ? "NU" :
+    institutionId === "mercado-pago" ? "MP" :
+    institutionId === "openbank" ? "OB" :
+    institutionId === "mifel" ? "M" :
+    institutionId === "didi-cuenta" ? "DD" :
+    institutionId === "cetesdirecto" ? "C" :
+    institutionId === "banco-plata" ? "B" :
+    institutionId === "kubo" ? "K" :
+    (selectedInstitution?.name ? selectedInstitution.name.replace(/[^a-zA-Z0-9]/g, "").slice(0, 2).toUpperCase() : "IN");
+
+  const institutionSimulatorSubtitle =
+    institutionId === "nu" ? "Rendimiento compuesto al 13% anual." :
+    institutionId === "mercado-pago" ? "Rendimiento en primeros $25,000 a 12% anual." :
+    institutionId === "openbank" ? "Tramos: 13% (primeros $30k), 7% ($30-$1M), 6.5% (resto)." :
+    institutionId === "mifel" ? "Rendimiento 10% anual con impuesto estimado 9%." :
+    institutionId === "didi-cuenta" ? "Tramos: 15% (primeros $10k), 7.5% (resto)." :
+    institutionId === "cetesdirecto" ? "Simula la ganancia por plazo y tasa anual." :
+    institutionId === "banco-plata" ? "Considera tope promocional y saldo excedente." :
+    institutionId === "kubo" ? "Ajusta por la retención estimada anual." :
+    activeTab === "vista"
+      ? `Rendimiento proyectado al ${annualRate}% anual compuesto.`
+      : `Simula la ganancia a plazo fijo (${termDays || 1} días) al ${annualRate}% anual.`;
+
   const institutionSimulatorVisible = Boolean(institutionCalculatorType);
   const institutionSimulator = useMemo(() => {
     const principal = Math.max(0, Number(balance) || 0);
@@ -520,8 +553,96 @@ export default function InvestmentPage({
         nextCycleAmount,
       };
     }
-    return null;
-  }, [balance, fixedRate, institutionCalculatorType, promoCapInput, termDays]);
+
+    // Generic Simulator for new or custom institutions and products
+    if (institutionCalculatorType === "generic") {
+      const daysBase = selectedProduct?.daysBase || 365;
+      const taxRate = (selectedProduct?.taxRate || 0) / 100;
+      const effectiveExcessRate = Math.max(0, Number(excessRateInput) || (selectedProduct?.excessRate || 0));
+      const calculationMethod = selectedProduct?.calculationMethod || (activeTab === "vista" ? "compound" : "simple");
+
+      if (activeTab === "vista" || calculationMethod === "compound" || calculationMethod === "flexible") {
+        const effectivePromoCap = promo > 0 ? promo : (selectedProduct?.promoCap || 0);
+        const hasSplit = effectivePromoCap > 0 && effectiveExcessRate > 0;
+        
+        const calcCompound = (p: number, d: number) => {
+          if (hasSplit) {
+            const firstTier = Math.min(p, effectivePromoCap);
+            const excess = Math.max(0, p - effectivePromoCap);
+            const gain1 = firstTier * (Math.pow(1 + annualRate / 100 / daysBase, d) - 1);
+            const gain2 = excess * (Math.pow(1 + effectiveExcessRate / 100 / daysBase, d) - 1);
+            return (gain1 + gain2) * (1 - taxRate);
+          } else if (effectivePromoCap > 0 && effectiveExcessRate === 0) {
+            const capped = Math.min(p, effectivePromoCap);
+            return capped * (Math.pow(1 + annualRate / 100 / daysBase, d) - 1) * (1 - taxRate);
+          }
+          return p * (Math.pow(1 + annualRate / 100 / daysBase, d) - 1) * (1 - taxRate);
+        };
+
+        const dailyGain = calcCompound(principal, 1);
+        const weeklyGain = calcCompound(principal, 7);
+        const monthlyGain = calcCompound(principal, 30);
+        const annualGain = calcCompound(principal, daysBase);
+        const finalAmount = principal + calcCompound(principal, days);
+
+        return {
+          title: selectedInstitution?.name || "Simulador",
+          subtitle: selectedProduct?.name ? `${selectedProduct.name} • ${annualRate}% anual` : `Rendimiento compuesto al ${annualRate}% anual`,
+          dailyGain,
+          weeklyGain,
+          monthlyGain,
+          annualGain,
+          finalAmount,
+        };
+      } else {
+        // Fixed term / simple interest
+        const effectivePromoCap = promo > 0 ? promo : (selectedProduct?.promoCap || 0);
+        const hasSplit = effectivePromoCap > 0 && effectiveExcessRate > 0;
+
+        const calcSimple = (p: number, d: number) => {
+          if (hasSplit) {
+            const firstTier = Math.min(p, effectivePromoCap);
+            const excess = Math.max(0, p - effectivePromoCap);
+            const interest = ((firstTier * annualRate / 100) + (excess * effectiveExcessRate / 100)) * (d / daysBase);
+            return interest * (1 - taxRate);
+          }
+          return p * (annualRate / 100) * (d / daysBase) * (1 - taxRate);
+        };
+
+        const dailyGain = calcSimple(principal, 1);
+        const weeklyGain = calcSimple(principal, 7);
+        const monthlyGain = calcSimple(principal, 30);
+        const annualGain = calcSimple(principal, daysBase);
+        const finalAmount = principal + calcSimple(principal, days);
+
+        return {
+          title: selectedInstitution?.name || "Simulador",
+          subtitle: selectedProduct?.name ? `${selectedProduct.name} • ${annualRate}% anual (${days} días)` : `Rendimiento a plazo (${days} días) al ${annualRate}% anual`,
+          dailyGain,
+          weeklyGain,
+          monthlyGain,
+          annualGain,
+          finalAmount,
+        };
+      }
+    }
+
+  }, [
+    balance,
+    fixedRate,
+    institutionCalculatorType,
+    promoCapInput,
+    termDays,
+    activeTab,
+    selectedInstitution?.name,
+    selectedProduct?.name,
+    selectedProduct?.daysBase,
+    selectedProduct?.taxRate,
+    selectedProduct?.calculationMethod,
+    selectedProduct?.excessRate,
+    selectedProduct?.promoCap,
+    excessRateInput,
+  ]);
   const canSave =
     activeTab === "etf"
       ? Boolean(etfName.trim() && Number(etfTitles) > 0 && currentEtfValue > 0)
@@ -1184,7 +1305,8 @@ export default function InvestmentPage({
                   </label>
                 </div>
 
-                {institutionCalculatorType === "banco-plata" && (
+                {(institutionCalculatorType === "banco-plata" ||
+                  (institutionCalculatorType === "generic" && ((selectedProduct?.promoCap || 0) > 0 || Number(promoCapInput) > 0))) && (
                   <div className="cetes-calculator-grid extra-simulator-row">
                     <label className="cetes-field">
                       <span>Tope promocional</span>

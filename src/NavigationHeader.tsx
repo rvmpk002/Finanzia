@@ -10,6 +10,7 @@ export default function NavigationHeader({ pageLabel }: NavigationHeaderProps) {
     ["/dashboard", "Dashboard"],
     ["/reportes", "Reportes"],
     ["/proteccion", "Protección"],
+    ["/configuracion", "Configuración"],
   ];
   return (
     <header className="investment-topbar">
