@@ -407,6 +407,41 @@ const tabs: { id: Tab; label: string; icon: typeof WalletCards }[] = [
 ];
 const normalizedInvestmentType = (investment: Investment) =>
   normalizeInvestmentType(investment.institutionId, investment.type);
+
+export const prepareUpdatedInvestmentOnBalanceEdit = (
+  investment: Investment,
+  value: number,
+  allowManualOverride: boolean,
+  today: string = toLocalDateString(new Date()),
+): Investment => {
+  const isEtf = investment.type === "etf";
+  const isVista = normalizeInvestmentType(investment.institutionId, investment.type) === "vista" || investment.type === "vista";
+  const updatedWithdrawn = withdrawnAfterUpdatedBalanceEdit(
+    Number(investment.updatedBalance) || 0,
+    value,
+    Number(investment.withdrawn) || 0,
+  );
+  return {
+    ...investment,
+    ...(isVista ? { startDate: today } : {}),
+    ...(isEtf
+      ? { etfCurrentValue: value, balance: value, updatedBalance: value }
+      : allowManualOverride
+        ? {
+            balance: value,
+            updatedBalanceOverride: value,
+            updatedBalance: value,
+            withdrawn: updatedWithdrawn,
+          }
+        : {
+            updatedBalanceOverride: value,
+            updatedBalance: value,
+            withdrawn: updatedWithdrawn,
+          }),
+    updatedAt: new Date().toISOString(),
+  };
+};
+
 export default function DashboardPage({
   institutions,
 }: {
@@ -512,11 +547,11 @@ export default function DashboardPage({
         localStorage.setItem(investmentStorageKey(), JSON.stringify(rolledInvestments));
       }
     };
+    refreshInvestments();
     window.addEventListener("finanzia-investment-saved", refreshInvestments);
     window.addEventListener("finanzia-user-config-updated", refreshInvestments);
     window.addEventListener("finanzia-institution-deleted", refreshInvestments);
     window.addEventListener("storage", refreshInvestments);
-    refreshInvestments();
     const refreshTimer = window.setInterval(refreshInvestments, 60000);
     return () => {
       window.removeEventListener("finanzia-investment-saved", refreshInvestments);
@@ -539,6 +574,8 @@ export default function DashboardPage({
     const value = Number(inputValue ?? editingBalances[key]);
     if (!Number.isFinite(value) || value < 0) return;
     const isEtf = investment.type === "etf";
+    const isVista = normalizeInvestmentType(investment.institutionId, investment.type) === "vista" || investment.type === "vista";
+    const today = toLocalDateString(new Date());
     const product = institutions
       .find((institution) => institution.id === investment.institutionId)
       ?.products.find((item) => item.id === investment.productId);
@@ -548,24 +585,12 @@ export default function DashboardPage({
       value,
       Number(investment.withdrawn) || 0,
     );
-    const updatedInvestment = {
-      ...investment,
-      ...(isEtf
-        ? { etfCurrentValue: value, balance: value, updatedBalance: value }
-        : allowManualOverride
-          ? {
-              balance: value,
-              updatedBalanceOverride: value,
-              updatedBalance: value,
-              withdrawn: updatedWithdrawn,
-            }
-          : {
-              updatedBalanceOverride: value,
-              updatedBalance: value,
-              withdrawn: updatedWithdrawn,
-            }),
-      updatedAt: new Date().toISOString(),
-    };
+    const updatedInvestment = prepareUpdatedInvestmentOnBalanceEdit(
+      investment,
+      value,
+      allowManualOverride,
+      today,
+    );
     try {
       if (investment.id) {
         const response = await fetch(`/api/investments/${investment.id}`, {
@@ -580,6 +605,7 @@ export default function DashboardPage({
           updatedBalanceOverride: value,
           updatedBalance: value,
           withdrawn: isEtf ? Number(investment.withdrawn || 0) : updatedWithdrawn,
+          ...(isVista ? { startDate: today } : {}),
           updatedAt: new Date().toISOString(),
         });
       }
@@ -591,7 +617,14 @@ export default function DashboardPage({
       setInvestments(nextInvestments);
       localStorage.setItem(investmentStorageKey(), JSON.stringify(nextInvestments));
       window.dispatchEvent(new Event("finanzia-investment-saved"));
-      setEditingBalances((current) => ({ ...current, [key]: value.toFixed(2) }));
+      const newKey = investmentKey(updatedInvestment);
+      setEditingBalances((current) => {
+        const next = { ...current, [newKey]: value.toFixed(2) };
+        if (key !== newKey) {
+          delete next[key];
+        }
+        return next;
+      });
       setActiveBalanceId(null);
     } catch {
       const nextInvestments = investments.map((item) =>
@@ -602,6 +635,15 @@ export default function DashboardPage({
       setInvestments(nextInvestments);
       localStorage.setItem(investmentStorageKey(), JSON.stringify(nextInvestments));
       window.dispatchEvent(new Event("finanzia-investment-saved"));
+      const newKey = investmentKey(updatedInvestment);
+      setEditingBalances((current) => {
+        const next = { ...current, [newKey]: value.toFixed(2) };
+        if (key !== newKey) {
+          delete next[key];
+        }
+        return next;
+      });
+      setActiveBalanceId(null);
     }
   };
   const visible = investments

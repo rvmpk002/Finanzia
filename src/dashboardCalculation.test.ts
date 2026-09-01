@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateInvestment, fromLocalDateString, resolveLatestInvestmentRecord, toLocalDateString, withdrawnAfterUpdatedBalanceEdit } from './DashboardPage.tsx';
+import { calculateInvestment, fromLocalDateString, prepareUpdatedInvestmentOnBalanceEdit, resolveLatestInvestmentRecord, toLocalDateString, withdrawnAfterUpdatedBalanceEdit } from './DashboardPage.tsx';
 import { didiInterest, didiNetInterest, kuboInterest, mercadoPagoInterest, openbankTieredInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
 import { shouldShowMercadoPagoMinimumBalanceWarning } from './warningRules';
 
@@ -254,3 +254,88 @@ test('the Mercado Pago minimum balance warning appears only on the last three da
   assert.equal(shouldShowMercadoPagoMinimumBalanceWarning(new Date('2026-08-28T12:00:00')), false);
   assert.equal(shouldShowMercadoPagoMinimumBalanceWarning(new Date('2026-09-01T12:00:00')), false);
 });
+
+test('editing updated balance on vista investment resets startDate to today and recalculates daysElapsed to 0', () => {
+  const oldInvestment = {
+    id: 1,
+    type: 'vista' as const,
+    institutionId: 'openbank',
+    productId: 'openbank',
+    balance: 10000,
+    promoCap: 30000,
+    annualRate: 13,
+    excessRate: 7,
+    monthlyYield: 108.33,
+    nextMonthBalance: 10108.33,
+    updatedBalance: 10108.33,
+    nextMonthExcess: 0,
+    calculatedAt: '2026-08-31',
+    daysElapsed: 30,
+    estimatedToday: 10003.61,
+    startDate: '2026-08-01',
+    promotionalYield: 108.33,
+    excessYield: 0,
+    totalAccumulated: 108.33,
+    dailyYield: 3.61,
+    withdrawn: 0,
+  };
+
+  const today = '2026-08-31';
+  const updated = prepareUpdatedInvestmentOnBalanceEdit(oldInvestment as any, 15000, true, today);
+
+  assert.equal(updated.startDate, today);
+  assert.equal(updated.balance, 15000);
+  assert.equal(updated.updatedBalance, 15000);
+
+  const institutions = [{
+    id: 'openbank',
+    name: 'Openbank',
+    products: [{
+      id: 'openbank',
+      name: 'Ahorro Open',
+      annualRate: 13,
+      excessRate: 7,
+      promoCap: 30000,
+      daysBase: 360,
+      calculationMethod: 'openbank',
+      allowManualUpdatedBalanceOverride: true,
+    }],
+  }];
+
+  const recalculated = calculateInvestment(updated as any, institutions as any);
+  assert.equal(recalculated.startDate, today);
+  assert.equal(recalculated.daysElapsed, 0);
+  assert.equal(recalculated.balance, 15000);
+  assert.equal(recalculated.updatedBalance, 15000);
+});
+
+test('editing updated balance on non-vista investment (plazo or etf) keeps original startDate', () => {
+  const plazoInvestment = {
+    id: 2,
+    type: 'plazo' as const,
+    institutionId: 'cetesdirecto',
+    productId: 'cetes-28',
+    balance: 5000,
+    promoCap: 0,
+    annualRate: 11,
+    monthlyYield: 0,
+    nextMonthBalance: 0,
+    updatedBalance: 5000,
+    nextMonthExcess: 0,
+    calculatedAt: '2026-08-31',
+    daysElapsed: 10,
+    estimatedToday: 0,
+    startDate: '2026-08-21',
+    promotionalYield: 0,
+    excessYield: 0,
+    totalAccumulated: 0,
+    dailyYield: 0,
+    withdrawn: 0,
+  };
+
+  const today = '2026-08-31';
+  const updated = prepareUpdatedInvestmentOnBalanceEdit(plazoInvestment as any, 5500, false, today);
+
+  assert.equal(updated.startDate, '2026-08-21');
+});
+
