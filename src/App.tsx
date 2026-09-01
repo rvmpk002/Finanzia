@@ -381,21 +381,40 @@ function App() {
         const response = await fetch("/api/institutions");
         if (!response.ok) throw new Error("API unavailable");
         const databaseInstitutions: Institution[] = await response.json();
-        setInstitutions(() => {
+        setInstitutions((localInstitutions) => {
+          // Build a map from DB data, merging with catalog defaults and preserving custom products
           const merged = new Map(databaseInstitutions.map((item) => {
             const catalog = initialInstitutions.find((entry) => entry.id === item.id);
-            if (!catalog) return [item.id, item] as const;
-            const products = (item.products ?? []).map((savedProduct) => {
-              const catalogProduct = catalog.products.find((entry) => entry.id === savedProduct.id);
-              const mergedProduct = catalogProduct ? { ...catalogProduct, ...savedProduct } : savedProduct;
-              return {
-                ...mergedProduct,
-                promoCap: canonicalizeProductPromoCap(item.id, Number(mergedProduct.promoCap)),
-              };
-            });
+            // Also look at what is currently in local state to preserve custom products
+            const localInstitution = localInstitutions.find((entry) => entry.id === item.id);
+            if (!catalog) {
+              // Custom institution: prefer DB data but merge with local if local is newer/richer
+              return [item.id, item] as const;
+            }
+            // Known catalog institution: merge DB → local custom products → catalog defaults
+            const dbProductIds = new Set((item.products ?? []).map((p) => p.id));
+            const localCustomProducts = (localInstitution?.products ?? []).filter(
+              (p) => !dbProductIds.has(p.id) && !catalog.products.some((cp) => cp.id === p.id),
+            );
+            const products = [
+              ...(item.products ?? []).map((savedProduct) => {
+                const catalogProduct = catalog.products.find((entry) => entry.id === savedProduct.id);
+                const mergedProduct = catalogProduct ? { ...catalogProduct, ...savedProduct } : savedProduct;
+                return {
+                  ...mergedProduct,
+                  promoCap: canonicalizeProductPromoCap(item.id, Number(mergedProduct.promoCap)),
+                };
+              }),
+              ...localCustomProducts,
+            ];
             return [item.id, { ...catalog, ...item, products }] as const;
           }));
-          return [...merged.values()];
+          // Preserve custom institutions that exist locally but weren't synced to the DB yet
+          const dbIds = new Set(databaseInstitutions.map((item) => item.id));
+          const localCustomInstitutions = localInstitutions.filter(
+            (item) => !dbIds.has(item.id) && !initialInstitutions.some((ci) => ci.id === item.id),
+          );
+          return [...merged.values(), ...localCustomInstitutions];
         });
       } catch {
         // localStorage remains available while PostgreSQL is not configured.
@@ -460,13 +479,19 @@ function App() {
       return;
     }
 
-    setInstitutions((current) =>
-      current.some((item) => item.id === institution.id)
-        ? current.map((item) =>
-            item.id === institution.id ? institution : item,
-          )
-        : [...current, institution],
-    );
+    setInstitutions((current) => {
+      const next = current.some((item) => item.id === institution.id)
+        ? current.map((item) => item.id === institution.id ? institution : item)
+        : [...current, institution];
+      // Persist immediately to localStorage and sync to DB without waiting for the effect
+      localStorage.setItem("finanzia-institutions", JSON.stringify(next));
+      fetch("/api/institutions/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      }).catch(() => undefined);
+      return next;
+    });
     setSelectedId(institution.id);
     setIsFormOpen(false);
     setEditing(null);

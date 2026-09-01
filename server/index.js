@@ -128,49 +128,31 @@ async function normalizeLegacyDidiData() {
   if (!pool) return
   try {
     await pool.query("UPDATE investments SET type = 'plazo', data = jsonb_set(data, '{type}', '\"plazo\"'::jsonb, true) WHERE institution_id = 'kubo' AND type <> 'plazo'")
-    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'kubo' AND product_id NOT IN ('kubo-liquidez')")
     await pool.query("UPDATE user_product_configs SET product_id = 'kubo-liquidez' WHERE institution_id = 'kubo' AND product_id IN ('kubo-plazos', 'kubo-largo-plazo')")
     await pool.query("UPDATE investments SET product_id = 'kubo-liquidez' WHERE institution_id = 'kubo' AND product_id IN ('kubo-plazos', 'kubo-largo-plazo')")
     await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"kubo-liquidez\"'::jsonb, true) WHERE institution_id = 'kubo' AND (data->>'productId') IN ('kubo-plazos', 'kubo-largo-plazo')")
+
     await pool.query("UPDATE user_product_configs SET product_id = 'ahorro-flexible' WHERE institution_id = 'banco-plata' AND product_id = 'plata-cuenta'")
-    await pool.query("UPDATE user_product_configs SET product_id = 'ahorro-fijo' WHERE institution_id = 'banco-plata' AND product_id = 'ahorro-fijo'")
-    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'banco-plata' AND product_id NOT IN ('ahorro-flexible', 'ahorro-fijo')")
     await pool.query("UPDATE investments SET product_id = 'ahorro-flexible' WHERE institution_id = 'banco-plata' AND product_id = 'plata-cuenta'")
-    await pool.query("UPDATE investments SET product_id = 'ahorro-fijo' WHERE institution_id = 'banco-plata' AND product_id = 'ahorro-fijo'")
     await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"ahorro-flexible\"'::jsonb, true) WHERE institution_id = 'banco-plata' AND (data->>'productId') = 'plata-cuenta'")
-    await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"ahorro-fijo\"'::jsonb, true) WHERE institution_id = 'banco-plata' AND (data->>'productId') = 'ahorro-fijo'")
 
     await pool.query("UPDATE user_product_configs SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id IN ('didi-15', 'didi-7', 'didi-beneficios')")
-    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'didi-cuenta' AND product_id <> 'didi-cuenta'")
-
     await pool.query("UPDATE investments SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id IN ('didi-15', 'didi-7', 'didi-beneficios')")
     await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"didi-cuenta\"'::jsonb, true) WHERE institution_id = 'didi-cuenta' AND (data->>'productId') IN ('didi-15', 'didi-7', 'didi-beneficios')")
 
     await pool.query("UPDATE user_product_configs SET product_id = 'mifel-cuenta-digital' WHERE institution_id = 'mifel' AND product_id IN ('mifel-cuenta-digital-evoluciona')")
-    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'mifel' AND product_id <> 'mifel-cuenta-digital'")
-
     await pool.query("UPDATE investments SET product_id = 'mifel-cuenta-digital' WHERE institution_id = 'mifel' AND product_id IN ('mifel-cuenta-digital-evoluciona')")
     await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"mifel-cuenta-digital\"'::jsonb, true) WHERE institution_id = 'mifel' AND (data->>'productId') IN ('mifel-cuenta-digital-evoluciona')")
 
     await pool.query("UPDATE user_product_configs SET product_id = 'openbank' WHERE institution_id = 'openbank' AND product_id IN ('openbank-13', 'openbank-7', 'openbank-6-5')")
-    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'openbank' AND product_id <> 'openbank'")
-
     await pool.query("UPDATE investments SET product_id = 'openbank' WHERE institution_id = 'openbank' AND product_id IN ('openbank-13', 'openbank-7', 'openbank-6-5')")
     await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"openbank\"'::jsonb, true) WHERE institution_id = 'openbank' AND (data->>'productId') IN ('openbank-13', 'openbank-7', 'openbank-6-5')")
 
     await pool.query("UPDATE user_product_configs SET product_id = 'mercado-pago' WHERE institution_id = 'mercado-pago' AND product_id IN ('mercado-pago-12', 'mercado-pago-6')")
-    await pool.query("DELETE FROM user_product_configs WHERE institution_id = 'mercado-pago' AND product_id <> 'mercado-pago'")
-
     await pool.query("UPDATE investments SET product_id = 'mercado-pago' WHERE institution_id = 'mercado-pago' AND product_id IN ('mercado-pago-12', 'mercado-pago-6')")
     await pool.query("UPDATE investments SET data = jsonb_set(data, '{productId}', '\"mercado-pago\"'::jsonb, true) WHERE institution_id = 'mercado-pago' AND (data->>'productId') IN ('mercado-pago-12', 'mercado-pago-6')")
 
-    await pool.query("UPDATE institutions SET data = jsonb_set(data, '{products}', COALESCE((SELECT jsonb_agg(CASE WHEN product->>'id' IN ('didi-15', 'didi-7', 'didi-beneficios') THEN jsonb_set(product, '{id}', '\"didi-cuenta\"'::jsonb, true) WHEN product->>'id' IN ('mifel-cuenta-digital-evoluciona') THEN jsonb_set(product, '{id}', '\"mifel-cuenta-digital\"'::jsonb, true) WHEN product->>'id' IN ('openbank-13', 'openbank-7', 'openbank-6-5') THEN jsonb_set(product, '{id}', '\"openbank\"'::jsonb, true) WHEN product->>'id' IN ('mercado-pago-12', 'mercado-pago-6') THEN jsonb_set(product, '{id}', '\"mercado-pago\"'::jsonb, true) ELSE product END) FROM jsonb_array_elements(data->'products') AS product), '[]'::jsonb), true) WHERE id IN ('didi-cuenta', 'mifel', 'openbank', 'mercado-pago') AND jsonb_typeof(data->'products') = 'array'")
-
-    await pool.query("DELETE FROM user_product_configs WHERE institution_id IN ('didi-cuenta', 'mifel', 'openbank', 'mercado-pago') AND product_id NOT IN ('didi-cuenta', 'mifel-cuenta-digital', 'openbank', 'mercado-pago')")
-    await pool.query("UPDATE investments SET product_id = 'didi-cuenta' WHERE institution_id = 'didi-cuenta' AND product_id <> 'didi-cuenta'")
-    await pool.query("UPDATE investments SET product_id = 'mifel-cuenta-digital' WHERE institution_id = 'mifel' AND product_id <> 'mifel-cuenta-digital'")
-    await pool.query("UPDATE investments SET product_id = 'openbank' WHERE institution_id = 'openbank' AND product_id <> 'openbank'")
-    await pool.query("UPDATE investments SET product_id = 'mercado-pago' WHERE institution_id = 'mercado-pago' AND product_id <> 'mercado-pago'")
+    await pool.query("UPDATE institutions SET data = jsonb_set(data, '{products}', COALESCE((SELECT jsonb_agg(CASE WHEN product->>'id' IN ('didi-15', 'didi-7', 'didi-beneficios') THEN jsonb_set(product, '{id}', '\"didi-cuenta\"'::jsonb, true) WHEN product->>'id' IN ('mifel-cuenta-digital-evoluciona') THEN jsonb_set(product, '{id}', '\"mifel-cuenta-digital\"'::jsonb, true) WHEN product->>'id' IN ('openbank-13', 'openbank-7', 'openbank-6-5') THEN jsonb_set(product, '{id}', '\"openbank\"'::jsonb, true) WHEN product->>'id' IN ('mercado-pago-12', 'mercado-pago-6') THEN jsonb_set(product, '{id}', '\"mercado-pago\"'::jsonb, true) WHEN product->>'id' = 'plata-cuenta' THEN jsonb_set(product, '{id}', '\"ahorro-flexible\"'::jsonb, true) ELSE product END) FROM jsonb_array_elements(data->'products') AS product), '[]'::jsonb), true) WHERE id IN ('didi-cuenta', 'mifel', 'openbank', 'mercado-pago', 'banco-plata') AND jsonb_typeof(data->'products') = 'array'")
 
     console.log('[MIGRATION] Legacy DiDi/Mifel/Openbank/Mercado Pago product IDs normalizados a su producto canónico')
   } catch (error) {
@@ -455,9 +437,6 @@ app.put('/api/user-config', async (request, response) => {
     updatedAt: new Date().toISOString(),
   }
   try {
-    if (institutionId === 'didi-cuenta') {
-      await pool.query('DELETE FROM user_product_configs WHERE user_id = $1 AND institution_id = $2 AND product_id <> $3', [user.id, institutionId, productId])
-    }
     const result = await pool.query('INSERT INTO user_product_configs (user_id, institution_id, product_id, data, updated_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (user_id, institution_id, product_id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW() RETURNING institution_id, product_id, data', [user.id, institutionId, productId, normalized])
     return response.json({
       institutionId: result.rows[0].institution_id,
@@ -486,12 +465,14 @@ app.post('/api/institutions/sync', async (request, response) => {
   const institutions = Array.isArray(request.body) ? request.body : []
   const sanitizedInstitutions = institutions.map((institution) => {
     if (!institution || !institution.id || !Array.isArray(institution.products)) return institution
+    // Keep all products whose id is non-empty (custom products created by users are always valid)
     const validProducts = institution.products.filter((product) => {
       const normalized = sanitizeInstitutionProduct(institution.id, product?.id)
       return normalized.isValid
     })
+    // If no valid products, preserve the institution as-is (don't throw — empty institutions are allowed)
     if (!validProducts.length) {
-      throw new Error(`La institución ${institution.id} no tiene productos válidos.`)
+      return institution
     }
     const products = validProducts.map((product) => {
       const normalized = sanitizeInstitutionProduct(institution.id, product?.id)
