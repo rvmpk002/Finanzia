@@ -166,7 +166,7 @@ test('the Nu minimum purchase warning appears only on the first three days of ea
   assert.equal(shouldShowNuMinimumPurchaseWarning(new Date('2026-08-31T12:00:00')), false);
 });
 
-test('Nu grows daily from the edited updated balance and keeps current and updated aligned', () => {
+test('Nu grows daily from the edited updated balance and keeps current and updated aligned without decaying on refreshes', () => {
   const institutions = [{
     id: 'nu',
     name: 'Nu',
@@ -202,23 +202,30 @@ test('Nu grows daily from the edited updated balance and keeps current and updat
     dailyYield: 8.95,
     taxWithheld: 0,
     netDailyYield: 8.95,
-    withdrawn: 0,
+    withdrawn: 500,
   };
 
   const result = calculateInvestment(investment as any, institutions as any);
 
-  assert.ok(Math.abs(result.balance - 25135.63) < 0.05, `expected ~25135.63 balance, got ${result.balance}`);
+  assert.ok(Math.abs(result.balance - 25126.68) < 0.05, `expected ~25126.68 balance, got ${result.balance}`);
   assert.ok(Math.abs(result.updatedBalance - 25135.63) < 0.05, `expected ~25135.63 updatedBalance, got ${result.updatedBalance}`);
+
+  // Simulate multiple dashboard refresh cycles / intervals - balance and updatedBalance must stay stable
+  let currentRecalculation = result;
+  for (let i = 0; i < 5; i++) {
+    currentRecalculation = calculateInvestment(currentRecalculation as any, institutions as any);
+  }
+  assert.ok(Math.abs(currentRecalculation.balance - 25126.68) < 0.05, `balance changed after refreshes: ${currentRecalculation.balance}`);
+  assert.ok(Math.abs(currentRecalculation.updatedBalance - 25135.63) < 0.05, `updatedBalance changed after refreshes: ${currentRecalculation.updatedBalance}`);
 });
 
-test('Nu keeps both balances synchronized for legacy product IDs', () => {
+test('Nu keeps balance stable without decaying when no override exists and withdrawn > 0', () => {
   const investment = {
     type: 'vista' as const,
     institutionId: 'nu',
-    productId: 'legacy-nu-product',
-    balance: 24746.64,
+    productId: 'nu-cajita-turbo',
+    balance: 25000,
     updatedBalance: 25000,
-    updatedBalanceOverride: 25000,
     annualRate: 13,
     promoCap: 0,
     monthlyYield: 0,
@@ -234,10 +241,24 @@ test('Nu keeps both balances synchronized for legacy product IDs', () => {
     dailyYield: 0,
     taxWithheld: 0,
     netDailyYield: 0,
-    withdrawn: 0,
+    withdrawn: 1000,
   };
-  const result = calculateInvestment(investment as any, [{ id: 'nu', name: 'Nu', products: [] }] as any);
+  const institutions = [{
+    id: 'nu',
+    name: 'Nu',
+    products: [{
+      id: 'nu-cajita-turbo',
+      name: 'Cajita Turbo',
+      annualRate: 13,
+    }],
+  }];
+  let result = calculateInvestment(investment as any, institutions as any);
+  assert.equal(result.balance, 25000);
+  assert.equal(result.updatedBalance, 25000);
 
+  for (let i = 0; i < 5; i++) {
+    result = calculateInvestment(result as any, institutions as any);
+  }
   assert.equal(result.balance, 25000);
   assert.equal(result.updatedBalance, 25000);
 });

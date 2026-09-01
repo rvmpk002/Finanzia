@@ -225,18 +225,15 @@ export const calculateInvestment = (
   const catalogExcessRate = product?.excessRate ?? annualRate;
   const excessRate = isOpenbankInvestment ? openbankExcessRate : investment.excessRate ?? catalogExcessRate;
   const calculationDaysBase = isOpenbankInvestment ? openbankDaysBase : isDidiInvestment ? 360 : daysBase;
+  const isVista = normalizeInvestmentType(investment.institutionId, investment.type) === "vista" || investment.type === "vista";
   const balance = Math.max(0, Number(investment.balance) || 0);
   const withdrawn = Math.max(0, Number(investment.withdrawn) || 0);
   const manualUpdatedBalance = hasManualUpdatedBalanceOverride ? Number(investment.updatedBalanceOverride) : Number.NaN;
-  const availableBalance = isNuInvestment
-    ? Number.isFinite(manualUpdatedBalance)
-      ? Math.max(0, manualUpdatedBalance)
-      : Math.max(0, balance - withdrawn)
-    : isOpenbankInvestment
+  const availableBalance = Number.isFinite(manualUpdatedBalance)
+    ? Math.max(0, manualUpdatedBalance)
+    : isVista
       ? balance
-    : isDidiInvestment
-      ? balance
-    : Math.max(0, balance - withdrawn);
+      : Math.max(0, balance - withdrawn);
   const startDate = fromLocalDateString(investment.startDate);
   const isKubo = calculationMethod === "kubo";
   const isKuboTerm = isKubo && investment.type === "plazo";
@@ -363,7 +360,7 @@ export const calculateInvestment = (
     : updatedBalance;
   return {
     ...investment,
-    balance: isNuInvestment ? resolvedUpdatedBalance : balance,
+    balance,
     promoCap,
     annualRate,
     monthlyYield,
