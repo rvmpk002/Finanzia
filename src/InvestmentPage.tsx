@@ -341,29 +341,30 @@ export default function InvestmentPage({
   // Determine which simulator to show and in which tab
   const getSimulatorInfo = () => {
     if (!institutionId || activeTab === "etf") return null;
-    const viewAccountSimulators = ["nu", "mercado-pago", "openbank", "mifel", "didi-cuenta"];
-    const fixedTermSimulators = ["cetesdirecto", "banco-plata", "kubo"];
-    
-    if (viewAccountSimulators.includes(institutionId)) {
-      return activeTab === "vista" ? institutionId : null;
-    }
-    if (fixedTermSimulators.includes(institutionId)) {
-      return activeTab === "plazo" ? institutionId : null;
-    }
+
+    if (institutionId === "nu" && productId === "nu-cajita-turbo" && activeTab === "vista") return "nu";
+    if (institutionId === "mercado-pago" && productId === "mercado-pago" && activeTab === "vista") return "mercado-pago";
+    if (institutionId === "openbank" && productId === "openbank" && activeTab === "vista") return "openbank";
+    if (institutionId === "mifel" && productId === "mifel-cuenta-digital" && activeTab === "vista") return "mifel";
+    if (institutionId === "didi-cuenta" && productId === "didi-cuenta" && activeTab === "vista") return "didi-cuenta";
+    if (institutionId === "cetesdirecto" && ["cetesdirecto-cetes", "cetesdirecto-bonos", "cetesdirecto-bonddia", "cetesdirecto-udibonos"].includes(productId) && activeTab === "plazo") return "cetesdirecto";
+    if (institutionId === "banco-plata" && ["ahorro-flexible", "ahorro-fijo"].includes(productId) && activeTab === "plazo") return "banco-plata";
+    if (institutionId === "kubo" && productId === "kubo-liquidez" && activeTab === "plazo") return "kubo";
+
     return "generic";
   };
   
   const institutionCalculatorType = getSimulatorInfo();
   const institutionNameForSimulator =
-    institutionId === "nu" ? "Nu" :
-    institutionId === "mercado-pago" ? "Mercado Pago" :
-    institutionId === "openbank" ? "Openbank" :
-    institutionId === "mifel" ? "Mifel" :
-    institutionId === "didi-cuenta" ? "DiDi Cuenta" :
-    institutionId === "cetesdirecto" ? "Cetes Directo" :
-    institutionId === "banco-plata" ? "Banco Plata" :
-    institutionId === "kubo" ? "Kubo Financiero" :
-    selectedInstitution?.name || "Institución";
+    institutionId === "nu" && productId === "nu-cajita-turbo" ? "Nu" :
+    institutionId === "mercado-pago" && productId === "mercado-pago" ? "Mercado Pago" :
+    institutionId === "openbank" && productId === "openbank" ? "Openbank" :
+    institutionId === "mifel" && productId === "mifel-cuenta-digital" ? "Mifel" :
+    institutionId === "didi-cuenta" && productId === "didi-cuenta" ? "DiDi Cuenta" :
+    institutionId === "cetesdirecto" && ["cetesdirecto-cetes", "cetesdirecto-bonos", "cetesdirecto-bonddia", "cetesdirecto-udibonos"].includes(productId) ? "Cetes Directo" :
+    institutionId === "banco-plata" && ["ahorro-flexible", "ahorro-fijo"].includes(productId) ? "Banco Plata" :
+    institutionId === "kubo" && productId === "kubo-liquidez" ? "Kubo Financiero" :
+    (selectedInstitution?.name ? `${selectedInstitution.name}${selectedProduct?.name ? ` · ${selectedProduct.name}` : ""}` : "Institución");
 
   const institutionSimulatorIcon =
     institutionId === "nu" ? "NU" :
@@ -377,17 +378,17 @@ export default function InvestmentPage({
     (selectedInstitution?.name ? selectedInstitution.name.replace(/[^a-zA-Z0-9]/g, "").slice(0, 2).toUpperCase() : "IN");
 
   const institutionSimulatorSubtitle =
-    institutionId === "nu" ? "Rendimiento compuesto al 13% anual." :
-    institutionId === "mercado-pago" ? "Rendimiento en primeros $25,000 a 12% anual." :
-    institutionId === "openbank" ? "Tramos: 13% (primeros $30k), 7% ($30-$1M), 6.5% (resto)." :
-    institutionId === "mifel" ? "Rendimiento 10% anual con impuesto estimado 9%." :
-    institutionId === "didi-cuenta" ? "Tramos: 15% (primeros $10k), 7.5% (resto)." :
-    institutionId === "cetesdirecto" ? "Simula la ganancia por plazo y tasa anual." :
-    institutionId === "banco-plata" ? "Considera tope promocional y saldo excedente." :
-    institutionId === "kubo" ? "Ajusta por la retención estimada anual." :
+    institutionCalculatorType === "nu" ? "Rendimiento compuesto al 13% anual." :
+    institutionCalculatorType === "mercado-pago" ? "Rendimiento en primeros $25,000 a 12% anual." :
+    institutionCalculatorType === "openbank" ? "Tramos: 13% (primeros $30k), 7% ($30-$1M), 6.5% (resto)." :
+    institutionCalculatorType === "mifel" ? "Rendimiento 10% anual con impuesto estimado 9%." :
+    institutionCalculatorType === "didi-cuenta" ? "Tramos: 15% (primeros $10k), 7.5% (resto)." :
+    institutionCalculatorType === "cetesdirecto" ? "Simula la ganancia por plazo y tasa anual." :
+    institutionCalculatorType === "banco-plata" ? "Considera tope promocional y saldo excedente." :
+    institutionCalculatorType === "kubo" ? "Ajusta por la retención estimada anual." :
     activeTab === "vista"
-      ? `Rendimiento proyectado al ${annualRate}% anual compuesto.`
-      : `Simula la ganancia a plazo fijo (${termDays || 1} días) al ${annualRate}% anual.`;
+      ? (selectedProduct?.name ? `${selectedProduct.name} • Rendimiento proyectado al ${fixedRate || 0}% anual compuesto.` : `Rendimiento proyectado al ${fixedRate || 0}% anual compuesto.`)
+      : (selectedProduct?.name ? `${selectedProduct.name} • Ganancia a plazo fijo (${termDays || 1} días) al ${fixedRate || 0}% anual.` : `Simula la ganancia a plazo fijo (${termDays || 1} días) al ${fixedRate || 0}% anual.`);
 
   const institutionSimulatorVisible = Boolean(institutionCalculatorType);
   const institutionSimulator = useMemo(() => {
