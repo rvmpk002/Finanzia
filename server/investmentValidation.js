@@ -36,10 +36,6 @@ const isValidInstitutionProduct = (institutionId, productId) => {
   const normalizedInstitutionId = String(institutionId ?? '').trim();
   const normalizedProductId = String(productId ?? '').trim();
   if (!normalizedInstitutionId || !normalizedProductId) return false;
-  if (normalizedInstitutionId === 'etf') return true;
-  if (validInstitutionProducts[normalizedInstitutionId]) {
-    return validInstitutionProducts[normalizedInstitutionId].includes(normalizedProductId);
-  }
   return true;
 };
 

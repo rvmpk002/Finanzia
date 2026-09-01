@@ -384,16 +384,16 @@ function App() {
         setInstitutions(() => {
           const merged = new Map(databaseInstitutions.map((item) => {
             const catalog = initialInstitutions.find((entry) => entry.id === item.id);
-            return [item.id, catalog
-              ? { ...catalog, ...item, products: catalog.products.map((product) => {
-                  const savedProduct = item.products.find((entry) => entry.id === product.id);
-                  const mergedProduct = savedProduct ? { ...product, ...savedProduct } : product;
-                  return {
-                    ...mergedProduct,
-                    promoCap: canonicalizeProductPromoCap(item.id, Number(mergedProduct.promoCap)),
-                  };
-                }) }
-              : item] as const;
+            if (!catalog) return [item.id, item] as const;
+            const products = (item.products ?? []).map((savedProduct) => {
+              const catalogProduct = catalog.products.find((entry) => entry.id === savedProduct.id);
+              const mergedProduct = catalogProduct ? { ...catalogProduct, ...savedProduct } : savedProduct;
+              return {
+                ...mergedProduct,
+                promoCap: canonicalizeProductPromoCap(item.id, Number(mergedProduct.promoCap)),
+              };
+            });
+            return [item.id, { ...catalog, ...item, products }] as const;
           }));
           return [...merged.values()];
         });

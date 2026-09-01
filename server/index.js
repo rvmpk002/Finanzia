@@ -62,10 +62,6 @@ const isValidInstitutionProduct = (institutionId, productId) => {
   const normalizedInstitutionId = String(institutionId ?? '').trim()
   const normalizedProductId = String(productId ?? '').trim()
   if (!normalizedInstitutionId || !normalizedProductId) return false
-  if (normalizedInstitutionId === 'etf') return true
-  if (validInstitutionProducts[normalizedInstitutionId]) {
-    return validInstitutionProducts[normalizedInstitutionId].includes(normalizedProductId)
-  }
   return true
 }
 const sanitizeInstitutionProduct = (institutionId, productId) => {
@@ -504,10 +500,6 @@ app.post('/api/institutions/sync', async (request, response) => {
         id: normalized.productId,
       }
     })
-    if (institution.id === 'didi-cuenta') {
-      const canonicalProducts = products.filter((product) => product.id === 'didi-cuenta')
-      return { ...institution, products: canonicalProducts.length ? canonicalProducts : [{ ...products[0], id: 'didi-cuenta' }] }
-    }
     return { ...institution, products }
   })
   const client = await pool.connect()
@@ -528,11 +520,6 @@ app.post('/api/institutions/sync', async (request, response) => {
       'DELETE FROM institutions WHERE NOT (id = ANY($1::text[]))',
       [institutionIds],
     )
-
-    if (institutionIds.includes('didi-cuenta')) {
-      await client.query('DELETE FROM user_product_configs WHERE institution_id = $1 AND product_id <> $2', ['didi-cuenta', 'didi-cuenta'])
-      await client.query('UPDATE investments SET product_id = $1 WHERE institution_id = $2 AND product_id <> $3', ['didi-cuenta', 'didi-cuenta', 'didi-cuenta'])
-    }
 
     for (const institution of sanitizedInstitutions) {
       if (!institution?.id || !institution?.name || !Array.isArray(institution.products)) continue

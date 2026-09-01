@@ -17,3 +17,21 @@ test('Kubo is a single plazo product priced at 10% for 1-4 day terms', () => {
   assert.equal(isSelectableProduct('kubo', { id: 'kubo-liquidez' }, 'plazo'), true);
   assert.equal(isSelectableProduct('kubo', { id: 'kubo-liquidez' }, 'vista'), false);
 });
+
+test('Adding a new product to an existing institution allows it to be selected based on its modality', () => {
+  const customNuPlazoProduct = { id: 'nu-cajita-congelada-90', name: 'Cajita Congelada 90d', icon: 'fixed' as const, calculationMethod: 'simple' };
+  const customNuVistaProduct = { id: 'nu-cuenta-plus', name: 'Cuenta Plus', icon: 'account' as const, calculationMethod: 'compound' };
+
+  assert.equal(isSelectableProduct('nu', customNuPlazoProduct, 'plazo'), true);
+  assert.equal(isSelectableProduct('nu', customNuPlazoProduct, 'vista'), false);
+  assert.equal(isSelectableProduct('nu', customNuVistaProduct, 'vista'), true);
+  assert.equal(isSelectableProduct('nu', customNuVistaProduct, 'plazo'), false);
+
+  const nuWithBothProducts = [
+    { id: 'nu-cajita-turbo', name: 'Cajita Turbo' },
+    customNuPlazoProduct,
+  ];
+
+  assert.equal(isSelectableInstitution('nu', 'vista', nuWithBothProducts), true);
+  assert.equal(isSelectableInstitution('nu', 'plazo', nuWithBothProducts), true);
+});
