@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
 import {
   Check,
+  ChevronDown,
+  ChevronUp,
   Fingerprint,
   Plus,
   Shield,
@@ -36,6 +37,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [userConfigs, setUserConfigs] = useState<UserProductConfig[]>([]);
   const [selectedConfigIndex, setSelectedConfigIndex] = useState(0);
+  const [isConfigExpanded, setIsConfigExpanded] = useState(false);
   const [institutionNames, setInstitutionNames] = useState<Record<string, string>>({});
   const [productNames, setProductNames] = useState<Record<string, Record<string, string>>>({}); // institutionId -> productId -> name;
   const headers = {
@@ -374,149 +376,6 @@ export default function ProfilePage() {
           </div>
           <UserRound size={30} className="configuration-icon" />
         </div>
-        <section className="profile-panel config-section" style={{ marginBottom: "1.5rem" }}>
-          <div className="profile-heading">
-            <div className="profile-heading-icon config-icon">
-              <ShieldCheck size={28} />
-            </div>
-            <div>
-              <span className="eyebrow profile-accent-green">Configuración personal</span>
-              <h2>Ajusta tasas y parámetros</h2>
-            </div>
-          </div>
-          <div className="profile-divider" />
-          <div className="config-selector">
-            <label className="config-selector-label">
-              <span>Producto a ajustar</span>
-              <select
-                value={selectedConfigIndex}
-                onChange={(event) => setSelectedConfigIndex(Number(event.target.value))}
-              >
-                {orderedConfigs.map((config, index) => {
-                  const institutionName = formatInstitutionName(config.institutionId, institutionNames[config.institutionId]);
-                  const productName = formatProductName(config.productId, productNames[config.institutionId]?.[config.productId]);
-                  return (
-                    <option key={`${config.institutionId}-${config.productId}`} value={index}>
-                      {institutionName} · {productName}
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
-          </div>
-          {selectedConfig && (
-            <div className="config-form">
-              <div className="config-grid">
-                <div className="config-field">
-                  <label>
-                    <span className="label-title">Tasa anual (%)</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={selectedConfig?.annualRate ?? 0}
-                      onChange={(event) => updateSelectedConfig("annualRate", Number(event.target.value) || 0)}
-                    />
-                  </label>
-                  <small>Rendimiento anual en porcentaje</small>
-                </div>
-                <div className="config-field">
-                  <label>
-                    <span className="label-title">Tope promocional</span>
-                    <input
-                      type="number"
-                      step="100"
-                      value={selectedConfig?.institutionId.toLowerCase() === "mifel" ? 500000 : (selectedConfig?.promoCap ?? 0)}
-                      onChange={(event) => updateSelectedConfig("promoCap", Number(event.target.value) || 0)}
-                    />
-                  </label>
-                  <small>Monto máximo con tasa promocional</small>
-                </div>
-                <div className="config-field">
-                  <label>
-                    <span className="label-title">Tasa excedente (%)</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={selectedConfig?.excessRate ?? 0}
-                      onChange={(event) => updateSelectedConfig("excessRate", Number(event.target.value) || 0)}
-                    />
-                  </label>
-                  <small>Tasa para montos fuera del tope</small>
-                </div>
-                <div className="config-field">
-                  <label>
-                    <span className="label-title">Retención fiscal (%)</span>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={selectedConfig?.taxRate ?? 0}
-                      onChange={(event) => updateSelectedConfig("taxRate", Number(event.target.value) || 0)}
-                    />
-                  </label>
-                  <small>Impuesto retenido en ganancias</small>
-                </div>
-                <div className="config-field">
-                  <label>
-                    <span className="label-title">Días base (año)</span>
-                    <input
-                      type="number"
-                      step="1"
-                      min="1"
-                      value={selectedConfig?.daysBase ?? 365}
-                      onChange={(event) => updateSelectedConfig("daysBase", Math.max(1, Number(event.target.value) || 365))}
-                    />
-                  </label>
-                  <small>Días en el año comercial (365 ó 360)</small>
-                </div>
-                <div className="config-field">
-                  <label>
-                    <span className="label-title">Días de promoción</span>
-                    <input
-                      type="number"
-                      step="1"
-                      min="0"
-                      value={selectedConfig?.promotionDays ?? 60}
-                      onChange={(event) => updateSelectedConfig("promotionDays", Math.max(0, Number(event.target.value) || 60))}
-                    />
-                  </label>
-                  <small>Duración de la tasa promocional</small>
-                </div>
-                <div className="config-field">
-                  <label>
-                    <span className="label-title">Método de cálculo</span>
-                    <select
-                      value={selectedConfig?.calculationMethod ?? "compound"}
-                      onChange={(event) => updateSelectedConfig("calculationMethod", event.target.value as UserProductConfig["calculationMethod"])}
-                    >
-                      {getAvailableCalculationMethods(selectedConfig?.institutionId ?? "").map((method) => (
-                        <option key={method.value} value={method.value}>
-                          {method.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <small>Fórmula para calcular ganancias</small>
-                </div>
-                <div className="config-field full-width">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={selectedConfig?.isActive ?? true}
-                      onChange={(event) => updateSelectedConfig("isActive", event.target.checked)}
-                    />
-                    <span>Producto activo</span>
-                  </label>
-                  <small>Desactiva este producto temporalmente si es necesario</small>
-                </div>
-              </div>
-              <div className="config-actions">
-                <button className="primary-button" onClick={() => void saveUserConfig()}>
-                  Guardar cambios
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
         <section className="profile-security-grid">
           <div className="profile-panel profile-security-panel">
             <div className="profile-heading">
@@ -639,6 +498,186 @@ export default function ProfilePage() {
               </>
             )}
           </div>
+        </section>
+        <section className="profile-panel config-section" style={{ marginTop: "2rem", marginBottom: "1.5rem" }}>
+          <div
+            className="profile-heading"
+            onClick={() => setIsConfigExpanded((current) => !current)}
+            style={{ cursor: "pointer", userSelect: "none" }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setIsConfigExpanded((current) => !current);
+              }
+            }}
+            aria-expanded={isConfigExpanded}
+          >
+            <div className="profile-heading-icon config-icon">
+              <ShieldCheck size={28} />
+            </div>
+            <div>
+              <span className="eyebrow profile-accent-green">Configuración personal</span>
+              <h2>Ajusta tasas y parámetros</h2>
+            </div>
+            <button
+              type="button"
+              className="profile-chip"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                cursor: "pointer",
+                background: isConfigExpanded ? "#092523" : "transparent",
+                borderColor: isConfigExpanded ? "#00674f" : "#26334d",
+                color: isConfigExpanded ? "#00d69b" : "#96a5bf",
+              }}
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsConfigExpanded((current) => !current);
+              }}
+            >
+              <span>{isConfigExpanded ? "Contraer" : "Expandir"}</span>
+              {isConfigExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          </div>
+          {isConfigExpanded && (
+            <>
+              <div className="profile-divider" />
+              <div className="config-selector">
+                <label className="config-selector-label">
+                  <span>Producto a ajustar</span>
+                  <select
+                    value={selectedConfigIndex}
+                    onChange={(event) => setSelectedConfigIndex(Number(event.target.value))}
+                  >
+                    {orderedConfigs.map((config, index) => {
+                      const institutionName = formatInstitutionName(config.institutionId, institutionNames[config.institutionId]);
+                      const productName = formatProductName(config.productId, productNames[config.institutionId]?.[config.productId]);
+                      return (
+                        <option key={`${config.institutionId}-${config.productId}`} value={index}>
+                          {institutionName} · {productName}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
+              </div>
+              {selectedConfig && (
+                <div className="config-form">
+                  <div className="config-grid">
+                    <div className="config-field">
+                      <label>
+                        <span className="label-title">Tasa anual (%)</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={selectedConfig?.annualRate ?? 0}
+                          onChange={(event) => updateSelectedConfig("annualRate", Number(event.target.value) || 0)}
+                        />
+                      </label>
+                      <small>Rendimiento anual en porcentaje</small>
+                    </div>
+                    <div className="config-field">
+                      <label>
+                        <span className="label-title">Tope promocional</span>
+                        <input
+                          type="number"
+                          step="100"
+                          value={selectedConfig?.institutionId.toLowerCase() === "mifel" ? 500000 : (selectedConfig?.promoCap ?? 0)}
+                          onChange={(event) => updateSelectedConfig("promoCap", Number(event.target.value) || 0)}
+                        />
+                      </label>
+                      <small>Monto máximo con tasa promocional</small>
+                    </div>
+                    <div className="config-field">
+                      <label>
+                        <span className="label-title">Tasa excedente (%)</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={selectedConfig?.excessRate ?? 0}
+                          onChange={(event) => updateSelectedConfig("excessRate", Number(event.target.value) || 0)}
+                        />
+                      </label>
+                      <small>Tasa para montos fuera del tope</small>
+                    </div>
+                    <div className="config-field">
+                      <label>
+                        <span className="label-title">Retención fiscal (%)</span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={selectedConfig?.taxRate ?? 0}
+                          onChange={(event) => updateSelectedConfig("taxRate", Number(event.target.value) || 0)}
+                        />
+                      </label>
+                      <small>Impuesto retenido en ganancias</small>
+                    </div>
+                    <div className="config-field">
+                      <label>
+                        <span className="label-title">Días base (año)</span>
+                        <input
+                          type="number"
+                          step="1"
+                          min="1"
+                          value={selectedConfig?.daysBase ?? 365}
+                          onChange={(event) => updateSelectedConfig("daysBase", Math.max(1, Number(event.target.value) || 365))}
+                        />
+                      </label>
+                      <small>Días en el año comercial (365 ó 360)</small>
+                    </div>
+                    <div className="config-field">
+                      <label>
+                        <span className="label-title">Días de promoción</span>
+                        <input
+                          type="number"
+                          step="1"
+                          min="0"
+                          value={selectedConfig?.promotionDays ?? 60}
+                          onChange={(event) => updateSelectedConfig("promotionDays", Math.max(0, Number(event.target.value) || 60))}
+                        />
+                      </label>
+                      <small>Duración de la tasa promocional</small>
+                    </div>
+                    <div className="config-field">
+                      <label>
+                        <span className="label-title">Método de cálculo</span>
+                        <select
+                          value={selectedConfig?.calculationMethod ?? "compound"}
+                          onChange={(event) => updateSelectedConfig("calculationMethod", event.target.value as UserProductConfig["calculationMethod"])}
+                        >
+                          {getAvailableCalculationMethods(selectedConfig?.institutionId ?? "").map((method) => (
+                            <option key={method.value} value={method.value}>
+                              {method.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <small>Fórmula para calcular ganancias</small>
+                    </div>
+                    <div className="config-field full-width">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={selectedConfig?.isActive ?? true}
+                          onChange={(event) => updateSelectedConfig("isActive", event.target.checked)}
+                        />
+                        <span>Producto activo</span>
+                      </label>
+                      <small>Desactiva este producto temporalmente si es necesario</small>
+                    </div>
+                  </div>
+                  <div className="config-actions">
+                    <button className="primary-button" onClick={() => void saveUserConfig()}>
+                      Guardar cambios
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </section>
         <section className="profile-panel profile-personal-panel">
           <div className="form-panel-heading">
