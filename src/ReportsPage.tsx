@@ -3,6 +3,7 @@ import { AlertTriangle, BarChart3, CircleDollarSign, Download, FileText, Landmar
 import NavigationHeader from "./NavigationHeader";
 import { authHeaders, investmentStorageKey } from "./auth";
 import { normalizeInvestmentType } from "./tabRules";
+import { calculateInvestment } from "./DashboardPage";
 import { didiNetInterest, mercadoPagoInterest, openbankInterest } from "./calculationEngine";
 import {
   mercadoPagoMinimumBalanceWarningLabel,
@@ -13,7 +14,7 @@ import {
 
 type Type = "vista" | "plazo" | "etf";
 type Institution = { id: string; name: string; products?: Product[] };
-type Product = { id: string; name?: string; calculationMethod?: string };
+type Product = { id: string; name?: string; calculationMethod?: string; annualRate?: number; promoCap?: number; excessRate?: number; daysBase?: number; taxRate?: number; promotionDays?: number };
 type Investment = {
   id?: number;
   type: Type;
@@ -45,13 +46,6 @@ const money = new Intl.NumberFormat("es-MX", {
 const date = new Intl.DateTimeFormat("es-MX", { dateStyle: "medium" });
 const today = () => new Date().toISOString().slice(0, 10);
 const value = (amount: number | undefined) => Number(amount) || 0;
-const bancoPlataInterest = (
-  principal: number,
-  annualRate: number,
-  days: number,
-) => principal * (annualRate / 100) * (days / 360);
-const simpleInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (annualRate / 100) * (days / 365);
 const compactMoney = (amount: number) => {
   const absolute = Math.abs(amount);
   const formatted =
@@ -68,48 +62,23 @@ const capital = (item: Investment) =>
     : value(item.balance);
 const current = (item: Investment, institutions: Institution[] = []) => {
   if (item.type === "etf") return value(item.etfCurrentValue ?? item.balance);
-  const product = institutions
-    .find((institution) => institution.id === item.institutionId)
-    ?.products?.find((entry) => entry.id === item.productId);
-  const isBancoPlataFixed =
-    item.institutionId === "banco-plata" && item.productId === "ahorro-fijo";
-  const isCetes =
-    item.institutionId === "cetesdirecto" &&
-    item.productId === "cetesdirecto-cetes";
-  if (
-    item.type === "plazo" &&
-    (product?.calculationMethod === "simple" ||
-      product?.calculationMethod === "simple360" ||
-      isBancoPlataFixed ||
-      isCetes)
-  ) {
-    const days =
-      item.termDays ??
-      (item.endDate && item.startDate
-        ? Math.max(
-            0,
-            (new Date(`${item.endDate}T00:00:00`).getTime() -
-              new Date(`${item.startDate}T00:00:00`).getTime()) /
-              86400000,
-          )
-        : 0);
-    const interest =
-      product?.calculationMethod === "simple360" || isBancoPlataFixed
-        ? bancoPlataInterest(value(item.balance), value(item.annualRate), days)
-        : simpleInterest(value(item.balance), value(item.annualRate), days);
-    return value(item.balance) + interest;
-  }
-  return value(item.updatedBalance ?? item.balance);
+  const calculated = calculateInvestment(item as any, institutions as any);
+  return value(calculated.updatedBalance ?? item.balance);
 };
-const profit = (item: Investment, institutions: Institution[] = []) =>
-  item.type === "etf"
-    ? current(item, institutions) - capital(item)
-    : value(item.totalAccumulated);
-const vistaGainForDays = (item: Investment, days: number) => {
-  if (item.institutionId === "didi-cuenta") return didiNetInterest(value(item.balance), days);
-  if (item.institutionId === "mercado-pago") return mercadoPagoInterest(value(item.balance), 12, days);
-  if (item.institutionId === "openbank") return openbankInterest(value(item.balance), 13, 7, days, 360);
-  return value(item.dailyYield) * days;
+const profit = (item: Investment, institutions: Institution[] = []) => {
+  if (item.type === "etf") return current(item, institutions) - capital(item);
+  const calculated = calculateInvestment(item as any, institutions as any);
+  if (item.type === "plazo") {
+    return current(item, institutions) - capital(item);
+  }
+  return value(calculated.totalAccumulated);
+};
+const vistaGainForDays = (item: Investment, days: number, institutions: Institution[] = []) => {
+  if (item.institutionId === "didi-cuenta" && item.productId === "didi-cuenta") return didiNetInterest(value(item.balance), days);
+  if (item.institutionId === "mercado-pago" && item.productId === "mercado-pago") return mercadoPagoInterest(value(item.balance), 12, days);
+  if (item.institutionId === "openbank" && item.productId === "openbank") return openbankInterest(value(item.balance), 13, 7, days, 360);
+  const calculated = calculateInvestment(item as any, institutions as any);
+  return value(calculated.dailyYield) * days;
 };
 const daysUntilMaturity = (item: Investment) => {
   if (!item.endDate) return 0;
@@ -170,7 +139,7 @@ const periodMatches = (item: Investment, period: string) => {
   return itemDate >= start && itemDate <= end;
 };
 
-const buildTrendSeries = (items: Investment[], period: string) => {
+const buildTrendSeries = (items: Investment[], period: string, institutions: Institution[] = []) => {
   const periods =
     period === "Hoy"
       ? 1
@@ -208,8 +177,8 @@ const buildTrendSeries = (items: Investment[], period: string) => {
     const bucket = buckets[normalizedIndex];
     if (!bucket) continue;
     bucket.capital += capital(item);
-    bucket.current += current(item);
-    bucket.interest += profit(item);
+    bucket.current += current(item, institutions);
+    bucket.interest += profit(item, institutions);
   }
 
   return buckets;
@@ -404,15 +373,15 @@ function TypeChart({
     if (item.type === "vista") {
       return [
         { key: "capital", label: "Monto inicial", amount: value(item.balance) },
-        { key: "dailyYield", label: "Ganancia diaria", amount: vistaGainForDays(item, 1) },
-        { key: "weeklyYield", label: "Ganancia semanal", amount: vistaGainForDays(item, 7) },
-        { key: "monthlyYield", label: "Ganancia mensual", amount: vistaGainForDays(item, 30) },
-        { key: "annualYield", label: "Ganancia anual", amount: vistaGainForDays(item, 365) },
+        { key: "dailyYield", label: "Ganancia diaria", amount: vistaGainForDays(item, 1, institutions) },
+        { key: "weeklyYield", label: "Ganancia semanal", amount: vistaGainForDays(item, 7, institutions) },
+        { key: "monthlyYield", label: "Ganancia mensual", amount: vistaGainForDays(item, 30, institutions) },
+        { key: "annualYield", label: "Ganancia anual", amount: vistaGainForDays(item, 365, institutions) },
         { key: "withdrawn", label: "Total retirado", amount: value(item.withdrawn) },
       ];
     }
     return [
-      { key: "current", label: "Saldo actual", amount: current(item) },
+      { key: "current", label: "Saldo actual", amount: current(item, institutions) },
         {
           key: "monthlyYield",
           label: "Rend. mensual",
@@ -575,7 +544,8 @@ export default function ReportsPage({
       ]);
       const normalizeLoadedInvestment = (item: Investment) => {
         const type = normalizeInvestmentType(item.institutionId, item.type);
-        return { ...item, type };
+        const normalized = item.institutionId === "kubo" ? { ...item, type: "plazo" as const } : { ...item, type };
+        return calculateInvestment(normalized as any, institutions as any);
       };
       fetch("/api/investments", { headers: authHeaders() })
         .then((response) => (response.ok ? response.json() : Promise.reject()))
@@ -661,17 +631,17 @@ export default function ReportsPage({
       filtered.reduce(
         (result, item) => ({
           capital: result.capital + capital(item),
-          current: result.current + current(item),
-          profit: result.profit + profit(item),
+          current: result.current + current(item, institutions),
+          profit: result.profit + profit(item, institutions),
           withdrawn: result.withdrawn + value(item.withdrawn),
         }),
         { capital: 0, current: 0, profit: 0, withdrawn: 0 },
       ),
-    [filtered],
+    [filtered, institutions],
   );
   const trendData = useMemo(
-    () => buildTrendSeries(filtered, period),
-    [filtered, period],
+    () => buildTrendSeries(filtered, period, institutions),
+    [filtered, period, institutions],
   );
   const insightCards = [
     { label: "Patrimonio total", value: summary.current, tone: "positive" },
@@ -875,7 +845,7 @@ export default function ReportsPage({
                       <td>{money.format(capital(item))}</td>
                       <td>{item.startDate}</td>
                       <td>{item.endDate ?? "-"}</td>
-                      <td>{money.format(profit(item))}</td>
+                      <td>{money.format(profit(item, institutions))}</td>
                       <td>
                         {item.endDate && item.endDate <= today()
                           ? "Finalizada"
