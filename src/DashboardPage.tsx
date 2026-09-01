@@ -261,14 +261,18 @@ export const calculateInvestment = (
   );
   const promoBalance = calculate(formulas.promotionalBalance, { availableBalance, promoCap }, splitPromoBalance);
   const excessBalance = calculate(formulas.excessBalance, { availableBalance, promoCap }, splitExcessBalance);
-  const configuredSimpleInterest = (principal: number, rate: number, days: number, daysBase = 365) =>
+  const configuredSimpleInterest = (principal: number, rate: number, days: number, daysBase = calculationDaysBase) =>
     calculate(
       formulas.simpleInterest,
       { principal, annualRate: rate, days, daysBase },
       simpleInterest(principal, rate, days, daysBase),
     );
-  const configuredCompoundInterest = (principal: number, rate: number, days: number) =>
-    calculate(formulas.compoundInterest, { principal, annualRate: rate, days }, compoundInterest(principal, rate, days, calculationDaysBase));
+  const configuredCompoundInterest = (principal: number, rate: number, days: number, daysBase = calculationDaysBase) =>
+    calculate(
+      formulas.compoundInterest,
+      { principal, annualRate: rate, days, daysBase },
+      compoundInterest(principal, rate, days, daysBase),
+    );
   const nuDailyYield = isNuInvestment ? (availableBalance * annualRate / 100) / 365 : 0;
   const nuMonthlyYield = isNuInvestment ? (availableBalance * annualRate / 100) / 12 : 0;
   const dailyYield = isNuInvestment
@@ -646,6 +650,13 @@ export default function DashboardPage({
     }
   };
   const visible = investments
+    .map((investment) => {
+      const normalized = investment.institutionId === "kubo" ? { ...investment, type: "plazo" as const } : investment;
+      return rolloverKuboLiquidity(
+        normalized,
+        calculateInvestment(normalized, institutions, formulasFor(normalized)),
+      );
+    })
     .filter((investment) => normalizedInvestmentType(investment) === activeTab)
     .sort((first, second) => {
       const firstInstitution = institutions.find(

@@ -17,8 +17,8 @@ export type FormulaStore = Record<string, FormulaConfig>;
 export const defaultFormulaConfig: FormulaConfig = {
   promotionalBalance: "min(availableBalance, promoCap)",
   excessBalance: "max(0, availableBalance - promoCap)",
-  simpleInterest: "principal * annualRate / 100 * days / 365",
-  compoundInterest: "principal * ((1 + annualRate / 100 / 365) ^ days - 1)",
+  simpleInterest: "principal * annualRate / 100 * days / daysBase",
+  compoundInterest: "principal * ((1 + annualRate / 100 / daysBase) ^ days - 1)",
   updatedBalance: "availableBalance + totalAccumulated",
   etfCurrentPrice: "currentValue / titles",
   etfCapitalInvested: "titles * purchasePrice",
