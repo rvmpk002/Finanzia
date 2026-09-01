@@ -109,18 +109,19 @@ const flexibleUltraInterest = (
   days: number,
   promoRate: number,
   excessRate: number,
+  daysBase = 360,
 ) => {
   const promoDays = Math.min(days, 60);
   const remainingDays = Math.max(0, days - 60);
   const promoAmount = Math.min(principal, promoCap);
   const excessAmount = Math.max(0, principal - promoCap);
   const promoValue =
-    promoAmount * Math.pow(1 + promoRate / 100 / 365, promoDays);
+    promoAmount * Math.pow(1 + promoRate / 100 / daysBase, promoDays);
   const excessValue =
-    excessAmount * Math.pow(1 + excessRate / 100 / 365, promoDays);
+    excessAmount * Math.pow(1 + excessRate / 100 / daysBase, promoDays);
   return (
-    promoValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) +
-    excessValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) -
+    promoValue * Math.pow(1 + excessRate / 100 / daysBase, remainingDays) +
+    excessValue * Math.pow(1 + excessRate / 100 / daysBase, remainingDays) -
     principal
   );
 };
@@ -525,9 +526,9 @@ export default function InvestmentPage({
     if (institutionCalculatorType === "banco-plata") {
       const promotableAmount = Math.min(principal, promo || principal);
       const excessAmount = Math.max(0, principal - (promo || principal));
-      const dailyGain = (promotableAmount * (annualRate / 100) + excessAmount * (annualRate / 100)) / 365;
+      const dailyGain = (promotableAmount * (annualRate / 100) + excessAmount * (annualRate / 100)) / 360;
       const weeklyGain = dailyGain * 7;
-      const monthlyGain = principal * (annualRate / 100) * (30 / 365);
+      const monthlyGain = (principal * (annualRate / 100) * 30) / 360;
       const annualGain = principal * (annualRate / 100);
       const finalAmount = principal + principal * (annualRate / 100) * (days / 360);
       return {

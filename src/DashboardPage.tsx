@@ -204,6 +204,7 @@ export const calculateInvestment = (
   const isOpenbankInvestment = investment.institutionId === "openbank";
   const isDidiInvestment = investment.institutionId === "didi-cuenta";
   const isMercadoPagoInvestment = investment.institutionId === "mercado-pago";
+  const isBancoPlata = investment.institutionId === "banco-plata";
   const openbankAnnualRate = 13;
   const openbankExcessRate = 7;
   const openbankDaysBase = 360;
@@ -216,7 +217,8 @@ export const calculateInvestment = (
       ? "didi"
     : product?.calculationMethod ?? (investment.type === "plazo" ? "simple" : "compound");
   const taxRate = product?.taxRate ?? 0;
-  const daysBase = product?.daysBase ?? 365;
+  const defaultDaysBase = isBancoPlata ? 360 : 365;
+  const daysBase = product?.daysBase ?? defaultDaysBase;
   const promotionDays = product?.promotionDays ?? 60;
   const catalogPromoCap = product?.promoCap ?? 0;
   const promoCap = investment.promoCap ?? catalogPromoCap;
@@ -224,7 +226,7 @@ export const calculateInvestment = (
   const annualRate = isOpenbankInvestment ? openbankAnnualRate : investment.annualRate ?? catalogAnnualRate;
   const catalogExcessRate = product?.excessRate ?? annualRate;
   const excessRate = isOpenbankInvestment ? openbankExcessRate : investment.excessRate ?? catalogExcessRate;
-  const calculationDaysBase = isOpenbankInvestment ? openbankDaysBase : isDidiInvestment ? 360 : daysBase;
+  const calculationDaysBase = isOpenbankInvestment ? openbankDaysBase : isDidiInvestment ? 360 : isBancoPlata ? 360 : daysBase;
   const isVista = normalizeInvestmentType(investment.institutionId, investment.type) === "vista" || investment.type === "vista";
   const balance = Math.max(0, Number(investment.balance) || 0);
   const withdrawn = Math.max(0, Number(investment.withdrawn) || 0);
@@ -266,7 +268,7 @@ export const calculateInvestment = (
       simpleInterest(principal, rate, days, daysBase),
     );
   const configuredCompoundInterest = (principal: number, rate: number, days: number) =>
-    calculate(formulas.compoundInterest, { principal, annualRate: rate, days }, compoundInterest(principal, rate, days));
+    calculate(formulas.compoundInterest, { principal, annualRate: rate, days }, compoundInterest(principal, rate, days, calculationDaysBase));
   const nuDailyYield = isNuInvestment ? (availableBalance * annualRate / 100) / 365 : 0;
   const nuMonthlyYield = isNuInvestment ? (availableBalance * annualRate / 100) / 12 : 0;
   const dailyYield = isNuInvestment
@@ -274,7 +276,7 @@ export const calculateInvestment = (
     : isDidiInvestment
       ? didiNetInterest(availableBalance, 1)
     : calculationMethod === "flexible"
-      ? flexibleUltraInterest(availableBalance, promoCap, 1, annualRate, excessRate, promotionDays)
+      ? flexibleUltraInterest(availableBalance, promoCap, 1, annualRate, excessRate, promotionDays, calculationDaysBase)
       : calculationMethod === "kubo"
         ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
         : calculationMethod === "simple"
@@ -294,7 +296,7 @@ export const calculateInvestment = (
     : isDidiInvestment
       ? didiNetInterest(availableBalance, monthlyDays)
     : isFlexibleUltra
-      ? flexibleUltraInterest(availableBalance, promoCap, monthlyDays, annualRate, excessRate, promotionDays)
+      ? flexibleUltraInterest(availableBalance, promoCap, monthlyDays, annualRate, excessRate, promotionDays, calculationDaysBase)
       : calculationMethod === "simple"
         ? configuredSimpleInterest(availableBalance, annualRate, monthlyDays, daysBase)
         : calculationMethod === "simple360"
@@ -328,7 +330,7 @@ export const calculateInvestment = (
                   : completedMonthsBetween(startDate, calculationDate) > 0
                     ? monthlyYield * completedMonthsBetween(startDate, calculationDate)
                     : isFlexibleUltra
-                      ? flexibleUltraInterest(availableBalance, promoCap, daysElapsed, annualRate, excessRate, promotionDays)
+                      ? flexibleUltraInterest(availableBalance, promoCap, daysElapsed, annualRate, excessRate, promotionDays, calculationDaysBase)
                       : isMercadoPagoInvestment
                         ? mercadoPagoInterest(availableBalance, 12, daysElapsed)
                         : configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
@@ -371,7 +373,7 @@ export const calculateInvestment = (
     daysElapsed,
     estimatedToday: Math.max(0, availableBalance + dailyYield),
     promotionalYield: calculationMethod === "flexible"
-      ? flexibleUltraInterest(promoBalance, promoCap, daysElapsed, annualRate, excessRate, promotionDays)
+      ? flexibleUltraInterest(promoBalance, promoCap, daysElapsed, annualRate, excessRate, promotionDays, calculationDaysBase)
       : calculationMethod === "mifel360"
         ? mifelInterest(promoBalance, annualRate, daysElapsed)
         : calculationMethod === "openbank"

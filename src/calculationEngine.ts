@@ -1,5 +1,5 @@
-export const compoundInterest = (principal: number, annualRate: number, days: number) =>
-  principal * (Math.pow(1 + annualRate / 100 / 365, days) - 1);
+export const compoundInterest = (principal: number, annualRate: number, days: number, daysBase = 365) =>
+  principal * (Math.pow(1 + annualRate / 100 / daysBase, days) - 1);
 
 export const resolveRateSplit = (
   availableBalance: number,
@@ -109,15 +109,16 @@ export const flexibleUltraInterest = (
   promoRate: number,
   excessRate: number,
   promotionDays = 60,
+  daysBase = 360,
 ) => {
   const promoDays = Math.min(days, promotionDays);
   const remainingDays = Math.max(0, days - promotionDays);
   const promoAmount = Math.min(principal, promoCap);
   const excessAmount = Math.max(0, principal - promoCap);
-  const promoValue = promoAmount * Math.pow(1 + promoRate / 100 / 365, promoDays);
-  const excessValue = excessAmount * Math.pow(1 + excessRate / 100 / 365, promoDays);
-  return promoValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) +
-    excessValue * Math.pow(1 + excessRate / 100 / 365, remainingDays) - principal;
+  const promoValue = promoAmount * Math.pow(1 + promoRate / 100 / daysBase, promoDays);
+  const excessValue = excessAmount * Math.pow(1 + excessRate / 100 / daysBase, promoDays);
+  return promoValue * Math.pow(1 + excessRate / 100 / daysBase, remainingDays) +
+    excessValue * Math.pow(1 + excessRate / 100 / daysBase, remainingDays) - principal;
 };
 
 export const daysInMonth = (date: Date) =>

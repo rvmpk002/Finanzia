@@ -69,6 +69,7 @@ const bancoPlata: Institution = {
       annualRate: 15,
       promoCap: 25000,
       calculationMethod: "flexible",
+      daysBase: 360,
       promotionDays: 60,
       conditions: [
         "15% anual en los primeros $25,000.",
