@@ -323,11 +323,13 @@ export default function InvestmentPage({
     parseDate(startDate),
     calculationDate,
   );
+  const taxWithheld = isMifel ? dailyYield * 0.09 : 0;
+  const accumulatedTaxWithheld = isMifel ? totalAccumulated * 0.09 : 0;
   const updatedBalance = Math.max(
     0,
     availableBalance +
       (isDidi || isKubo || isOpenbank || isMifel
-        ? totalAccumulated
+        ? totalAccumulated - accumulatedTaxWithheld
         : monthlyYield * completedMonths) -
       0,
   );
@@ -336,7 +338,6 @@ export default function InvestmentPage({
     availableBalance + (isKubo ? totalAccumulated : monthlyYield),
   );
   const estimatedToday = Math.max(0, availableBalance + dailyYield);
-  const taxWithheld = isMifel ? dailyYield * 0.09 : 0;
   const netDailyYield = dailyYield - taxWithheld;
   
   // Determine which simulator to show and in which tab

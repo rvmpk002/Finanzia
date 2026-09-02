@@ -216,7 +216,7 @@ export const calculateInvestment = (
     : isDidiInvestment
       ? "didi"
     : product?.calculationMethod ?? (investment.type === "plazo" ? "simple" : "compound");
-  const taxRate = product?.taxRate ?? 0;
+  const taxRate = product?.taxRate ?? (investment.institutionId === "mifel" ? 9 : 0);
   const defaultDaysBase = isBancoPlata ? 360 : 365;
   const daysBase = product?.daysBase ?? defaultDaysBase;
   const promotionDays = product?.promotionDays ?? 60;
@@ -340,19 +340,29 @@ export const calculateInvestment = (
                         : configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
                         configuredCompoundInterest(excessBalance, effectiveExcessRate, daysElapsed),
   );
+  const isMifelInvestment = investment.institutionId === "mifel" || calculationMethod === "mifel360";
   const completedMonths = completedMonthsBetween(startDate, calculationDate);
+  const accumulatedTaxWithheld = isMifelInvestment
+    ? totalAccumulated * (taxRate / 100)
+    : 0;
   const calculatedUpdatedBalance = getCalculatedUpdatedBalance(
     availableBalance,
     totalAccumulated,
     calculationMethod,
     monthlyYield,
     completedMonths,
+    accumulatedTaxWithheld,
   );
   const updatedBalance = Math.max(
     0,
     calculate(
       formulas.updatedBalance,
-      { availableBalance, totalAccumulated, monthlyYield, completedMonths },
+      {
+        availableBalance,
+        totalAccumulated: isMifelInvestment ? totalAccumulated - accumulatedTaxWithheld : totalAccumulated,
+        monthlyYield,
+        completedMonths,
+      },
       calculatedUpdatedBalance,
     ),
   );
@@ -363,7 +373,9 @@ export const calculateInvestment = (
   const taxWithheld = dailyYield * (taxRate / 100);
   const resolvedUpdatedBalance = isNuInvestment
     ? Math.max(0, availableBalance + totalAccumulated)
-    : updatedBalance;
+    : isMifelInvestment
+      ? Math.max(0, availableBalance + totalAccumulated - accumulatedTaxWithheld)
+      : updatedBalance;
   return {
     ...investment,
     balance,

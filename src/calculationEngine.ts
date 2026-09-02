@@ -139,6 +139,7 @@ export const getCalculatedUpdatedBalance = (
   calculationMethod: string,
   monthlyYield: number,
   completedMonths: number,
+  taxWithheld = 0,
 ) => {
   const isAccumulationMethod = [
     "compound",
@@ -149,9 +150,12 @@ export const getCalculatedUpdatedBalance = (
     "didi",
     "mifel360",
   ].includes(calculationMethod);
+  const netAccumulated = calculationMethod === "mifel360"
+    ? totalAccumulated - taxWithheld
+    : totalAccumulated;
   const fallback = availableBalance + (
     isAccumulationMethod
-      ? totalAccumulated
+      ? netAccumulated
       : monthlyYield * completedMonths
   );
   return Math.max(0, fallback);
