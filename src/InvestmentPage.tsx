@@ -1261,128 +1261,174 @@ export default function InvestmentPage({
                 </button>
               </div>
             )}
-            {institutionSimulatorVisible && simulatorOpen && institutionSimulator && (
-              <div className="cetes-calculator-panel">
-                <div className="cetes-calculator-header">
-                  <div>
-                    <span className="eyebrow orange">Simulador</span>
-                    <h3>{institutionSimulator.title}</h3>
-                  </div>
-                  <span className="cetes-pill">{institutionSimulator.title}</span>
-                </div>
-                <p className="simulator-subtitle">{institutionSimulatorSubtitle}</p>
+            {institutionSimulatorVisible && simulatorOpen && institutionSimulator && (() => {
+              const isKubo = institutionCalculatorType === "kubo";
+              const totalProfit = Math.max(0, (institutionSimulator.finalAmount ?? 0) - (Number(balance) || 0));
+              const totalProfitPct = (Number(balance) > 0 && totalProfit > 0)
+                ? ((totalProfit / Number(balance)) * 100).toFixed(2)
+                : "0.00";
+              const quickTermPresets = activeTab === "vista" ? [7, 30, 90, 180, 365] : [7, 14, 28, 90, 180, 360];
+              const quickBalanceIncrements = [1000, 5000, 10000, 50000];
 
-                <div className="cetes-calculator-grid">
-                  <label className="cetes-field">
-                    <span>Monto inicial</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={balance}
-                      onChange={(event) => setBalance(event.target.value)}
-                    />
-                  </label>
-
-                  <label className="cetes-field">
-                    <span>Tasa anual</span>
-                    <div className="cetes-input-with-suffix">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={fixedRate}
-                        onChange={(event) => setFixedRate(event.target.value)}
-                      />
-                      <em>%</em>
+              return (
+                <div className="cetes-calculator-panel">
+                  <div className="cetes-calculator-header">
+                    <div>
+                      <span className="eyebrow orange">Simulador</span>
+                      <h3>{institutionSimulator.title}</h3>
                     </div>
-                  </label>
+                    <span className="cetes-pill">{institutionNameForSimulator}</span>
+                  </div>
+                  <p className="simulator-subtitle">{institutionSimulatorSubtitle}</p>
 
-                  <label className="cetes-field">
-                    <span>{activeTab === "vista" ? "Días a proyectar" : "Plazo en días"}</span>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={termDays}
-                      onChange={(event) => setTermDays(event.target.value)}
-                    />
-                  </label>
-                </div>
-
-                {(institutionCalculatorType === "banco-plata" ||
-                  (institutionCalculatorType === "generic" && ((selectedProduct?.promoCap || 0) > 0 || Number(promoCapInput) > 0))) && (
-                  <div className="cetes-calculator-grid extra-simulator-row">
-                    <label className="cetes-field">
-                      <span>Tope promocional</span>
+                  <div className="cetes-calculator-grid">
+                    <div className="cetes-field">
+                      <span>Monto inicial</span>
                       <input
                         type="number"
                         min="0"
                         step="0.01"
-                        value={promoCapInput}
-                        onChange={(event) => setPromoCapInput(event.target.value)}
+                        value={balance}
+                        onChange={(event) => setBalance(event.target.value)}
                       />
-                    </label>
-                  </div>
-                )}
+                      <div className="simulator-presets">
+                        {quickBalanceIncrements.map((inc) => (
+                          <button
+                            key={inc}
+                            type="button"
+                            className="preset-chip"
+                            onClick={() => setBalance(String((Number(balance) || 0) + inc))}
+                          >
+                            +${inc >= 1000 ? `${inc / 1000}k` : inc}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                {institutionCalculatorType === "kubo" && (
-                  <div className="simulator-hint">
-                    Retención estimada: 7.7% anual aplicada al rendimiento.
-                  </div>
-                )}
+                    <div className="cetes-field">
+                      <span>Tasa anual</span>
+                      <div className="cetes-input-with-suffix">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={fixedRate}
+                          onChange={(event) => setFixedRate(event.target.value)}
+                        />
+                        <em>%</em>
+                      </div>
+                    </div>
 
-                <div className="cetes-results-grid">
-                  {institutionCalculatorType === "kubo" ? (
-                    <>
-                      <div className="cetes-result-card">
-                        <small>Ganancia del ciclo</small>
-                        <strong>{money.format((institutionSimulator.finalAmount ?? 0) - (Number(balance) || 0))}</strong>
+                    <div className="cetes-field">
+                      <span>{activeTab === "vista" ? "Días a proyectar" : "Plazo en días"}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={termDays}
+                        onChange={(event) => setTermDays(event.target.value)}
+                      />
+                      <div className="simulator-presets">
+                        {quickTermPresets.map((days) => (
+                          <button
+                            key={days}
+                            type="button"
+                            className={`preset-chip ${Number(termDays) === days ? "active" : ""}`}
+                            onClick={() => setTermDays(String(days))}
+                          >
+                            {days}d
+                          </button>
+                        ))}
                       </div>
-                      <div className="cetes-result-card">
-                        <small>Siguiente reinversión</small>
-                        <strong>{money.format((institutionSimulator.nextCycleAmount ?? institutionSimulator.finalAmount) - (institutionSimulator.finalAmount ?? 0))}</strong>
+                    </div>
+                  </div>
+
+                  {(institutionCalculatorType === "banco-plata" ||
+                    (institutionCalculatorType === "generic" && ((selectedProduct?.promoCap || 0) > 0 || Number(promoCapInput) > 0))) && (
+                    <div className="cetes-calculator-grid extra-simulator-row">
+                      <div className="cetes-field">
+                        <span>Tope promocional</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={promoCapInput}
+                          onChange={(event) => setPromoCapInput(event.target.value)}
+                        />
                       </div>
-                      <div className="cetes-result-card">
-                        <small>Proyección anual</small>
-                        <strong>{money.format(institutionSimulator.annualGain)}</strong>
-                      </div>
-                      <div className="cetes-result-card">
-                        <small>Saldo estimado</small>
-                        <strong>{money.format(institutionSimulator.nextCycleAmount ?? institutionSimulator.finalAmount)}</strong>
-                      </div>
-                      <div className="cetes-result-card cetes-result-accent">
-                        <small>Monto al vencimiento</small>
-                        <strong>{money.format(institutionSimulator.finalAmount)}</strong>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="cetes-result-card">
-                        <small>Ganancia diaria</small>
-                        <strong>{money.format(institutionSimulator.dailyGain)}</strong>
-                      </div>
-                      <div className="cetes-result-card">
-                        <small>Ganancia semanal</small>
-                        <strong>{money.format(institutionSimulator.weeklyGain)}</strong>
-                      </div>
-                      <div className="cetes-result-card">
-                        <small>Ganancia mensual</small>
-                        <strong>{money.format(institutionSimulator.monthlyGain)}</strong>
-                      </div>
-                      <div className="cetes-result-card">
-                        <small>Ganancia anual</small>
-                        <strong>{money.format(institutionSimulator.annualGain)}</strong>
-                      </div>
-                      <div className="cetes-result-card cetes-result-accent">
-                        <small>{activeTab === "vista" ? "Saldo proyectado" : "Monto al vencimiento"}</small>
-                        <strong>{money.format(institutionSimulator.finalAmount)}</strong>
-                      </div>
-                    </>
+                    </div>
                   )}
+
+                  {institutionCalculatorType === "kubo" && (
+                    <div className="simulator-hint">
+                      Retención estimada: 7.7% anual aplicada al rendimiento.
+                    </div>
+                  )}
+
+                  <div className="simulator-results-container">
+                    <div className="simulator-hero-card">
+                      <div className="simulator-hero-info">
+                        <span className="simulator-hero-kicker">
+                          {activeTab === "vista" ? "Saldo proyectado al término" : "Monto final al vencimiento"}
+                        </span>
+                        <div className="simulator-hero-amount">
+                          {money.format(institutionSimulator.finalAmount)}
+                        </div>
+                      </div>
+                      <div className="simulator-hero-badge">
+                        <span className="simulator-hero-gain-label">Ganancia estimada</span>
+                        <span className="simulator-hero-gain-value">
+                          +{money.format(isKubo ? (institutionSimulator.finalAmount ?? 0) - (Number(balance) || 0) : totalProfit)}
+                          <small> (+{totalProfitPct}%)</small>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="cetes-results-grid">
+                      {isKubo ? (
+                        <>
+                          <div className="cetes-result-card">
+                            <small>Ganancia del ciclo</small>
+                            <strong>{money.format((institutionSimulator.finalAmount ?? 0) - (Number(balance) || 0))}</strong>
+                          </div>
+                          <div className="cetes-result-card">
+                            <small>Siguiente reinversión</small>
+                            <strong>{money.format((institutionSimulator.nextCycleAmount ?? institutionSimulator.finalAmount) - (institutionSimulator.finalAmount ?? 0))}</strong>
+                          </div>
+                          <div className="cetes-result-card">
+                            <small>Proyección anual</small>
+                            <strong>{money.format(institutionSimulator.annualGain)}</strong>
+                          </div>
+                          <div className="cetes-result-card">
+                            <small>Saldo estimado</small>
+                            <strong>{money.format(institutionSimulator.nextCycleAmount ?? institutionSimulator.finalAmount)}</strong>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="cetes-result-card">
+                            <small>Ganancia diaria</small>
+                            <strong>{money.format(institutionSimulator.dailyGain)}</strong>
+                          </div>
+                          <div className="cetes-result-card">
+                            <small>Ganancia semanal</small>
+                            <strong>{money.format(institutionSimulator.weeklyGain)}</strong>
+                          </div>
+                          <div className="cetes-result-card">
+                            <small>Ganancia mensual</small>
+                            <strong>{money.format(institutionSimulator.monthlyGain)}</strong>
+                          </div>
+                          <div className="cetes-result-card">
+                            <small>Ganancia anual</small>
+                            <strong>{money.format(institutionSimulator.annualGain)}</strong>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
             {activeTab !== "etf" && (
               <div className="calculation-note">
                 <strong>
