@@ -70,3 +70,26 @@ test('Mifel matches the official balance deducting 12.47 ISR: 499029.73 - 12.47 
   assert.equal(netBalanceRounded, 499017.26, 'Saldo neto oficial Mifel debe ser 499017.26');
 });
 
+test('Mifel matches the official balance deducting 12.48 ISR for 02-09: 499017.26 + 126.14 = 499143.40', () => {
+  const availableBalance = 499017.26;
+  const annualRate = 10;
+  const startDate = new Date('2026-09-02T00:00:00');
+  const calculationDate = new Date('2026-09-03T00:00:00');
+  const result = calculateUpdatedBalance({
+    availableBalance,
+    annualRate,
+    startDate,
+    calculationDate,
+    calculationMethod: 'mifel360',
+    taxRate: 9,
+  });
+
+  const dailyYieldRounded = Number(result.totalAccumulated.toFixed(2));
+  const isrRounded = Number(result.accumulatedTaxWithheld.toFixed(2));
+  const netBalanceRounded = Number(result.fixed.toFixed(2));
+
+  assert.equal(dailyYieldRounded, 138.62, 'Ganancia diaria bruta esperada es 138.62');
+  assert.equal(isrRounded, 12.48, 'ISR retenido esperado es 12.48');
+  assert.equal(netBalanceRounded, 499143.40, 'Saldo neto disponible real en Mifel debe ser 499143.40');
+});
+

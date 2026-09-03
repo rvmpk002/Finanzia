@@ -74,9 +74,16 @@ const profit = (item: Investment, institutions: Institution[] = []) => {
   return value(calculated.totalAccumulated);
 };
 const vistaGainForDays = (item: Investment, days: number, institutions: Institution[] = []) => {
-  if (item.institutionId === "didi-cuenta" && item.productId === "didi-cuenta") return didiNetInterest(value(item.balance), days);
-  if (item.institutionId === "mercado-pago" && item.productId === "mercado-pago") return mercadoPagoInterest(value(item.balance), 12, days);
-  if (item.institutionId === "openbank" && item.productId === "openbank") return openbankInterest(value(item.balance), 13, 7, days, 360);
+  const normInstId = (item.institutionId ?? "").toLowerCase().trim();
+  const normProdId = (item.productId ?? "").toLowerCase().trim();
+  if (normInstId === "mifel" || normProdId.includes("mifel")) {
+    const principal = value(item.balance);
+    const annualRate = item.annualRate ?? 10;
+    return (principal * (annualRate / 100) * (days / 360)) * (1 - 0.09);
+  }
+  if ((normInstId === "didi-cuenta" || normInstId === "didi") && normProdId.includes("didi")) return didiNetInterest(value(item.balance), days);
+  if (normInstId === "mercado-pago" && normProdId.includes("mercado-pago")) return mercadoPagoInterest(value(item.balance), 12, days);
+  if (normInstId === "openbank" && normProdId.includes("openbank")) return openbankInterest(value(item.balance), 13, 7, days, 360);
   const calculated = calculateInvestment(item as any, institutions as any);
   return value(calculated.dailyYield) * days;
 };

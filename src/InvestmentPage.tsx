@@ -218,7 +218,7 @@ export default function InvestmentPage({
   const isDidi = institutionId === "didi-cuenta";
   const isKubo = institutionId === "kubo";
   const isKuboTerm = isKubo && activeTab === "plazo";
-  const isMifel = institutionId === "mifel";
+  const isMifel = institutionId?.toLowerCase() === "mifel" || productId?.toLowerCase().includes("mifel");
   const isOpenbank = institutionId === "openbank";
   const isMercadoPago = institutionId === "mercado-pago";
   const canonicalMifelPromoCap = 500000;
@@ -250,7 +250,7 @@ export default function InvestmentPage({
     : isKubo
       ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
       : isMifel
-        ? mifelInterest(availableBalance, annualRate, 1)
+        ? mifelInterest(availableBalance, annualRate, 1) * (1 - 0.09)
         : isDidi
           ? didiNetInterest(availableBalance, 1)
         : isMercadoPago
@@ -273,7 +273,7 @@ export default function InvestmentPage({
         excessRate,
       )
     : isMifel
-      ? mifelInterest(availableBalance, annualRate, monthlyDays)
+      ? mifelInterest(availableBalance, annualRate, monthlyDays) * (1 - 0.09)
       : isDidi
         ? didiNetInterest(availableBalance, monthlyDays)
       : isMercadoPago
@@ -323,7 +323,7 @@ export default function InvestmentPage({
     parseDate(startDate),
     calculationDate,
   );
-  const taxWithheld = isMifel ? dailyYield * 0.09 : 0;
+  const taxWithheld = isMifel ? (mifelInterest(availableBalance, annualRate, 1) * 0.09) : 0;
   const accumulatedTaxWithheld = isMifel ? totalAccumulated * 0.09 : 0;
   const updatedBalance = Math.max(
     0,
@@ -338,7 +338,7 @@ export default function InvestmentPage({
     availableBalance + (isKubo ? totalAccumulated : monthlyYield),
   );
   const estimatedToday = Math.max(0, availableBalance + dailyYield);
-  const netDailyYield = dailyYield - taxWithheld;
+  const netDailyYield = isMifel ? dailyYield : dailyYield - taxWithheld;
   
   // Determine which simulator to show and in which tab
   const getSimulatorInfo = () => {

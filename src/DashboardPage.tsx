@@ -197,14 +197,17 @@ export const calculateInvestment = (
   const calculate = (formula: string, variables: Record<string, number>, fallback: number) => {
     try { return evaluateFormula(formula, variables); } catch { return fallback; }
   };
+  const normalizedInstitutionId = (investment.institutionId ?? "").toLowerCase().trim();
+  const normalizedProductId = (investment.productId ?? "").toLowerCase().trim();
   const product = institutions
-    .find((institution) => institution.id === investment.institutionId)
-    ?.products.find((item) => item.id === investment.productId);
-  const isNuInvestment = investment.institutionId === "nu";
-  const isOpenbankInvestment = investment.institutionId === "openbank";
-  const isDidiInvestment = investment.institutionId === "didi-cuenta";
-  const isMercadoPagoInvestment = investment.institutionId === "mercado-pago";
-  const isBancoPlata = investment.institutionId === "banco-plata";
+    .find((institution) => institution.id.toLowerCase() === normalizedInstitutionId || institution.name.toLowerCase() === normalizedInstitutionId)
+    ?.products.find((item) => item.id.toLowerCase() === normalizedProductId || item.name.toLowerCase() === normalizedProductId);
+  const isNuInvestment = normalizedInstitutionId === "nu";
+  const isOpenbankInvestment = normalizedInstitutionId === "openbank";
+  const isDidiInvestment = normalizedInstitutionId === "didi-cuenta" || normalizedInstitutionId === "didi";
+  const isMercadoPagoInvestment = normalizedInstitutionId === "mercado-pago";
+  const isBancoPlata = normalizedInstitutionId === "banco-plata";
+  const isMifelInvestment = normalizedInstitutionId === "mifel" || product?.calculationMethod === "mifel360" || (investment as any).calculationMethod === "mifel360" || normalizedProductId.includes("mifel");
   const openbankAnnualRate = 13;
   const openbankExcessRate = 7;
   const openbankDaysBase = 360;
@@ -215,8 +218,10 @@ export const calculateInvestment = (
     ? "openbank"
     : isDidiInvestment
       ? "didi"
+    : isMifelInvestment
+      ? "mifel360"
     : product?.calculationMethod ?? (investment.type === "plazo" ? "simple" : "compound");
-  const taxRate = product?.taxRate ?? (investment.institutionId === "mifel" ? 9 : 0);
+  const taxRate = product?.taxRate ?? (isMifelInvestment ? 9 : 0);
   const defaultDaysBase = isBancoPlata ? 360 : 365;
   const daysBase = product?.daysBase ?? defaultDaysBase;
   const promotionDays = product?.promotionDays ?? 60;
@@ -226,7 +231,7 @@ export const calculateInvestment = (
   const annualRate = isOpenbankInvestment ? openbankAnnualRate : investment.annualRate ?? catalogAnnualRate;
   const catalogExcessRate = product?.excessRate ?? annualRate;
   const excessRate = isOpenbankInvestment ? openbankExcessRate : investment.excessRate ?? catalogExcessRate;
-  const calculationDaysBase = isOpenbankInvestment ? openbankDaysBase : isDidiInvestment ? 360 : isBancoPlata ? 360 : daysBase;
+  const calculationDaysBase = isOpenbankInvestment ? openbankDaysBase : isDidiInvestment ? 360 : isBancoPlata ? 360 : isMifelInvestment ? 360 : daysBase;
   const isVista = normalizeInvestmentType(investment.institutionId, investment.type) === "vista" || investment.type === "vista";
   const balance = Math.max(0, Number(investment.balance) || 0);
   const withdrawn = Math.max(0, Number(investment.withdrawn) || 0);
@@ -279,6 +284,8 @@ export const calculateInvestment = (
     ? nuDailyYield
     : isDidiInvestment
       ? didiNetInterest(availableBalance, 1)
+    : isMifelInvestment
+      ? mifelInterest(availableBalance, annualRate, 1, 360) * (1 - taxRate / 100)
     : calculationMethod === "flexible"
       ? flexibleUltraInterest(availableBalance, promoCap, 1, annualRate, excessRate, promotionDays, calculationDaysBase)
       : calculationMethod === "kubo"
@@ -288,7 +295,7 @@ export const calculateInvestment = (
           : calculationMethod === "simple360"
             ? configuredSimpleInterest(availableBalance, annualRate, 1, 360)
             : calculationMethod === "mifel360"
-              ? mifelInterest(availableBalance, annualRate, 1)
+              ? mifelInterest(availableBalance, annualRate, 1, 360) * (1 - taxRate / 100)
               : calculationMethod === "openbank"
                 ? openbankInterest(availableBalance, annualRate, excessRate, 1, calculationDaysBase)
                 : isMercadoPagoInvestment
@@ -299,6 +306,8 @@ export const calculateInvestment = (
     ? nuMonthlyYield
     : isDidiInvestment
       ? didiNetInterest(availableBalance, monthlyDays)
+    : isMifelInvestment
+      ? mifelInterest(availableBalance, annualRate, monthlyDays, 360) * (1 - taxRate / 100)
     : isFlexibleUltra
       ? flexibleUltraInterest(availableBalance, promoCap, monthlyDays, annualRate, excessRate, promotionDays, calculationDaysBase)
       : calculationMethod === "simple"
@@ -306,14 +315,15 @@ export const calculateInvestment = (
         : calculationMethod === "simple360"
           ? configuredSimpleInterest(availableBalance, annualRate, monthlyDays, 360)
           : calculationMethod === "mifel360"
-            ? mifelInterest(availableBalance, annualRate, monthlyDays)
+            ? mifelInterest(availableBalance, annualRate, monthlyDays, 360) * (1 - taxRate / 100)
             : calculationMethod === "openbank"
               ? openbankInterest(availableBalance, annualRate, excessRate, monthlyDays, calculationDaysBase)
               : isMercadoPagoInvestment
                 ? mercadoPagoInterest(availableBalance, 12, monthlyDays)
                 : configuredCompoundInterest(promoBalance, annualRate, monthlyDays) +
                 configuredCompoundInterest(excessBalance, effectiveExcessRate, monthlyDays);
-  const totalAccumulated = Math.max(
+  const grossTotalAccumulated = Math.max(
+    0,
     isNuInvestment
       ? (availableBalance * annualRate / 100) * (daysElapsed / 365)
       : isDidiInvestment
@@ -327,8 +337,8 @@ export const calculateInvestment = (
               configuredCompoundInterest(excessBalance, effectiveExcessRate, daysElapsed)
             : calculationMethod === "kubo"
               ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
-              : calculationMethod === "mifel360"
-                ? mifelInterest(availableBalance, annualRate, daysElapsed)
+              : calculationMethod === "mifel360" || isMifelInvestment
+                ? mifelInterest(availableBalance, annualRate, daysElapsed, 360)
                 : calculationMethod === "openbank"
                   ? openbankInterest(availableBalance, annualRate, excessRate, daysElapsed, calculationDaysBase)
                   : completedMonthsBetween(startDate, calculationDate) > 0
@@ -340,14 +350,16 @@ export const calculateInvestment = (
                         : configuredCompoundInterest(promoBalance, annualRate, daysElapsed) +
                         configuredCompoundInterest(excessBalance, effectiveExcessRate, daysElapsed),
   );
-  const isMifelInvestment = investment.institutionId === "mifel" || calculationMethod === "mifel360";
+  const totalAccumulated = isMifelInvestment
+    ? grossTotalAccumulated * (1 - taxRate / 100)
+    : grossTotalAccumulated;
   const completedMonths = completedMonthsBetween(startDate, calculationDate);
   const accumulatedTaxWithheld = isMifelInvestment
-    ? totalAccumulated * (taxRate / 100)
+    ? grossTotalAccumulated * (taxRate / 100)
     : 0;
   const calculatedUpdatedBalance = getCalculatedUpdatedBalance(
     availableBalance,
-    totalAccumulated,
+    grossTotalAccumulated,
     calculationMethod,
     monthlyYield,
     completedMonths,
@@ -359,7 +371,7 @@ export const calculateInvestment = (
       formulas.updatedBalance,
       {
         availableBalance,
-        totalAccumulated: isMifelInvestment ? totalAccumulated - accumulatedTaxWithheld : totalAccumulated,
+        totalAccumulated: isMifelInvestment ? totalAccumulated : totalAccumulated,
         monthlyYield,
         completedMonths,
       },
@@ -370,11 +382,12 @@ export const calculateInvestment = (
     0,
     availableBalance + monthlyYield,
   );
-  const taxWithheld = dailyYield * (taxRate / 100);
+  const grossDaily = isMifelInvestment ? mifelInterest(availableBalance, annualRate, 1, 360) : dailyYield;
+  const taxWithheld = grossDaily * (taxRate / 100);
   const resolvedUpdatedBalance = isNuInvestment
     ? Math.max(0, availableBalance + totalAccumulated)
     : isMifelInvestment
-      ? Math.max(0, availableBalance + totalAccumulated - accumulatedTaxWithheld)
+      ? Math.max(0, availableBalance + grossTotalAccumulated - accumulatedTaxWithheld)
       : updatedBalance;
   return {
     ...investment,
@@ -708,14 +721,21 @@ export default function DashboardPage({
       ?.products.find((product) => product.id === investment.productId)?.name ??
     "Producto eliminado";
   const vistaGainForDays = (investment: Investment, days: number) => {
-    if (investment.institutionId === "openbank") {
+    const normInstId = (investment.institutionId ?? "").toLowerCase().trim();
+    const normProdId = (investment.productId ?? "").toLowerCase().trim();
+    if (normInstId === "mifel" || normProdId.includes("mifel")) {
+      const principal = Math.max(0, Number(investment.balance) || 0);
+      const annualRate = investment.annualRate ?? 10;
+      return (principal * (annualRate / 100) * (days / 360)) * (1 - 0.09);
+    }
+    if (normInstId === "openbank") {
       const principal = Math.max(0, Number(investment.balance) || 0);
       return openbankInterest(principal, 13, 7, days, 360);
     }
-    if (investment.institutionId === "mercado-pago") {
+    if (normInstId === "mercado-pago") {
       return mercadoPagoInterest(Number(investment.balance) || 0, 12, days);
     }
-    if (investment.institutionId === "didi-cuenta") {
+    if (normInstId === "didi-cuenta" || normInstId === "didi") {
       const principal = Math.max(0, Number(investment.balance) || 0);
       return didiNetInterest(principal, days);
     }

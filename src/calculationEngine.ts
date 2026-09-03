@@ -43,6 +43,14 @@ export const kuboInterest = (principal: number, annualRate: number, days: number
 export const mifelInterest = (principal: number, annualRate: number, days: number, daysBase = 360) =>
   principal * (annualRate / 100) * (days / daysBase);
 
+export const mifelNetInterest = (
+  principal: number,
+  annualRate: number,
+  days: number,
+  taxRate = 9,
+  daysBase = 360,
+) => mifelInterest(principal, annualRate, days, daysBase) * (1 - taxRate / 100);
+
 export const openbankTieredInterest = (
   principal: number,
   firstTierRate: number,
