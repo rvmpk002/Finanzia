@@ -1059,12 +1059,20 @@ export default function DashboardPage({
             )}
             {standardInvestments.length > 0 && <>
               {activeTab === "vista" && (
-                <div className="calculation-note">
-                  <strong>Mifel:</strong>
-                  <span>
-                    Los rendimientos y el ISR se calculan diariamente; si el día cae en fin de semana, el registro se refleja en el siguiente día hábil.
-                  </span>
-                </div>
+                <>
+                  <div className="calculation-note">
+                    <strong>Mifel:</strong>
+                    <span>
+                      Los rendimientos y el ISR se calculan diariamente; si el día cae en fin de semana, el registro se refleja en el siguiente día hábil.
+                    </span>
+                  </div>
+                  <div className="calculation-note">
+                    <strong>Mercado Pago:</strong>
+                    <span>
+                      Los rendimientos provienen de un fondo de inversión (GBM) y bonificaciones de tasa variable; el cálculo es una proyección estimada de referencia y puede presentar ligeras discrepancias frente al abono diario real.
+                    </span>
+                  </div>
+                </>
               )}
               <div className="table-scroll">
               <table>

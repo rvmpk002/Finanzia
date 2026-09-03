@@ -1436,14 +1436,14 @@ export default function InvestmentPage({
                   {isMifel
                     ? `El saldo máximo de este producto es ${money.format(promoCap)}.`
                     : institutionId === "mercado-pago"
-                      ? "Tasa anual fija del 12%."
+                      ? "Rendimiento variable (proyección de referencia)."
                       : `Excedente calculado al ${excessRate}% anual.`}
                 </strong>
                 <span>
                   {isMifel
                     ? "Los rendimientos y el ISR se calculan diariamente; si el día cae en fin de semana, el registro se refleja en el siguiente día hábil."
                     : institutionId === "mercado-pago"
-                      ? "Este producto se calcula con una sola regla: 12% anual fijo y sin compra mensual ni tope promocional."
+                      ? "Los rendimientos provienen de un fondo de inversión (GBM) y bonificaciones de tasa variable; el cálculo es una proyección estimada y puede presentar una pequeña discrepancia frente al abono diario real."
                       : "La promoción se aplica hasta el tope definido por el producto seleccionado."}
                 </span>
               </div>
