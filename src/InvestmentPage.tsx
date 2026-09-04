@@ -226,7 +226,7 @@ export default function InvestmentPage({
   const annualRate = selectedProduct ? Number(fixedRate) : 0;
   const excessRate = Math.max(0, Number(excessRateInput) || 0);
   const effectiveKuboDays = isKubo
-    ? Math.max(1, Number(termDays) || Math.max(1, Math.floor((parseDate(endDate).getTime() - parseDate(startDate).getTime()) / 86400000)))
+    ? Math.max(1, Number(termDays) || 1)
     : 0;
   const daysElapsed = Math.max(
     0,
@@ -284,13 +284,13 @@ export default function InvestmentPage({
           officialMonthlyInterest(excessBalance, excessRate, monthlyDays);
   const totalAccumulated = Math.max(
     0,
-    activeTab === "plazo"
-      ? simpleInterest(availableBalance, annualRate, daysElapsed)
-      : isDidi
-        ? compoundInterest(promoBalance, annualRate, daysElapsed) +
-          compoundInterest(excessBalance, excessRate, daysElapsed)
-        : isKubo
-          ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
+    isKubo
+      ? kuboInterest(availableBalance, annualRate, effectiveKuboDays)
+      : activeTab === "plazo"
+        ? simpleInterest(availableBalance, annualRate, daysElapsed)
+        : isDidi
+          ? compoundInterest(promoBalance, annualRate, daysElapsed) +
+            compoundInterest(excessBalance, excessRate, daysElapsed)
           : isMifel
             ? mifelInterest(availableBalance, annualRate, daysElapsed)
             : isDidi

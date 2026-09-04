@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateInvestment, fromLocalDateString, prepareUpdatedInvestmentOnBalanceEdit, resolveLatestInvestmentRecord, toLocalDateString, withdrawnAfterUpdatedBalanceEdit } from './DashboardPage.tsx';
+import { calculateInvestment, fromLocalDateString, kuboAvailabilityDate, prepareUpdatedInvestmentOnBalanceEdit, resolveLatestInvestmentRecord, toLocalDateString, withdrawnAfterUpdatedBalanceEdit } from './DashboardPage.tsx';
 import { didiInterest, didiNetInterest, kuboInterest, mercadoPagoInterest, openbankTieredInterest, resolveRateSplit, simpleInterest } from './calculationEngine.ts';
 import { shouldShowMercadoPagoMinimumBalanceWarning } from './warningRules';
 
@@ -120,6 +120,38 @@ test('Kubo short-term maturity matches the official net return for a 3-day term'
   const interest = kuboInterest(27925.21, 10, 3);
 
   assert.ok(Math.abs(interest - 21.18) < 0.2, `Kubo net interest should be around $21.18, got $${interest.toFixed(2)}`);
+});
+
+test('Kubo matches the official app for 1-day term: 27,967.58 at 10% yields 7.07 interest and 27,974.65 final', () => {
+  const principal = 27967.58;
+  const rate = 10;
+  const days = 1;
+  const interest = kuboInterest(principal, rate, days);
+  assert.equal(interest.toFixed(2), '7.07');
+  assert.equal((principal + Number(interest.toFixed(2))).toFixed(2), '27974.65');
+});
+
+test('Kubo availability date for Thursday starts on Thursday and lands on Monday', () => {
+  const availability = kuboAvailabilityDate('2026-09-03', 1);
+  assert.equal(availability, '2026-09-07');
+});
+
+test('Kubo prepareUpdatedInvestmentOnBalanceEdit correctly computes balance from Monto a recibir', () => {
+  const investment = {
+    institutionId: 'kubo',
+    productId: 'kubo-liquidez',
+    type: 'plazo' as const,
+    balance: 27953.46,
+    updatedBalance: 27960.53,
+    termDays: 1,
+    annualRate: 10,
+    startDate: '2026-09-03',
+    endDate: '2026-09-07',
+  };
+  const updated = prepareUpdatedInvestmentOnBalanceEdit(investment as any, 27974.65, true, '2026-09-04');
+  assert.equal(updated.balance, 27967.58);
+  assert.equal(updated.updatedBalance, 27974.65);
+  assert.equal(updated.totalAccumulated, 7.07);
 });
 
 test('Kubo uses the configured term days instead of the calendar span when the chosen term is 3 days', () => {
