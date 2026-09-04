@@ -1,0 +1,31 @@
+{
+  "name": "Finanzia - Directorio Financiero",
+  "short_name": "Finanzia",
+  "description": "Directorio financiero y gestión de servicios",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#111211",
+  "theme_color": "#111211",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
